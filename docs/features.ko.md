@@ -10,3 +10,4 @@
 - [ ] H6 — P1: version 0.0.1을 릴리스하고 registry에 올린다. core 0.0.8과 files sidecar 0.0.5 이상을 요구한다.
 - [ ] H7 — P2: 쪽을 카드 폭에 맞춘다. 카드보다 넓은 쪽은 그 폭으로 줄이고, 클릭과 커서도 같은 배율을 쓴다.
 - [ ] H8 — P1: 사용자 승인을 받아 activation tier 검사로 커서의 한글 입력기 조합을 같은 창의 AppKit text view와 비교해 확인한다.
+- [ ] H9 — P1: H2, H3, H4의 표면 대신 rhwp의 편집기로 편집한다. package는 rhwp tag `v0.8.7`에서 고치지 않고 build한 `rhwp-studio`를 담고, page는 그것을 document region(core F111)에 보이며, embed protocol의 `loadFile` 요청으로 파일을 보내고 `exportHwp`나 `exportHwpx`의 bytes를 저장하며, `getDocumentState`로 저장하지 않은 변경을 알린다. 선택, 클립보드, 되돌리기, 입력기, 서식, 표는 편집기 자신의 것이다. H2, H3, H4가 그린 page와 그 테스트는 지운다.
