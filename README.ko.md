@@ -6,6 +6,7 @@ HWP plugin은 프로젝트의 HWP와 HWPX 문서를 [rhwp](https://github.com/ed
 
 ```sh
 make test                                   # test
+make studio                                 # ui/studio의 rhwp-studio
 make pack OUT=<folder> SOK=<core>/target/debug/sok   # plugin package
 ```
 

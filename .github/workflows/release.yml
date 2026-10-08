@@ -18,6 +18,10 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - uses: pnpm/action-setup@v4
       - uses: actions/checkout@v4
         with:
           repository: soksak-app/core
@@ -28,6 +32,7 @@ jobs:
           go-version-file: core/packages/sok/wailsv3/go.mod
       - name: Build sok
         run: go build -C core/packages/sok/wailsv3 -o "$RUNNER_TEMP/sok" ./src/cmd/sok
+      # make pack builds rhwp-studio into ui/studio before it packs the plugin.
       - name: Pack
         run: make pack SOK="$RUNNER_TEMP/sok" OUT=dist
       - uses: softprops/action-gh-release@v2

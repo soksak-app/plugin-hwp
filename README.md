@@ -6,6 +6,7 @@ HWP plugin: opens the HWP and HWPX documents of the project with [rhwp](https://
 
 ```sh
 make test                                   # tests
+make studio                                 # rhwp-studio in ui/studio
 make pack OUT=<folder> SOK=<core>/target/debug/sok   # the plugin package
 ```
 
