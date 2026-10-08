@@ -1,0 +1,29 @@
+{
+  "name": "@soksak/plugin-hwp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "description": "HWP plugin: opens HWP and HWPX documents of the project with rhwp, edits their text and saves them through the files sidecar.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soksak-app/plugin-hwp.git"
+  },
+  "engines": {
+    "soksak": ">=0.0.8"
+  },
+  "files": [
+    "plugin.json",
+    "ui"
+  ],
+  "scripts": {
+    "build": "node scripts/build-vendor.mjs",
+    "test": "node scripts/build-vendor.mjs --check && node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@rhwp/core": "0.8.7",
+    "@soksak/plugin-api": "git+https://github.com/soksak-app/core.git#v0.0.8&path:/packages/plugin-api",
+    "jsdom": "^30.1.1"
+  }
+}

@@ -1,0 +1,12 @@
+# HWP plugin
+
+[English](README.md)
+
+HWP plugin은 프로젝트의 HWP와 HWPX 문서를 [rhwp](https://github.com/edwardkim/rhwp)로 열어 쪽을 그리고, 본문 글을 고쳐 files sidecar로 같은 형식으로 저장한다. Plugin 형식은 soksak core spec(`docs/spec/plugins.md`)이 정한다.
+
+```sh
+make test                                   # test
+make pack OUT=<folder> SOK=<core>/target/debug/sok   # plugin package
+```
+
+Checklist는 [docs/features.md](docs/features.md)다.
