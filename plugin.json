@@ -43,7 +43,7 @@
     "status": [
       {
         "name": "hwp.document",
-        "description": "The open document: its path relative to the project root, its format hwp or hwpx, the SHA-256 version of the last read or write, whether the editor holds unsaved edits as modified, the number of pages of the last load, and whether the file on disk is the same or changed.",
+        "description": "The open document: its path relative to the project root, its format hwp or hwpx, the SHA-256 version of the last read or write, whether the editor holds unsaved edits as modified, whether it holds a selection, the number of pages of the last load, and whether the file on disk is the same or changed.",
         "schema": {
           "type": "object",
           "properties": {
@@ -60,6 +60,9 @@
               ]
             },
             "modified": {
+              "type": "boolean"
+            },
+            "selection": {
               "type": "boolean"
             },
             "pages": {

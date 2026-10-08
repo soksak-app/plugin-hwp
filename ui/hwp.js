@@ -49,7 +49,7 @@ export async function mount(root, context) {
   const banner = root.querySelector("#banner");
   const address = `soksak-package://${context.pluginId}/ui/studio/index.html?chrome=embed`;
 
-  let state = { path, format, version: null, modified: false, pages: 0, disk: "same" };
+  let state = { path, format, version: null, modified: false, selection: false, pages: 0, disk: "same" };
   let diskVersion = null;
   const listeners = new Set();
   const publish = (change) => {
@@ -95,6 +95,7 @@ export async function mount(root, context) {
       return;
     }
     if (message?.type === "soksak-hwp" && message.event === "modified") return setModified(message.modified);
+    if (message?.type === "soksak-hwp" && message.event === "selection") return publish({ selection: message.selection });
     // save shows its failure as the tab error.
     if (message?.type === "soksak-hwp" && message.event === "save") return void save().catch(() => {});
     if (message?.type === "soksak-hwp" && message.event === "error") return context.tab.error(`편집기 · ${message.message}`);

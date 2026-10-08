@@ -25,6 +25,7 @@ A later build reuses the checkout and its dependencies.
 
 - `{type: "soksak-hwp", event: "save"}` on Command-S, because the embed mode of `rhwp-studio` registers no save command and only prevents the default action of the shortcut;
 - `{type: "soksak-hwp", event: "modified", modified}` when `isDirty` of the automation context changes, read after each input event and each reply of the editor, because `rhwp-studio` has no change event for a page at the top level;
+- `{type: "soksak-hwp", event: "selection", selection}` when `hasSelection` of the automation context changes, read at the same times;
 - `{type: "soksak-hwp", event: "error", message}` when the script cannot read that state.
 
 ## Update to a later rhwp tag

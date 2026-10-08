@@ -127,7 +127,7 @@ test("the surface loads the editor page of the package and opens the file in it"
   assert.deepEqual(studio.requests, ["ready", "loadFile"]);
   assert.deepEqual(studio.document, bytes("첫 문단"));
   assert.deepEqual(status("hwp.document"), { path: "docs/plan.hwp", format: "hwp", version: sha(bytes("첫 문단")),
-    modified: false, pages: 1, disk: "same" });
+    modified: false, selection: false, pages: 1, disk: "same" });
   assert.deepEqual(reports.title, ["plan.hwp"]);
 });
 
@@ -177,6 +177,13 @@ test("a change on disk reloads an unmodified document and shows the banner over 
   assert.equal(status("hwp.document").disk, "changed");
   assert.equal(root.querySelector("#banner").hidden, false);
   assert.deepEqual(studio.document, bytes("새 글!"));
+});
+
+test("a selection message of the editor page sets the selection of hwp.document", async (t) => {
+  const { studio, status, settle } = await setup(t);
+  studio.post({ type: "soksak-hwp", event: "selection", selection: true });
+  await settle();
+  assert.equal(status("hwp.document").selection, true);
 });
 
 test("an error message of the editor page is shown as the tab error", async (t) => {

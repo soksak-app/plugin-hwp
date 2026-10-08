@@ -5,7 +5,7 @@ import { window } from "./dom.mjs";
 // ui/studio-host.js runs in the editor page; the test gives it the globals of that page and a fake automation context.
 globalThis.location = window.location;
 globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
-const context = { isDirty: false };
+const context = { isDirty: false, hasSelection: false };
 window.rhwpStudio = { automation: { getContext: () => context } };
 await import("../ui/studio-host.js");
 
@@ -44,6 +44,15 @@ test("a reply of the editor that saves the document posts modified false", async
   const reply = new window.MessageEvent("message", { data: { type: "rhwp-response", id: "notifySaved-1", result: { ok: true } }, source: window });
   assert.deepEqual(await posted(() => window.dispatchEvent(reply)),
     [{ type: "soksak-hwp", event: "modified", modified: false }]);
+});
+
+test("a pointer release that selects text posts selection, and a key that removes it posts it again", async () => {
+  context.hasSelection = true;
+  assert.deepEqual(await posted(() => window.document.body.dispatchEvent(new window.Event("pointerup", { bubbles: true }))),
+    [{ type: "soksak-hwp", event: "selection", selection: true }]);
+  context.hasSelection = false;
+  assert.deepEqual(await posted(() => window.document.body.dispatchEvent(key({ code: "ArrowRight", key: "ArrowRight" }))),
+    [{ type: "soksak-hwp", event: "selection", selection: false }]);
 });
 
 test("a context without isDirty posts an error", async () => {
