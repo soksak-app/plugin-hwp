@@ -1,13 +1,21 @@
 {
   "id": "hwp",
   "name": "한글 문서",
-  "description": "프로젝트의 HWP와 HWPX 문서를 rhwp로 열어 쪽을 보여 주고, 본문 글을 고쳐 같은 형식으로 저장한다.",
+  "description": "프로젝트의 HWP와 HWPX 문서를 rhwp-studio 편집기로 열어 고치고 같은 형식으로 저장한다.",
   "mark": "hwp",
   "icon": "<path d=\"M3 2.5h6.5L13 6v7.5H3z\"/><path d=\"M9.5 2.5V6H13M5.5 8.5v4M8.5 8.5v4M5.5 10.5h3\"/>",
   "surface": {
     "module": "ui/hwp.js",
     "composition": {
-      "kind": "dom"
+      "kind": "hybrid",
+      "regions": [
+        {
+          "name": "studio",
+          "kind": "document",
+          "input": "native"
+        }
+      ],
+      "overlays": []
     },
     "params": {
       "type": "object",
@@ -35,7 +43,7 @@
     "status": [
       {
         "name": "hwp.document",
-        "description": "The open document: its path relative to the project root, its format hwp or hwpx, the SHA-256 version of the last read or write, whether it holds unsaved edits as modified, the number of pages, the caret as section, paragraph and character offset of the body text and its rectangle in page coordinates, the text of an input method composition or an empty string, and whether the file on disk is the same or changed.",
+        "description": "The open document: its path relative to the project root, its format hwp or hwpx, the SHA-256 version of the last read or write, whether the editor holds unsaved edits as modified, the number of pages of the last load, and whether the file on disk is the same or changed.",
         "schema": {
           "type": "object",
           "properties": {
@@ -57,46 +65,12 @@
             "pages": {
               "type": "integer"
             },
-            "caret": {
-              "type": "object",
-              "properties": {
-                "section": {
-                  "type": "integer"
-                },
-                "paragraph": {
-                  "type": "integer"
-                },
-                "offset": {
-                  "type": "integer"
-                }
-              }
-            },
-            "composing": {
-              "type": "string"
-            },
             "disk": {
               "type": "string",
               "enum": [
                 "same",
                 "changed"
               ]
-            },
-            "caretRect": {
-              "type": "object",
-              "properties": {
-                "page": {
-                  "type": "integer"
-                },
-                "x": {
-                  "type": "number"
-                },
-                "y": {
-                  "type": "number"
-                },
-                "height": {
-                  "type": "number"
-                }
-              }
             }
           }
         }
@@ -105,7 +79,7 @@
     "commands": [
       {
         "name": "hwp.save",
-        "description": "Writes the document in its own format in place when the file on disk still has the version that the surface read; with overwrite, writes over the version that changed on disk. Content that the format would lose and other failures are shown as the tab's error.",
+        "description": "Exports the document of the editor in its own format and writes it in place when the file on disk still has the version that the surface read; with overwrite, writes over the version that changed on disk. Failures are shown as the tab's error.",
         "params": {
           "type": "object",
           "properties": {
@@ -125,7 +99,7 @@
       },
       {
         "name": "hwp.reload",
-        "description": "Reads the file again and discards unsaved edits.",
+        "description": "Reads the file again into the editor and discards unsaved edits.",
         "params": {
           "type": "object",
           "properties": {}
@@ -140,159 +114,20 @@
         }
       },
       {
-        "name": "hwp.edit",
-        "description": "Edits the body text at the caret: insert text, enter, backspace or delete, or moves the caret left, right, up or down.",
+        "name": "hwp.request",
+        "description": "Sends an embed request of rhwp-studio, such as automation.context or getPageSvg, with its params to the editor and returns its result.",
         "params": {
           "type": "object",
           "properties": {
-            "action": {
-              "type": "string",
-              "enum": [
-                "insert",
-                "enter",
-                "backspace",
-                "delete",
-                "left",
-                "right",
-                "up",
-                "down"
-              ]
-            },
-            "text": {
+            "method": {
               "type": "string"
-            }
-          }
-        },
-        "result": {
-          "type": "object",
-          "properties": {
-            "caret": {
-              "type": "object",
-              "properties": {
-                "section": {
-                  "type": "integer"
-                },
-                "paragraph": {
-                  "type": "integer"
-                },
-                "offset": {
-                  "type": "integer"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "name": "hwp.point",
-        "description": "Places the caret at a point of a page in page coordinates.",
-        "params": {
-          "type": "object",
-          "properties": {
-            "page": {
-              "type": "integer"
             },
-            "x": {
-              "type": "number"
-            },
-            "y": {
-              "type": "number"
+            "params": {
+              "type": "object"
             }
           }
         },
-        "result": {
-          "type": "object",
-          "properties": {
-            "caret": {
-              "type": "object",
-              "properties": {
-                "section": {
-                  "type": "integer"
-                },
-                "paragraph": {
-                  "type": "integer"
-                },
-                "offset": {
-                  "type": "integer"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "name": "hwp.caret",
-        "description": "Places the caret at a section, paragraph and character offset.",
-        "params": {
-          "type": "object",
-          "properties": {
-            "section": {
-              "type": "integer"
-            },
-            "paragraph": {
-              "type": "integer"
-            },
-            "offset": {
-              "type": "integer"
-            }
-          }
-        },
-        "result": {
-          "type": "object",
-          "properties": {
-            "caret": {
-              "type": "object",
-              "properties": {
-                "section": {
-                  "type": "integer"
-                },
-                "paragraph": {
-                  "type": "integer"
-                },
-                "offset": {
-                  "type": "integer"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "name": "hwp.compose",
-        "description": "Shows the text of an input method composition at the caret, or removes it with an empty string.",
-        "params": {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string"
-            }
-          }
-        },
-        "result": {
-          "type": "null"
-        }
-      },
-      {
-        "name": "hwp.text",
-        "description": "Returns the body text: paragraphs joined by a line break and sections by a blank line.",
-        "params": {
-          "type": "object",
-          "properties": {}
-        },
-        "result": {
-          "type": "string"
-        }
-      },
-      {
-        "name": "hwp.focus",
-        "description": "Focuses the input field at the caret.",
-        "params": {
-          "type": "object",
-          "properties": {}
-        },
-        "result": {
-          "type": "null"
-        }
+        "result": {}
       }
     ],
     "dom": [
@@ -313,12 +148,8 @@
         "description": "The button that writes over the file that changed on disk."
       },
       {
-        "name": "hwp.pages",
-        "description": "The pages of the document."
-      },
-      {
-        "name": "hwp.input",
-        "description": "The input field at the caret that takes typed text and composition."
+        "name": "hwp.studio",
+        "description": "The document region that shows rhwp-studio."
       }
     ]
   }

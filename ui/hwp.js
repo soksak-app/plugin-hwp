@@ -1,6 +1,8 @@
-// The HWP surface: opens the .hwp or .hwpx file tab.params.path of the project through the files sidecar with rhwp,
-// draws its pages, edits the body text at a caret and saves the file in its own format (docs/features.md).
-import { formatOf, fromBase64, loadRhwp, openDocument, toBase64 } from "./document.js";
+// The HWP surface: shows rhwp-studio, the editor of rhwp built into ui/studio (docs/studio.md), in the document region
+// "studio", opens the .hwp or .hwpx file tab.params.path of the project in it through the files sidecar, and saves the
+// document in its own format. The page talks to rhwp-studio with its embed requests {type: "rhwp-request", id, method,
+// params}, which rhwp-studio answers with {type: "rhwp-response", id, result | error}, and receives the messages of
+// ui/studio-host.js {type: "soksak-hwp", event}.
 import { connect } from "./requests.js";
 
 const css = `:host{display:block;height:100%}
@@ -9,28 +11,30 @@ const css = `:host{display:block;height:100%}
 #banner span{flex:1;min-width:0}
 button{padding:2px 6px;border:0;border-radius:var(--r-xs);background:transparent;color:var(--muted);font:inherit;cursor:pointer}
 button:hover{background:var(--inset);color:var(--fg)}
-#scroller{flex:1;min-height:0;overflow:auto;background:var(--inset)}
-#pages{position:relative;padding:12px;cursor:text}
-#sheets{display:flex;flex-direction:column;align-items:center;gap:12px}
-#overlay{position:absolute;left:0;top:0;width:0;height:0}
-.page{position:relative;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25)}
-.page>svg{display:block}
-#caret{position:absolute;width:1.5px;background:#000;pointer-events:none}
-#preedit{position:absolute;color:#000;background:#fff;border-bottom:1px solid #000;white-space:pre;pointer-events:none;font:inherit}
-#input{position:absolute;width:1px;height:1em;padding:0;border:0;opacity:0;resize:none;overflow:hidden}
+#studio{flex:1;min-height:0}
 [hidden]{display:none!important}`;
 
 const HTML = `<style>${css}</style><div id="frame" data-expose="hwp.frame">
 <div id="banner" data-expose="hwp.banner" hidden><span></span><button data-expose="hwp.reload">다시 읽기</button><button data-expose="hwp.overwrite">덮어쓰기</button></div>
-<div id="scroller"><div id="pages" data-expose="hwp.pages"><div id="sheets"></div><div id="overlay"></div></div></div></div>`;
+<div id="studio" data-expose="hwp.studio"></div></div>`;
 
-/** Whether event is Command with key, without other modifiers. */
-const shortcut = (event, key) => event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && event.code === `Key${key.toUpperCase()}`;
+/* The embed request that exports each format. */
+const EXPORTS = { hwp: "exportHwp", hwpx: "exportHwpx" };
 
-/* The edit of each beforeinput type that the input field turns into a command; composition is handled apart. */
-const INPUT_ACTIONS = { insertText: "insert", insertLineBreak: "enter", insertParagraph: "enter", deleteContentBackward: "backspace", deleteContentForward: "delete" };
-/* The edit of each key that moves the caret. */
-const KEY_ACTIONS = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" };
+/** The format of path from its extension, hwp or hwpx. */
+export function formatOf(path) {
+  const extension = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
+  if (!Object.hasOwn(EXPORTS, extension)) throw new Error(`the hwp surface opens .hwp and .hwpx files, not ${path}`);
+  return extension;
+}
+
+export const toBase64 = (bytes) => {
+  let text = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) text += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  return btoa(text);
+};
+
+export const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
 
 export async function mount(root, context) {
   // default: a tab without params cannot name a file; core.file.open always passes {path}.
@@ -38,69 +42,74 @@ export async function mount(root, context) {
   if (typeof path !== "string" || path === "") throw new Error("the hwp tab requires params.path");
   if (context.project === null) throw new Error("this window shows no project");
   const format = formatOf(path);
-  context.tab.title(path.slice(path.lastIndexOf("/") + 1));
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  context.tab.title(name);
   root.innerHTML = HTML;
   const frame = root.querySelector("#frame");
   const banner = root.querySelector("#banner");
-  const pagesElement = root.querySelector("#pages");
-  const sheets = root.querySelector("#sheets");
-  const overlay = root.querySelector("#overlay");
-  const caretElement = root.ownerDocument.createElement("div");
-  caretElement.id = "caret";
-  const preedit = root.ownerDocument.createElement("div");
-  preedit.id = "preedit";
-  preedit.hidden = true;
-  const input = root.ownerDocument.createElement("textarea");
-  input.id = "input";
-  input.dataset.expose = "hwp.input";
-  input.setAttribute("aria-label", path);
-  input.setAttribute("autocapitalize", "off");
-  input.setAttribute("autocomplete", "off");
-  input.spellcheck = false;
-  // The caret, the composition and the input field stay in a layer that drawing does not replace, because moving the
-  // focused input field into a new page would take its focus.
-  overlay.append(caretElement, preedit, input);
+  const address = `soksak-package://${context.pluginId}/ui/studio/index.html?chrome=embed`;
 
-  let document = null;
-  let state = { path, format, version: null, modified: false, pages: 0, caret: { section: 0, paragraph: 0, offset: 0 },
-    caretRect: { page: 0, x: 0, y: 0, height: 0 }, composing: "", disk: "same" };
-  let edits = 0;
-  let savedEdits = 0;
+  let state = { path, format, version: null, modified: false, pages: 0, disk: "same" };
   let diskVersion = null;
   const listeners = new Set();
-  const publish = () => { for (const fn of listeners) fn(state); };
-
+  const publish = (change) => {
+    state = { ...state, ...change };
+    for (const fn of listeners) fn(state);
+  };
   const showBanner = (text) => {
     banner.hidden = text === null;
     banner.querySelector("span").textContent = text ?? "";
   };
-
-  /** Draws every page and places the caret, the composition and the input field at the caret. */
-  const draw = () => {
-    const count = document.pageCount();
-    const pages = [];
-    for (let page = 0; page < count; page += 1) {
-      const element = root.ownerDocument.createElement("div");
-      element.className = "page";
-      element.dataset.page = String(page);
-      element.innerHTML = document.renderPage(page);
-      pages.push(element);
-    }
-    sheets.replaceChildren(...pages);
-    const rect = document.caretRect();
-    const page = pages[rect.pageIndex];
-    if (!page) throw new Error(`the caret is on page ${rect.pageIndex} of ${count}`);
-    // The layer starts at the top left corner of the pages element; the page's offset places the caret on the page.
-    const x = page.offsetLeft + rect.x;
-    const y = page.offsetTop + rect.y;
-    const { height } = rect;
-    Object.assign(caretElement.style, { left: `${x}px`, top: `${y}px`, height: `${height}px` });
-    Object.assign(preedit.style, { left: `${x}px`, top: `${y}px`, height: `${height}px`, fontSize: `${height * 0.85}px` });
-    Object.assign(input.style, { left: `${x}px`, top: `${y}px` });
-    state = { ...state, pages: count, caret: document.caret, caretRect: { page: rect.pageIndex, x: rect.x, y: rect.y, height },
-      modified: edits !== savedEdits };
-    publish();
+  const setModified = (modified) => {
+    if (modified === state.modified) return;
+    publish({ modified });
+    context.tab.modified(modified);
   };
+
+  const composition = await context.composition.create({ regions: { studio: root.querySelector("#studio") }, overlays: {} });
+  const region = composition.region("studio");
+
+  const pending = new Map();
+  let next = 0;
+  /** Sends the embed request method with params to rhwp-studio and resolves its result. */
+  const request = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = `${method}-${++next}`;
+    pending.set(id, { resolve, reject });
+    region.post({ type: "rhwp-request", id, method, params }).catch((failure) => {
+      pending.delete(id);
+      reject(failure);
+    });
+  });
+
+  let save = null;
+  const stopMessages = region.onMessage((message) => {
+    // The region passes every message that the document posts to its own window, so it passes the requests of this
+    // page back too.
+    if (message?.type === "rhwp-request") return;
+    if (message?.type === "rhwp-response") {
+      const entry = pending.get(message.id);
+      if (!entry) throw new Error(`rhwp-studio answered the unknown request ${message.id}`);
+      pending.delete(message.id);
+      if (message.error !== undefined) entry.reject(new Error(`rhwp-studio ${message.id}: ${message.error}`));
+      else entry.resolve(message.result);
+      return;
+    }
+    if (message?.type === "soksak-hwp" && message.event === "modified") return setModified(message.modified);
+    // save shows its failure as the tab error.
+    if (message?.type === "soksak-hwp" && message.event === "save") return void save().catch(() => {});
+    if (message?.type === "soksak-hwp" && message.event === "error") return context.tab.error(`편집기 · ${message.message}`);
+    throw new Error(`the hwp document posted an unknown message ${JSON.stringify(message)}`);
+  });
+
+  /** Resolves when the document region has loaded the editor page, and rejects with its load error. */
+  const loaded = new Promise((resolve, reject) => {
+    const stop = region.onState((current) => {
+      if (current.url !== address || current.loading) return;
+      stop();
+      if (current.error !== null) reject(new Error(`the editor page did not load: ${current.error}`));
+      else resolve();
+    });
+  });
 
   const files = await connect(context.runtime.sidecar(), context.surfaceId, (body) => {
     if (body.changed !== undefined) {
@@ -111,45 +120,40 @@ export async function mount(root, context) {
   });
   const read = () => files.request({ operation: "readBytes", path });
 
-  const load = (body) => {
-    const next = openDocument(fromBase64(body.data), format);
-    document?.free();
-    document = next;
-    edits = 0;
-    savedEdits = 0;
+  /** Opens the bytes of a read in the editor and discards its edits. */
+  const open = async (body) => {
+    const { pageCount } = await request("loadFile", { data: Array.from(fromBase64(body.data)), fileName: name,
+      skipUnsavedGuard: true, suppressDialogs: true });
     diskVersion = body.version;
-    state = { ...state, version: body.version, disk: "same" };
     showBanner(null);
-    draw();
-    context.tab.modified(false);
+    publish({ version: body.version, pages: pageCount, disk: "same" });
+    setModified(false);
   };
 
   async function diskChanged() {
     const body = await read();
     if (body.version === state.version) return;
-    if (edits === savedEdits) {
-      load(body);
+    if (!state.modified) {
+      await open(body);
       return;
     }
     diskVersion = body.version;
-    state = { ...state, disk: "changed" };
+    publish({ disk: "changed" });
     showBanner("디스크의 파일이 바뀌었습니다");
-    publish();
   }
 
-  const save = async ({ overwrite = false } = {}) => {
+  save = async ({ overwrite = false } = {}) => {
     if (typeof overwrite !== "boolean") throw new TypeError("hwp.save requires overwrite as true or false");
     try {
-      const bytes = document.save();
+      const bytes = Uint8Array.from(await request(EXPORTS[format]));
       const reply = await files.request({ operation: "writeBytes", path, data: toBase64(bytes),
         expect: overwrite ? diskVersion : state.version });
-      savedEdits = edits;
       diskVersion = reply.version;
-      state = { ...state, version: reply.version, disk: "same", modified: false };
+      await request("notifySaved", { fileName: name });
       showBanner(null);
-      context.tab.modified(false);
+      publish({ version: reply.version, disk: "same" });
+      setModified(false);
       context.tab.error(null);
-      publish();
       return { version: reply.version };
     } catch (error) {
       context.tab.error(`저장하지 못했습니다 · ${error.message}`);
@@ -158,111 +162,46 @@ export async function mount(root, context) {
   };
 
   const reload = async () => {
-    let body;
     try {
-      body = await read();
+      const body = await read();
+      await open(body);
+      context.tab.error(null);
+      return { version: body.version };
     } catch (error) {
       context.tab.error(`다시 읽지 못했습니다 · ${error.message}`);
       throw error;
     }
-    load(body);
-    context.tab.error(null);
-    return { version: body.version };
   };
 
-  /** Applies an edit of the body text and draws the pages again. */
-  const edit = ({ action, text } = {}) => {
-    const before = edits;
-    switch (action) {
-      case "insert": document.insert(text); edits += 1; break;
-      case "enter": document.enter(); edits += 1; break;
-      case "backspace": document.backspace(); edits += 1; break;
-      case "delete": document.delete(); edits += 1; break;
-      case "left": document.left(); break;
-      case "right": document.right(); break;
-      case "up": document.vertical(-1); break;
-      case "down": document.vertical(1); break;
-      default: throw new Error(`hwp.edit has no action ${JSON.stringify(action)}`);
-    }
-    draw();
-    if (before === savedEdits && edits !== savedEdits) context.tab.modified(true);
-    return { caret: document.caret };
-  };
-
-  const point = ({ page, x, y } = {}) => {
-    if (!Number.isInteger(page) || page < 0 || page >= document.pageCount() || !Number.isFinite(x) || !Number.isFinite(y)) {
-      throw new RangeError(`hwp.point requires a page from 0 to ${document.pageCount() - 1} and a point`);
-    }
-    document.hit(page, x, y);
-    draw();
-    input.focus();
-    return { caret: document.caret };
-  };
-
-  const compose = ({ text } = {}) => {
-    if (typeof text !== "string") throw new TypeError("hwp.compose requires text");
-    preedit.textContent = text;
-    preedit.hidden = text === "";
-    state = { ...state, composing: text };
-    publish();
-    return null;
-  };
-
-  await loadRhwp();
-  load(await read());
+  await region.load(address);
+  await loaded;
+  await request("ready");
+  await open(await read());
   await files.request({ operation: "watch", paths: [path] });
 
   const expose = context.exposure;
   expose.status("hwp.document", () => state, (fn) => { listeners.add(fn); fn(state); return () => listeners.delete(fn); });
   expose.command("hwp.save", save);
   expose.command("hwp.reload", reload);
-  expose.command("hwp.edit", edit);
-  expose.command("hwp.point", point);
-  expose.command("hwp.compose", compose);
-  expose.command("hwp.text", () => document.text());
-  expose.command("hwp.caret", (caret) => { document.place(caret); draw(); return { caret: document.caret }; });
-  expose.command("hwp.focus", () => { input.focus(); return null; });
+  expose.command("hwp.request", ({ method, params } = {}) => request(method, params));
   for (const element of root.querySelectorAll("[data-expose]")) expose.dom(element.dataset.expose, element);
 
   // save and reload show their failures as the tab error, so a control that runs them does not report them again.
   const shown = () => {};
-  await expose.bind(frame, "hwp.save", {}, { event: "keydown", when: (event) => shortcut(event, "s") && (event.preventDefault(), true), failed: shown });
+  await expose.bind(frame, "hwp.save", {}, { event: "keydown", failed: shown,
+    when: (event) => event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && event.code === "KeyS" && (event.preventDefault(), true) });
   await expose.bind(banner.querySelector('[data-expose="hwp.reload"]'), "hwp.reload", {}, { failed: shown });
   await expose.bind(banner.querySelector('[data-expose="hwp.overwrite"]'), "hwp.save", { overwrite: true }, { failed: shown });
-  // A click on a page places the caret at the point in page coordinates; a page draws at its own size, and the card
-  // zoom scales the rectangle, so the point is scaled back by the page's width.
-  await expose.bind(pagesElement, "hwp.point", (event) => {
-    const page = event.target.closest(".page");
-    const rect = page.getBoundingClientRect();
-    const scale = page.offsetWidth / rect.width;
-    return { page: Number(page.dataset.page), x: (event.clientX - rect.left) * scale, y: (event.clientY - rect.top) * scale };
-  }, { event: "mousedown", when: (event) => event.target.closest(".page") !== null && (event.preventDefault(), true) });
-  // The input field takes typed text, composition and editing keys at the caret; the edits run hwp.edit.
-  await expose.bind(input, "hwp.edit", (event) => ({ action: INPUT_ACTIONS[event.inputType], text: event.data }), {
-    event: "beforeinput",
-    when: (event) => !event.isComposing && Object.hasOwn(INPUT_ACTIONS, event.inputType) && (event.preventDefault(), true),
-  });
-  await expose.bind(input, "hwp.edit", (event) => ({ action: KEY_ACTIONS[event.key] }), {
-    event: "keydown",
-    when: (event) => !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && Object.hasOwn(KEY_ACTIONS, event.key)
-      && (event.preventDefault(), true),
-  });
-  await expose.bind(input, "hwp.edit", (event) => {
-    input.value = "";
-    compose({ text: "" });
-    return { action: "insert", text: event.data };
-  }, { event: "compositionend", when: (event) => typeof event.data === "string" && event.data !== "" });
-  const composing = (event) => compose({ text: event.data });
-  input.addEventListener("compositionupdate", composing);
 
   context.status.report("ready");
   return {
-    focus: () => input.focus(),
     async dispose() {
-      input.removeEventListener("compositionupdate", composing);
+      stopMessages();
       listeners.clear();
       files.dispose();
-      document.free();
+      for (const { reject } of pending.values()) reject(new Error("the hwp surface closed before rhwp-studio answered"));
+      pending.clear();
+      await composition.dispose();
       await expose.dispose();
       root.replaceChildren();
     },

@@ -4,37 +4,22 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { window } from "./dom.mjs";
 import { createBinder, validateManifest } from "@soksak/plugin-api";
-import { fromBase64, loadRhwp, openDocument, toBase64 } from "../ui/document.js";
-import { HwpDocument } from "../ui/vendor/rhwp.js";
+import { fromBase64, mount, toBase64 } from "../ui/hwp.js";
 
-await loadRhwp(readFileSync(new URL("../ui/vendor/rhwp_bg.wasm", import.meta.url)));
-const { mount } = await import("../ui/hwp.js");
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
 const declared = (kind, name) => manifest.exposes[kind].some((entry) => entry.name === name);
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
-
-/** An HWP document whose body has the paragraphs lines. */
-function sample(lines) {
-  const document = HwpDocument.createEmpty();
-  lines.forEach((line, index) => {
-    if (index > 0) document.splitParagraph(0, index - 1, document.getParagraphLength(0, index - 1));
-    if (line) document.insertText(0, index, 0, line);
-  });
-  const bytes = document.exportHwp();
-  document.free();
-  return bytes;
-}
+const bytes = (text) => new TextEncoder().encode(text);
+const ADDRESS = "soksak-package://hwp/ui/studio/index.html?chrome=embed";
 
 /** A files sidecar of one surface over an in-memory file system with readBytes, writeBytes and watch. */
 function fakeFiles(files) {
   const listeners = new Set();
-  const sent = [];
   const reply = (body) => queueMicrotask(() => { for (const fn of listeners) fn(body); });
   return {
-    sent,
+    emit: (body) => reply(body),
     on: async (surface, fn) => { listeners.add(fn); return () => listeners.delete(fn); },
     async send(surface, body) {
-      sent.push(body.operation);
       if (body.operation === "watch") return reply({ id: body.id });
       if (body.operation === "readBytes") return reply({ id: body.id, data: toBase64(files.get(body.path)), version: sha(files.get(body.path)) });
       if (body.operation === "writeBytes") {
@@ -47,22 +32,74 @@ function fakeFiles(files) {
   };
 }
 
-async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", sample(["첫 문단", "둘째"])]]) } = {}) {
+/**
+ * A document region that shows a fake rhwp-studio: it passes every posted message back, as the region passes each
+ * message that the document posts to its own window, and answers the embed requests ready, loadFile, exportHwp,
+ * exportHwpx and notifySaved. The document is its bytes; edit(text) appends text and posts the modified message of
+ * ui/studio-host.js.
+ */
+function fakeStudio() {
+  const messages = new Set();
+  const states = new Set();
+  const studio = { document: null, requests: [], loaded: null };
+  const deliver = (message) => queueMicrotask(() => { for (const fn of messages) fn(message); });
+  const answers = {
+    ready: () => true,
+    loadFile: ({ data }) => { studio.document = Uint8Array.from(data); return { pageCount: 1 }; },
+    exportHwp: () => Array.from(studio.document),
+    exportHwpx: () => Array.from(studio.document),
+    notifySaved: () => ({ ok: true, wasDirty: true }),
+  };
+  studio.edit = (text) => {
+    studio.document = new Uint8Array([...studio.document, ...bytes(text)]);
+    deliver({ type: "soksak-hwp", event: "modified", modified: true });
+  };
+  studio.post = deliver;
+  studio.region = {
+    async load(url) {
+      studio.loaded = url;
+      queueMicrotask(() => { for (const fn of states) fn({ url, loading: false, error: null }); });
+    },
+    onState(fn) { states.add(fn); return () => states.delete(fn); },
+    onMessage(fn) { messages.add(fn); return () => messages.delete(fn); },
+    async post(message) {
+      assert.doesNotThrow(() => JSON.stringify(message));
+      deliver(message);
+      studio.requests.push(message.method);
+      const answer = answers[message.method];
+      if (!answer) return deliver({ type: "rhwp-response", id: message.id, error: `unknown method ${message.method}` });
+      deliver({ type: "rhwp-response", id: message.id, result: answer(message.params) });
+    },
+  };
+  return studio;
+}
+
+async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", bytes("첫 문단")]]) } = {}) {
   const host = window.document.createElement("div");
   window.document.body.append(host);
   const root = host.attachShadow({ mode: "open" });
   const commands = new Map();
   const statuses = new Map();
   const reports = { modified: [], error: [], title: [] };
+  const studio = fakeStudio();
+  const sidecar = fakeFiles(files);
   const binder = createBinder((name, params) => commands.get(name)(params), {
     check(name) { assert.ok(declared("commands", name), `undeclared command ${name}`); },
   });
   const controller = await mount(root, {
     surfaceId: "hwp-1",
+    pluginId: "hwp",
     project: { root: "/project" },
     tab: { params: { path }, title: (text) => reports.title.push(text), footer() {}, directory() {}, notify() {},
       modified: (value) => reports.modified.push(value), error: (text) => reports.error.push(text) },
-    runtime: { sidecar: () => fakeFiles(files) },
+    runtime: { sidecar: () => sidecar },
+    composition: {
+      async create({ regions, overlays }) {
+        assert.deepEqual(Object.keys(regions), ["studio"]);
+        assert.deepEqual(overlays, {});
+        return { region: (name) => { assert.equal(name, "studio"); return studio.region; }, async dispose() {} };
+      },
+    },
     exposure: {
       status(name, read) { assert.ok(declared("status", name), `undeclared status ${name}`); statuses.set(name, read); },
       command(name, run) { assert.ok(declared("commands", name), `undeclared command ${name}`); commands.set(name, run); },
@@ -72,77 +109,84 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
     status: { report(phase) { assert.equal(phase, "ready"); } },
   });
   t.after(async () => { await controller.dispose(); host.remove(); });
-  return { root, run: (name, params = {}) => commands.get(name)(params), status: (name) => statuses.get(name)(), reports, files, binder };
+  /** Lets the queued replies of the fakes run. */
+  const settle = async () => { for (let turn = 0; turn < 8; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0)); };
+  return { root, studio, sidecar, settle, run: (name, params = {}) => commands.get(name)(params),
+    status: (name) => statuses.get(name)(), reports, files, binder };
 }
 
-test("plugin.json is a valid manifest that opens hwp and hwpx files", () => {
+test("plugin.json is a valid manifest that opens hwp and hwpx files in a document region", () => {
   assert.equal(validateManifest(manifest), manifest);
   assert.deepEqual(manifest.surface.opens, { extensions: ["hwp", "hwpx"] });
+  assert.deepEqual(manifest.surface.composition.regions, [{ name: "studio", kind: "document", input: "native" }]);
 });
 
-test("the surface opens the document, draws its pages and names the tab after the file", async (t) => {
-  const { root, run, status, reports } = await setup(t);
-  assert.equal(run("hwp.text"), "첫 문단\n둘째");
-  assert.equal(status("hwp.document").pages, 1);
-  assert.equal(root.querySelectorAll(".page > svg").length, 1);
+test("the surface loads the editor page of the package and opens the file in it", async (t) => {
+  const { studio, status, reports } = await setup(t);
+  assert.equal(studio.loaded, ADDRESS);
+  assert.deepEqual(studio.requests, ["ready", "loadFile"]);
+  assert.deepEqual(studio.document, bytes("첫 문단"));
+  assert.deepEqual(status("hwp.document"), { path: "docs/plan.hwp", format: "hwp", version: sha(bytes("첫 문단")),
+    modified: false, pages: 1, disk: "same" });
   assert.deepEqual(reports.title, ["plan.hwp"]);
 });
 
-test("edits at the caret change the text, mark the tab modified, and a save writes the same format", async (t) => {
-  const { run, status, reports, files } = await setup(t);
-  run("hwp.caret", { section: 0, paragraph: 0, offset: 1 });
-  run("hwp.edit", { action: "insert", text: "번째" });
-  run("hwp.edit", { action: "right" });
-  run("hwp.edit", { action: "enter" });
-  run("hwp.edit", { action: "backspace" });
-  run("hwp.edit", { action: "delete" });
-  assert.equal(run("hwp.text"), "첫번째 단\n둘째");
+test("an edit marks the tab modified, and a save exports the format, writes it and tells the editor", async (t) => {
+  const { studio, run, status, reports, files, settle } = await setup(t, { path: "a.hwpx", files: new Map([["a.hwpx", bytes("x")]]) });
+  studio.edit("y");
+  await settle();
   assert.equal(status("hwp.document").modified, true);
-  assert.deepEqual(reports.modified, [false, true]);
-  await run("hwp.save");
-  const saved = new HwpDocument(files.get("docs/plan.hwp"));
-  assert.equal(saved.getTextRange(0, 0, 0, saved.getParagraphLength(0, 0)), "첫번째 단");
-  assert.equal(status("hwp.document").modified, false);
+  assert.deepEqual(reports.modified, [true]);
+  const { version } = await run("hwp.save");
+  assert.deepEqual(files.get("a.hwpx"), bytes("xy"));
+  assert.equal(version, sha(bytes("xy")));
+  assert.deepEqual(studio.requests.slice(2), ["exportHwpx", "notifySaved"]);
+  assert.deepEqual(reports.modified, [true, false]);
   assert.deepEqual(reports.error, [null]);
 });
 
-test("a save over a file that changed on disk fails as the tab error", async (t) => {
-  const { run, reports, files } = await setup(t);
-  run("hwp.edit", { action: "insert", text: "x" });
-  files.set("docs/plan.hwp", sample(["다른 글"]));
-  await assert.rejects(run("hwp.save"), /changed on disk: docs\/plan.hwp/);
-  assert.equal(reports.error.at(-1), "저장하지 못했습니다 · changed on disk: docs/plan.hwp");
+test("Command-S in the editor page saves the document", async (t) => {
+  const { studio, files, settle } = await setup(t);
+  studio.edit("!");
+  studio.post({ type: "soksak-hwp", event: "save" });
+  await settle();
+  assert.deepEqual(files.get("docs/plan.hwp"), bytes("첫 문단!"));
 });
 
-test("composition shows its text and inserts it when it ends", async (t) => {
-  const { root, run, status } = await setup(t);
-  const input = root.querySelector("#input");
-  input.dispatchEvent(new window.CompositionEvent("compositionupdate", { data: "한" }));
-  assert.equal(status("hwp.document").composing, "한");
-  input.dispatchEvent(new window.CompositionEvent("compositionend", { data: "한" }));
-  assert.equal(status("hwp.document").composing, "");
-  assert.equal(run("hwp.text"), "한첫 문단\n둘째");
+test("a save over a file that changed on disk fails as the tab error and keeps the edits", async (t) => {
+  const { studio, run, status, reports, files, settle } = await setup(t);
+  studio.edit("!");
+  await settle();
+  files.set("docs/plan.hwp", bytes("다른 글"));
+  await assert.rejects(run("hwp.save"), /changed on disk: docs\/plan.hwp/);
+  assert.equal(reports.error.at(-1), "저장하지 못했습니다 · changed on disk: docs/plan.hwp");
+  assert.equal(status("hwp.document").modified, true);
+});
+
+test("a change on disk reloads an unmodified document and shows the banner over a modified one", async (t) => {
+  const { root, studio, sidecar, status, files, settle } = await setup(t);
+  files.set("docs/plan.hwp", bytes("새 글"));
+  sidecar.emit({ changed: "docs/plan.hwp" });
+  await settle();
+  assert.deepEqual(studio.document, bytes("새 글"));
+  studio.edit("!");
+  await settle();
+  files.set("docs/plan.hwp", bytes("또 다른 글"));
+  sidecar.emit({ changed: "docs/plan.hwp" });
+  await settle();
+  assert.equal(status("hwp.document").disk, "changed");
+  assert.equal(root.querySelector("#banner").hidden, false);
+  assert.deepEqual(studio.document, bytes("새 글!"));
+});
+
+test("an error message of the editor page is shown as the tab error", async (t) => {
+  const { studio, reports, settle } = await setup(t);
+  studio.post({ type: "soksak-hwp", event: "error", message: "rhwp-studio exposes no window.rhwpStudio.automation" });
+  await settle();
+  assert.equal(reports.error.at(-1), "편집기 · rhwp-studio exposes no window.rhwpStudio.automation");
 });
 
 test("every interactive element is bound to a declared command and has a dom name", async (t) => {
   const { root, binder } = await setup(t);
   assert.deepEqual(binder.audit(root), []);
-});
-
-test("the input field keeps the focus while edits draw the pages again", async (t) => {
-  const { root, run } = await setup(t);
-  run("hwp.focus");
-  const input = root.querySelector("#input");
-  assert.equal(root.activeElement, input);
-  run("hwp.edit", { action: "insert", text: "x" });
-  run("hwp.edit", { action: "left" });
-  assert.equal(root.activeElement, input, "drawing the pages took the focus from the input field");
-  assert.equal(root.querySelector("#input"), input);
-});
-
-test("the caret has the height of its line in a paragraph with text", async (t) => {
-  const { run, status } = await setup(t);
-  run("hwp.caret", { section: 0, paragraph: 1, offset: 1 });
-  const rect = status("hwp.document").caretRect;
-  assert.ok(rect.height > 0, `the caret has height ${rect.height}`);
 });
