@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H10: 문서와 주석이 plugin, sidecar, release를 그 말로 부른다.
 - H9.7: 표면이 편집기를 `sok://hwp/ui/studio/index.html`에서 연다.
 - H9.6: 문서가 plugin을 package 대신 plugin이라고 부른다.
 - H9.5: `hwp.document`가 편집기에 선택 영역이 있는지 알린다.

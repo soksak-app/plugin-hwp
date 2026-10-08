@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- H10: the documents and comments call plugins, sidecars and releases by those words.
 - H9.7: the surface loads the editor at `sok://hwp/ui/studio/index.html`.
 - H9.6: the documents call the plugin a plugin instead of a package.
 - H9.5: `hwp.document` reports whether the editor holds a selection.
