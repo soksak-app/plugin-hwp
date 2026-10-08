@@ -14,9 +14,18 @@ Script는:
 2. 버전이 tag와 같아야 하는 devDependency `@rhwp/core`의 WebAssembly package를 `rhwp-studio` 빌드가 import하는 `pkg` 폴더로 복사한다.
 3. `rhwp-studio`의 의존성을 lockfile로 `npm ci` 설치한다.
 4. HWP control plugin 없이 빌드하는 `rhwp-studio`의 빌드 script `npm run build:no-hwpctrl -- --base ./`를 상대 asset 경로로 `ui/studio/`에 실행한다.
-5. rhwp의 `LICENSE`와 `THIRD_PARTY_LICENSES.md`를 `ui/studio/`에 복사한다.
+5. `ui/studio-host.js`를 `ui/studio/index.html` head 끝에 module script로 더한다.
+6. rhwp의 `LICENSE`와 `THIRD_PARTY_LICENSES.md`를 `ui/studio/`에 복사한다.
 
 이후 빌드는 checkout과 그 의존성을 다시 쓴다.
+
+## Host script
+
+`rhwp-studio`는 자기 페이지 안에서 통합하는 host에게 `window.rhwpStudio.automation`을 내준다. `ui/studio-host.js`는 그 페이지에서 실행되어 window에 다음 message를 보내고, 문서 영역은 그것을 표면 페이지에 전달한다.
+
+- Command-S에서 `{type: "soksak-hwp", event: "save"}`. `rhwp-studio`의 embed mode는 저장 command를 등록하지 않고 단축키의 기본 동작만 막기 때문이다.
+- automation context의 `isDirty`가 바뀌면 `{type: "soksak-hwp", event: "modified", modified}`. 입력 event와 편집기의 응답마다 읽는다. `rhwp-studio`에는 최상위 페이지를 위한 변경 event가 없기 때문이다.
+- 그 상태를 읽을 수 없으면 `{type: "soksak-hwp", event: "error", message}`.
 
 ## 이후 rhwp tag로 갱신
 

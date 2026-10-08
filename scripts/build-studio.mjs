@@ -1,10 +1,11 @@
 // Builds the editor of rhwp into ui/studio/ (docs/studio.md). The script checks out rhwp-studio, assets/fonts, LICENSE
 // and THIRD_PARTY_LICENSES.md of the rhwp tag TAG, refuses a checkout whose commit differs from COMMIT, places the
 // WebAssembly package of the exact @rhwp/core devDependency where the rhwp-studio build expects ../pkg, installs the
-// rhwp-studio dependencies from its lockfile and runs its own build script, unchanged, with relative asset paths. The
-// checkout and its dependencies stay in node_modules/.cache, so a later build reuses them.
+// rhwp-studio dependencies from its lockfile and runs its own build script, unchanged, with relative asset paths. It then
+// adds ui/studio-host.js as a module script after the scripts of the built page. The checkout and its dependencies stay
+// in node_modules/.cache, so a later build reuses them.
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const TAG = "v0.8.7";
@@ -39,6 +40,10 @@ for (const file of ["rhwp.js", "rhwp.d.ts", "rhwp_bg.wasm", "rhwp_bg.wasm.d.ts",
 }
 if (!existsSync(join(STUDIO, "node_modules"))) run("npm", ["ci", "--no-audit", "--no-fund"], STUDIO);
 run("npm", ["run", "build:no-hwpctrl", "--", "--base", "./", "--outDir", OUTPUT, "--emptyOutDir"], STUDIO);
+const page = join(OUTPUT, "index.html");
+const html = readFileSync(page, "utf8");
+if (html.split("</head>").length !== 2) throw new Error(`${page} does not have exactly one </head>`);
+writeFileSync(page, html.replace("</head>", '<script type="module" src="../studio-host.js"></script></head>'));
 cpSync(join(CACHE, "LICENSE"), join(OUTPUT, "LICENSE"));
 cpSync(join(CACHE, "THIRD_PARTY_LICENSES.md"), join(OUTPUT, "THIRD_PARTY_LICENSES.md"));
 console.log(`build-studio: rhwp-studio ${TAG} is in ui/studio`);

@@ -14,9 +14,18 @@ The script:
 2. copies the WebAssembly package of the devDependency `@rhwp/core`, whose version must equal the tag, to the `pkg` folder that the `rhwp-studio` build imports;
 3. installs the dependencies of `rhwp-studio` from its lockfile with `npm ci`;
 4. runs `npm run build:no-hwpctrl -- --base ./`, the build script of `rhwp-studio` without the HWP control plugin, with relative asset paths, into `ui/studio/`;
-5. copies `LICENSE` and `THIRD_PARTY_LICENSES.md` of rhwp into `ui/studio/`.
+5. adds `ui/studio-host.js` as a module script at the end of the head of `ui/studio/index.html`;
+6. copies `LICENSE` and `THIRD_PARTY_LICENSES.md` of rhwp into `ui/studio/`.
 
 A later build reuses the checkout and its dependencies.
+
+## Host script
+
+`rhwp-studio` exposes `window.rhwpStudio.automation` to hosts that integrate inside its page. `ui/studio-host.js` runs in the page and posts these messages to the window, which the document region passes to the surface page:
+
+- `{type: "soksak-hwp", event: "save"}` on Command-S, because the embed mode of `rhwp-studio` registers no save command and only prevents the default action of the shortcut;
+- `{type: "soksak-hwp", event: "modified", modified}` when `isDirty` of the automation context changes, read after each input event and each reply of the editor, because `rhwp-studio` has no change event for a page at the top level;
+- `{type: "soksak-hwp", event: "error", message}` when the script cannot read that state.
 
 ## Update to a later rhwp tag
 
