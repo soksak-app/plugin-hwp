@@ -47,7 +47,7 @@ export async function mount(root, context) {
   root.innerHTML = HTML;
   const frame = root.querySelector("#frame");
   const banner = root.querySelector("#banner");
-  const address = `soksak-package://${context.pluginId}/ui/studio/index.html?chrome=embed`;
+  const address = `sok://${context.pluginId}/ui/studio/index.html?chrome=embed`;
 
   let state = { path, format, version: null, modified: false, selection: false, pages: 0, disk: "same" };
   let diskVersion = null;

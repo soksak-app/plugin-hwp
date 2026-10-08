@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- H9.7: the surface loads the editor at `sok://hwp/ui/studio/index.html`.
 - H9.6: the documents call the plugin a plugin instead of a package.
 - H9.5: `hwp.document` reports whether the editor holds a selection.
 - H9.3: the surface shows rhwp-studio in the document region `studio` and opens, saves and reloads the file through its embed requests; the page that drew the pages itself and the vendored `rhwp.js` are removed.

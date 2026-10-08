@@ -10,7 +10,7 @@ const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.u
 const declared = (kind, name) => manifest.exposes[kind].some((entry) => entry.name === name);
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
-const ADDRESS = "soksak-package://hwp/ui/studio/index.html?chrome=embed";
+const ADDRESS = "sok://hwp/ui/studio/index.html?chrome=embed";
 
 /** A files sidecar of one surface over an in-memory file system with readBytes, writeBytes and watch. */
 function fakeFiles(files) {
@@ -121,7 +121,7 @@ test("plugin.json is a valid manifest that opens hwp and hwpx files in a documen
   assert.deepEqual(manifest.surface.composition.regions, [{ name: "studio", kind: "document", input: "native" }]);
 });
 
-test("the surface loads the editor page of the package and opens the file in it", async (t) => {
+test("the surface loads the editor page of the plugin and opens the file in it", async (t) => {
   const { studio, status, reports } = await setup(t);
   assert.equal(studio.loaded, ADDRESS);
   assert.deepEqual(studio.requests, ["ready", "loadFile"]);
