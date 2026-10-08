@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H11: `hwp.document`가 mount를 시작할 때부터 있고 그 단계를 `phase`로 알린다.
 - H10: 문서와 주석이 plugin, sidecar, release를 그 말로 부른다.
 - H9.7: 표면이 편집기를 `sok://hwp/ui/studio/index.html`에서 연다.
 - H9.6: 문서가 plugin을 package 대신 plugin이라고 부른다.

@@ -49,7 +49,7 @@ export async function mount(root, context) {
   const banner = root.querySelector("#banner");
   const address = `sok://${context.pluginId}/ui/studio/index.html?chrome=embed`;
 
-  let state = { path, format, version: null, modified: false, selection: false, pages: 0, disk: "same" };
+  let state = { path, format, version: null, modified: false, selection: false, pages: 0, disk: "same", phase: "loading" };
   let diskVersion = null;
   const listeners = new Set();
   const publish = (change) => {
@@ -65,6 +65,10 @@ export async function mount(root, context) {
     publish({ modified });
     context.tab.modified(modified);
   };
+
+  // The status exists from the start, so a start that stops at one step shows that step as phase.
+  const expose = context.exposure;
+  expose.status("hwp.document", () => state, (fn) => { listeners.add(fn); fn(state); return () => listeners.delete(fn); });
 
   const composition = await context.composition.create({ regions: { studio: root.querySelector("#studio") }, overlays: {} });
   const region = composition.region("studio");
@@ -176,12 +180,14 @@ export async function mount(root, context) {
 
   await region.load(address);
   await loaded;
+  publish({ phase: "starting" });
   await request("ready");
-  await open(await read());
+  publish({ phase: "reading" });
+  const body = await read();
+  publish({ phase: "opening" });
+  await open(body);
   await files.request({ operation: "watch", paths: [path] });
 
-  const expose = context.exposure;
-  expose.status("hwp.document", () => state, (fn) => { listeners.add(fn); fn(state); return () => listeners.delete(fn); });
   expose.command("hwp.save", save);
   expose.command("hwp.reload", reload);
   expose.command("hwp.request", ({ method, params } = {}) => request(method, params));
@@ -194,6 +200,7 @@ export async function mount(root, context) {
   await expose.bind(banner.querySelector('[data-expose="hwp.reload"]'), "hwp.reload", {}, { failed: shown });
   await expose.bind(banner.querySelector('[data-expose="hwp.overwrite"]'), "hwp.save", { overwrite: true }, { failed: shown });
 
+  publish({ phase: "ready" });
   context.status.report("ready");
   return {
     async dispose() {

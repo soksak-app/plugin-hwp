@@ -74,7 +74,7 @@ function fakeStudio() {
   return studio;
 }
 
-async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", bytes("첫 문단")]]) } = {}) {
+async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", bytes("첫 문단")]]), onStatus = () => {} } = {}) {
   const host = window.document.createElement("div");
   window.document.body.append(host);
   const root = host.attachShadow({ mode: "open" });
@@ -101,7 +101,11 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
       },
     },
     exposure: {
-      status(name, read) { assert.ok(declared("status", name), `undeclared status ${name}`); statuses.set(name, read); },
+      status(name, read, subscribe) {
+        assert.ok(declared("status", name), `undeclared status ${name}`);
+        statuses.set(name, read);
+        subscribe(onStatus);
+      },
       command(name, run) { assert.ok(declared("commands", name), `undeclared command ${name}`); commands.set(name, run); },
       dom(name) { assert.ok(declared("dom", name), `undeclared dom ${name}`); },
       bind: binder.bind, delegate: binder.delegate, dispose: binder.dispose,
@@ -127,7 +131,7 @@ test("the surface loads the editor page of the plugin and opens the file in it",
   assert.deepEqual(studio.requests, ["ready", "loadFile"]);
   assert.deepEqual(studio.document, bytes("첫 문단"));
   assert.deepEqual(status("hwp.document"), { path: "docs/plan.hwp", format: "hwp", version: sha(bytes("첫 문단")),
-    modified: false, selection: false, pages: 1, disk: "same" });
+    modified: false, selection: false, pages: 1, disk: "same", phase: "ready" });
   assert.deepEqual(reports.title, ["plan.hwp"]);
 });
 
@@ -184,6 +188,13 @@ test("a selection message of the editor page sets the selection of hwp.document"
   studio.post({ type: "soksak-hwp", event: "selection", selection: true });
   await settle();
   assert.equal(status("hwp.document").selection, true);
+});
+
+test("hwp.document reports each step of the start before the surface is ready", async (t) => {
+  const phases = [];
+  const { status } = await setup(t, { onStatus: (value) => phases.push(value.phase) });
+  assert.deepEqual([...new Set(phases)], ["loading", "starting", "reading", "opening", "ready"]);
+  assert.equal(status("hwp.document").phase, "ready");
 });
 
 test("an error message of the editor page is shown as the tab error", async (t) => {
