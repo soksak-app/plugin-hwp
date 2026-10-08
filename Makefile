@@ -2,7 +2,7 @@
 .PHONY: test studio pack
 
 SOK ?= sok
-# DIAGNOSTICS=1 packs a diagnostics package that holds diagnostics.json.
+# DIAGNOSTICS=1 adds diagnostics.json to the packed plugin.
 PACK_FLAGS = $(if $(DIAGNOSTICS),--diagnostics,)
 
 # The tests use the @soksak/plugin-api of the core release that package.json names.

@@ -1,8 +1,8 @@
-# Package 안의 rhwp-studio
+# Plugin 안의 rhwp-studio
 
 [English](studio.md)
 
-hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. Package는 `rhwp-studio`가 빌드한 그대로의 편집기를 담고, plugin은 그 source를 고치지 않는다.
+hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. Plugin은 `rhwp-studio`가 빌드한 그대로의 편집기를 담고, 그 source를 고치지 않는다.
 
 ## 빌드
 

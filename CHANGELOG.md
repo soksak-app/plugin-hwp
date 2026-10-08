@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- H9.6: the documents call the plugin a plugin instead of a package.
 - H9.5: `hwp.document` reports whether the editor holds a selection.
 - H9.3: the surface shows rhwp-studio in the document region `studio` and opens, saves and reloads the file through its embed requests; the page that drew the pages itself and the vendored `rhwp.js` are removed.
 - H9.2: `ui/studio-host.js` runs in the editor page and reports Command-S and unsaved changes to the surface page.

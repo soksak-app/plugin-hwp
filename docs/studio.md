@@ -1,8 +1,8 @@
-# rhwp-studio in the package
+# rhwp-studio in the plugin
 
 [한국어](studio.ko.md)
 
-The hwp plugin edits documents with `rhwp-studio`, the editor of [rhwp](https://github.com/edwardkim/rhwp). The package holds the editor as `rhwp-studio` builds it; the plugin does not change its sources.
+The hwp plugin edits documents with `rhwp-studio`, the editor of [rhwp](https://github.com/edwardkim/rhwp). The plugin holds the editor as `rhwp-studio` builds it and does not change its sources.
 
 ## Build
 
