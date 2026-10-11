@@ -8,6 +8,7 @@ export function createEmitter(runtime, pluginId) {
   return function emitEvent(level, name, fields) {
     if (!LEVELS.includes(level)) throw new TypeError(`emitEvent requires a level of ${LEVELS.join(", ")}, not ${String(level)}`);
     if (typeof name !== "string" || !name.startsWith(prefix)) throw new TypeError(`emitEvent requires a name that starts with ${prefix}`);
+    // events: forwarded
     runtime.log[level](name.slice(prefix.length), fields);
   };
 }

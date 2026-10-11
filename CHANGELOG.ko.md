@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H14: 전달자 `ui/events.js`가 넘기는 event 이름에 `events: forwarded`를 표시하므로, core의 catalog 검사가 `emitEvent` 호출에서 이름을 읽는다.
 - H14: plugin이 `events.json`을 선언하고, 열기, 닫기, 시작 단계, 읽기, render, 저장, 감시, 편집기 쪽 message, embed 요청, command를 `ui/events.js`를 거쳐 `plugin.hwp.*` event로 저장하며, Command-S가 시작한 저장의 실패를 저장하고, `make test`에서 `soksak-events`를 실행한다. `test/events.test.mjs`와 `test/hwp.test.mjs`의 test 10개가 이를 검사하고, manifest test는 H14.4를 기다린다.
 - H11: `hwp.document`가 mount를 시작할 때부터 있고 그 단계를 `phase`로 알린다.
 - H10: 문서와 주석이 plugin, sidecar, release를 그 말로 부른다.
