@@ -1,0 +1,20 @@
+{
+  "schema": 2,
+  "layers": ["plugin"],
+  "events": {
+    "plugin.hwp.open": { "layer": "plugin", "class": "lifecycle", "level": "info", "fields": { "path": "string", "format": "string" }, "description": "The surface mounted for the file path; format is hwp or hwpx." },
+    "plugin.hwp.close": { "layer": "plugin", "class": "lifecycle", "level": "info", "fields": { "path": "string" }, "description": "The surface of the file path was disposed." },
+    "plugin.hwp.phase": { "layer": "plugin", "class": "lifecycle", "level": "info", "fields": { "path": "string", "phase": "string" }, "description": "The start reached a step: starting, reading, opening or ready." },
+    "plugin.hwp.read": { "layer": "plugin", "class": "io", "level": ["debug", "warn"], "fields": { "path": "string", "reason": "string", "size?": "number", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One read of the file through the files sidecar; reason is start, reload or change, size is the number of bytes read, and error is <code>: <text> when ok is false." },
+    "plugin.hwp.render": { "layer": "plugin", "class": "io", "level": ["debug", "warn"], "fields": { "path": "string", "pages?": "number", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "The editor loaded the bytes of the file and drew its pages; pages is the page count it reported." },
+    "plugin.hwp.save": { "layer": "plugin", "class": "io", "level": ["info", "warn"], "fields": { "path": "string", "format": "string", "overwrite": "boolean", "size?": "number", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One save: the export of the editor and the write through the files sidecar; size is the number of bytes written." },
+    "plugin.hwp.watch": { "layer": "plugin", "class": "lifecycle", "level": ["info", "warn"], "fields": { "path": "string", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "The request that watches the file on disk." },
+    "plugin.hwp.watch.failed": { "layer": "plugin", "class": "lifecycle", "level": "error", "fields": { "path": "string", "error": "string" }, "description": "The files sidecar reported that the watch stopped." },
+    "plugin.hwp.disk.changed": { "layer": "plugin", "class": "lifecycle", "level": "info", "fields": { "path": "string", "modified": "boolean", "action": "string" }, "description": "The file changed on disk; action is reload when the editor holds no unsaved edits and banner when it does." },
+    "plugin.hwp.studio.message": { "layer": "plugin", "class": "input", "level": "debug", "fields": { "path": "string", "event": "string", "modified?": "boolean", "selection?": "boolean" }, "description": "A message of the editor page: save, modified or selection." },
+    "plugin.hwp.studio.error": { "layer": "plugin", "class": "lifecycle", "level": "error", "fields": { "path": "string", "message": "string" }, "description": "The editor page reported that it cannot read its state." },
+    "plugin.hwp.studio.save_failed": { "layer": "plugin", "class": "lifecycle", "level": "warn", "fields": { "path": "string", "error": "string" }, "description": "A save that the editor page started with Command-S failed; the tab shows the same failure." },
+    "plugin.hwp.request": { "layer": "plugin", "class": "call", "level": ["debug", "warn"], "fields": { "path": "string", "method": "string", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One embed request to the editor page and its answer." },
+    "plugin.hwp.command": { "layer": "plugin", "class": "call", "level": ["debug", "warn"], "fields": { "path": "string", "name": "string", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One run of a command of the surface: hwp.save, hwp.reload or hwp.request." }
+  }
+}

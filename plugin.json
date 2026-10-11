@@ -33,6 +33,7 @@
     },
     "save": "hwp.save"
   },
+  "events": "events.json",
   "preview": {
     "ink": "--fg"
   },
