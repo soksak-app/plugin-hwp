@@ -86,7 +86,7 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
   const studio = fakeStudio();
   const sidecar = fakeFiles(files);
   const logs = [];
-  const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => logs.push({ level, event: `plugin.hwp.${event}`, fields })]));
+  const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => logs.push({ level, event: `plugin.hwp.${event}`, fields: typeof fields === "function" ? fields() : fields })]));
   const binder = createBinder((name, params) => commands.get(name)(params), {
     check(name) { assert.ok(declared("commands", name), `undeclared command ${name}`); },
   });

@@ -12,7 +12,7 @@ const TYPES = ["string", "number", "boolean", "array", "object", "null"];
 
 function fakeRuntime() {
   const stored = [];
-  const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => stored.push({ level, event, fields })]));
+  const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => stored.push({ level, event, fields: typeof fields === "function" ? fields() : fields })]));
   return { stored, runtime: { log } };
 }
 

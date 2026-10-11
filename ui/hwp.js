@@ -163,7 +163,7 @@ export async function mount(root, context) {
     const start = performance.now();
     try {
       const body = await files.request({ operation: "readBytes", path });
-      emitEvent("debug", "plugin.hwp.read", { path, reason, size: base64Size(body.data), micros: microsSince(start), ok: true });
+      emitEvent("debug", "plugin.hwp.read", () => ({ path, reason, size: base64Size(body.data), micros: microsSince(start), ok: true }));
       return body;
     } catch (error) {
       emitEvent("warn", "plugin.hwp.read", { path, reason, micros: microsSince(start), ok: false, error: errorText(error) });
