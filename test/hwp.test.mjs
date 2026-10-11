@@ -10,6 +10,8 @@ const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.u
 const declared = (kind, name) => manifest.exposes[kind].some((entry) => entry.name === name);
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
+const LEVELS = ["error", "warn", "info", "debug", "trace"];
+const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.url), "utf8"));
 const ADDRESS = "sok://hwp/ui/studio/index.html?chrome=embed";
 
 /** A files sidecar of one surface over an in-memory file system with readBytes, writeBytes and watch. */
@@ -83,6 +85,8 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
   const reports = { modified: [], error: [], title: [] };
   const studio = fakeStudio();
   const sidecar = fakeFiles(files);
+  const logs = [];
+  const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => logs.push({ level, event: `plugin.hwp.${event}`, fields })]));
   const binder = createBinder((name, params) => commands.get(name)(params), {
     check(name) { assert.ok(declared("commands", name), `undeclared command ${name}`); },
   });
@@ -92,7 +96,7 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
     project: { root: "/project" },
     tab: { params: { path }, title: (text) => reports.title.push(text), footer() {}, directory() {}, notify() {},
       modified: (value) => reports.modified.push(value), error: (text) => reports.error.push(text) },
-    runtime: { sidecar: () => sidecar },
+    runtime: { sidecar: () => sidecar, log },
     composition: {
       async create({ regions, overlays }) {
         assert.deepEqual(Object.keys(regions), ["studio"]);
@@ -115,7 +119,7 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
   t.after(async () => { await controller.dispose(); host.remove(); });
   /** Lets the queued replies of the fakes run. */
   const settle = async () => { for (let turn = 0; turn < 8; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0)); };
-  return { root, studio, sidecar, settle, run: (name, params = {}) => commands.get(name)(params),
+  return { root, studio, sidecar, settle, logs, controller, run: (name, params = {}) => commands.get(name)(params),
     status: (name) => statuses.get(name)(), reports, files, binder };
 }
 
@@ -207,4 +211,140 @@ test("an error message of the editor page is shown as the tab error", async (t) 
 test("every interactive element is bound to a declared command and has a dom name", async (t) => {
   const { root, binder } = await setup(t);
   assert.deepEqual(binder.audit(root), []);
+});
+
+const named = (logs, name) => logs.filter((entry) => entry.event === `plugin.hwp.${name}`);
+const isMicros = (value) => Number.isInteger(value) && value >= 0;
+
+test("the start stores the open, each step, the read, the render and the watch", async (t) => {
+  const { logs } = await setup(t);
+  assert.deepEqual(named(logs, "open").map((entry) => entry.fields), [{ path: "docs/plan.hwp", format: "hwp" }]);
+  assert.deepEqual(named(logs, "phase").map((entry) => entry.fields.phase), ["starting", "reading", "opening", "ready"]);
+  const [read] = named(logs, "read");
+  assert.equal(read.level, "debug");
+  assert.deepEqual({ ...read.fields, micros: 0 }, { path: "docs/plan.hwp", reason: "start", size: bytes("첫 문단").length, micros: 0, ok: true });
+  assert.ok(isMicros(read.fields.micros));
+  const [render] = named(logs, "render");
+  assert.deepEqual({ ...render.fields, micros: 0 }, { path: "docs/plan.hwp", pages: 1, micros: 0, ok: true });
+  const [watch] = named(logs, "watch");
+  assert.equal(watch.level, "info");
+  assert.equal(watch.fields.ok, true);
+  assert.ok(isMicros(watch.fields.micros));
+});
+
+test("a save stores its format, size and result, and a failed save stores the error as <code>: <text>", async (t) => {
+  const { studio, run, logs, files, settle } = await setup(t, { path: "a.hwpx", files: new Map([["a.hwpx", bytes("x")]]) });
+  studio.edit("y");
+  await settle();
+  await run("hwp.save");
+  const [saved] = named(logs, "save");
+  assert.equal(saved.level, "info");
+  assert.deepEqual({ ...saved.fields, micros: 0 }, { path: "a.hwpx", format: "hwpx", overwrite: false, size: 2, micros: 0, ok: true });
+  files.set("a.hwpx", bytes("other"));
+  await assert.rejects(run("hwp.save"), /changed on disk/);
+  const failed = named(logs, "save").at(-1);
+  assert.equal(failed.level, "warn");
+  assert.equal(failed.fields.ok, false);
+  assert.equal(failed.fields.error, "Error: changed on disk: a.hwpx");
+  assert.equal("size" in failed.fields, false);
+});
+
+test("a read that fails stores the failure of the read", async (t) => {
+  const { files, run, logs, settle, sidecar } = await setup(t);
+  files.delete("docs/plan.hwp");
+  await assert.rejects(run("hwp.reload"));
+  const failed = named(logs, "read").at(-1);
+  assert.equal(failed.level, "warn");
+  assert.equal(failed.fields.reason, "reload");
+  assert.equal(failed.fields.ok, false);
+  assert.match(failed.fields.error, /^TypeError: /);
+  await settle();
+  void sidecar;
+});
+
+test("a change on disk stores the action that it causes", async (t) => {
+  const { studio, sidecar, files, logs, settle } = await setup(t);
+  files.set("docs/plan.hwp", bytes("new"));
+  sidecar.emit({ changed: "docs/plan.hwp" });
+  await settle();
+  studio.edit("!");
+  await settle();
+  files.set("docs/plan.hwp", bytes("newer"));
+  sidecar.emit({ changed: "docs/plan.hwp" });
+  await settle();
+  assert.deepEqual(named(logs, "disk.changed").map((entry) => entry.fields),
+    [{ path: "docs/plan.hwp", modified: false, action: "reload" }, { path: "docs/plan.hwp", modified: true, action: "banner" }]);
+  assert.deepEqual(named(logs, "read").slice(1).map((entry) => entry.fields.reason), ["change", "change"]);
+});
+
+test("a watch failure of the sidecar is stored as an error", async (t) => {
+  const { sidecar, logs, settle } = await setup(t);
+  sidecar.emit({ error: "watch stopped" });
+  await settle();
+  assert.deepEqual(named(logs, "watch.failed").map((entry) => [entry.level, entry.fields]), [["error", { path: "docs/plan.hwp", error: "watch stopped" }]]);
+});
+
+test("the messages of the editor page are stored, and its error as an error", async (t) => {
+  const { studio, logs, settle } = await setup(t);
+  studio.post({ type: "soksak-hwp", event: "selection", selection: true });
+  studio.post({ type: "soksak-hwp", event: "modified", modified: true });
+  studio.post({ type: "soksak-hwp", event: "error", message: "no automation" });
+  await settle();
+  assert.deepEqual(named(logs, "studio.message").map((entry) => entry.fields),
+    [{ path: "docs/plan.hwp", event: "selection", selection: true }, { path: "docs/plan.hwp", event: "modified", modified: true }]);
+  assert.deepEqual(named(logs, "studio.error").map((entry) => [entry.level, entry.fields]), [["error", { path: "docs/plan.hwp", message: "no automation" }]]);
+});
+
+test("a save that Command-S starts and that fails is stored and not dropped", async (t) => {
+  const { studio, files, logs, settle } = await setup(t);
+  studio.edit("!");
+  await settle();
+  files.set("docs/plan.hwp", bytes("other"));
+  studio.post({ type: "soksak-hwp", event: "save" });
+  await settle();
+  assert.deepEqual(named(logs, "studio.message").at(-1).fields, { path: "docs/plan.hwp", event: "save" });
+  assert.deepEqual(named(logs, "studio.save_failed").map((entry) => [entry.level, entry.fields]),
+    [["warn", { path: "docs/plan.hwp", error: "Error: changed on disk: docs/plan.hwp" }]]);
+});
+
+test("a command and an embed request store their result with the time", async (t) => {
+  const { run, logs } = await setup(t);
+  await run("hwp.request", { method: "ready" });
+  await assert.rejects(run("hwp.request", { method: "nothing" }), /unknown method nothing/);
+  const requests = named(logs, "request");
+  const failed = requests.at(-1);
+  assert.equal(failed.level, "warn");
+  assert.deepEqual({ ...failed.fields, micros: 0 }, { path: "docs/plan.hwp", method: "nothing", micros: 0, ok: false, error: "Error: rhwp-studio nothing-4: unknown method nothing" });
+  const commands = named(logs, "command");
+  assert.deepEqual(commands.map((entry) => [entry.level, entry.fields.name, entry.fields.ok]),
+    [["debug", "hwp.request", true], ["warn", "hwp.request", false]]);
+  assert.ok(commands.every((entry) => isMicros(entry.fields.micros)));
+  assert.match(commands[1].fields.error, /^Error: rhwp-studio nothing-/);
+});
+
+test("the dispose stores the close", async (t) => {
+  const { controller, logs } = await setup(t);
+  await controller.dispose();
+  assert.deepEqual(named(logs, "close").map((entry) => entry.fields), [{ path: "docs/plan.hwp" }]);
+});
+
+test("every stored event is declared in the catalog with its level and fields", async (t) => {
+  const { studio, run, sidecar, files, logs, settle } = await setup(t);
+  studio.edit("y");
+  studio.post({ type: "soksak-hwp", event: "error", message: "x" });
+  await settle();
+  await run("hwp.save");
+  files.set("docs/plan.hwp", bytes("z"));
+  await assert.rejects(run("hwp.save"));
+  sidecar.emit({ error: "stopped" });
+  await settle();
+  assert.ok(logs.length > 10);
+  for (const { level, event, fields } of logs) {
+    const entry = catalog.events[event];
+    assert.ok(entry, `${event} is not declared`);
+    assert.ok([entry.level].flat().includes(level), `${event} stored at ${level}`);
+    const declared = Object.keys(entry.fields).map((name) => name.replace(/\?$/, ""));
+    for (const name of Object.keys(fields)) assert.ok(declared.includes(name), `${event} has the undeclared field ${name}`);
+    for (const name of Object.keys(entry.fields).filter((key) => !key.endsWith("?"))) assert.ok(name in fields, `${event} lacks ${name}`);
+  }
 });

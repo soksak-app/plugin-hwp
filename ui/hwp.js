@@ -3,6 +3,7 @@
 // document in its own format. The page talks to rhwp-studio with its embed requests {type: "rhwp-request", id, method,
 // params}, which rhwp-studio answers with {type: "rhwp-response", id, result | error}, and receives the messages of
 // ui/studio-host.js {type: "soksak-hwp", event}.
+import { createEmitter, errorText } from "./events.js";
 import { connect } from "./requests.js";
 
 const css = `:host{display:block;height:100%}
@@ -34,6 +35,12 @@ export const toBase64 = (bytes) => {
   return btoa(text);
 };
 
+/** The number of bytes that the base64 text holds. */
+export const base64Size = (text) => Math.floor(text.length * 3 / 4) - (text.endsWith("==") ? 2 : text.endsWith("=") ? 1 : 0);
+
+/** The microseconds since start, a value of performance.now(). */
+const microsSince = (start) => Math.round((performance.now() - start) * 1000);
+
 export const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
 
 export async function mount(root, context) {
@@ -42,6 +49,8 @@ export async function mount(root, context) {
   if (typeof path !== "string" || path === "") throw new Error("the hwp tab requires params.path");
   if (context.project === null) throw new Error("this window shows no project");
   const format = formatOf(path);
+  const emitEvent = createEmitter(context.runtime, context.pluginId);
+  emitEvent("info", "plugin.hwp.open", { path, format });
   const name = path.slice(path.lastIndexOf("/") + 1);
   context.tab.title(name);
   root.innerHTML = HTML;
@@ -55,6 +64,10 @@ export async function mount(root, context) {
   const publish = (change) => {
     state = { ...state, ...change };
     for (const fn of listeners) fn(state);
+  };
+  const setPhase = (phase) => {
+    publish({ phase });
+    emitEvent("info", "plugin.hwp.phase", { path, phase });
   };
   const showBanner = (text) => {
     banner.hidden = text === null;
@@ -76,14 +89,23 @@ export async function mount(root, context) {
   const pending = new Map();
   let next = 0;
   /** Sends the embed request method with params to rhwp-studio and resolves its result. */
-  const request = (method, params = {}) => new Promise((resolve, reject) => {
-    const id = `${method}-${++next}`;
-    pending.set(id, { resolve, reject });
-    region.post({ type: "rhwp-request", id, method, params }).catch((failure) => {
-      pending.delete(id);
-      reject(failure);
+  const request = (method, params = {}) => {
+    const start = performance.now();
+    return new Promise((resolve, reject) => {
+      const id = `${method}-${++next}`;
+      pending.set(id, { resolve, reject });
+      region.post({ type: "rhwp-request", id, method, params }).catch((failure) => {
+        pending.delete(id);
+        reject(failure);
+      });
+    }).then((result) => {
+      emitEvent("debug", "plugin.hwp.request", { path, method, micros: microsSince(start), ok: true });
+      return result;
+    }, (error) => {
+      emitEvent("warn", "plugin.hwp.request", { path, method, micros: microsSince(start), ok: false, error: errorText(error) });
+      throw error;
     });
-  });
+  };
 
   let save = null;
   const stopMessages = region.onMessage((message) => {
@@ -98,11 +120,23 @@ export async function mount(root, context) {
       else entry.resolve(message.result);
       return;
     }
-    if (message?.type === "soksak-hwp" && message.event === "modified") return setModified(message.modified);
-    if (message?.type === "soksak-hwp" && message.event === "selection") return publish({ selection: message.selection });
-    // save shows its failure as the tab error.
-    if (message?.type === "soksak-hwp" && message.event === "save") return void save().catch(() => {});
-    if (message?.type === "soksak-hwp" && message.event === "error") return context.tab.error(`편집기 · ${message.message}`);
+    if (message?.type === "soksak-hwp" && message.event === "modified") {
+      emitEvent("debug", "plugin.hwp.studio.message", { path, event: "modified", modified: message.modified });
+      return setModified(message.modified);
+    }
+    if (message?.type === "soksak-hwp" && message.event === "selection") {
+      emitEvent("debug", "plugin.hwp.studio.message", { path, event: "selection", selection: message.selection });
+      return publish({ selection: message.selection });
+    }
+    // save shows its failure as the tab error and stores it as an event.
+    if (message?.type === "soksak-hwp" && message.event === "save") {
+      emitEvent("debug", "plugin.hwp.studio.message", { path, event: "save" });
+      return void save().catch((error) => emitEvent("warn", "plugin.hwp.studio.save_failed", { path, error: errorText(error) }));
+    }
+    if (message?.type === "soksak-hwp" && message.event === "error") {
+      emitEvent("error", "plugin.hwp.studio.error", { path, message: message.message });
+      return context.tab.error(`편집기 · ${message.message}`);
+    }
     throw new Error(`the hwp document posted an unknown message ${JSON.stringify(message)}`);
   });
 
@@ -121,14 +155,34 @@ export async function mount(root, context) {
       diskChanged().catch((error) => context.tab.error(`다시 읽지 못했습니다 · ${error.message}`));
       return;
     }
+    emitEvent("error", "plugin.hwp.watch.failed", { path, error: String(body.error) });
     context.tab.error(`파일 감시가 멈췄습니다 · ${body.error}`);
   });
-  const read = () => files.request({ operation: "readBytes", path });
+  /** Reads the file through the files sidecar; reason is start, reload or change. */
+  const read = async (reason) => {
+    const start = performance.now();
+    try {
+      const body = await files.request({ operation: "readBytes", path });
+      emitEvent("debug", "plugin.hwp.read", { path, reason, size: base64Size(body.data), micros: microsSince(start), ok: true });
+      return body;
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.read", { path, reason, micros: microsSince(start), ok: false, error: errorText(error) });
+      throw error;
+    }
+  };
 
   /** Opens the bytes of a read in the editor and discards its edits. */
   const open = async (body) => {
-    const { pageCount } = await request("loadFile", { data: Array.from(fromBase64(body.data)), fileName: name,
-      skipUnsavedGuard: true, suppressDialogs: true });
+    const start = performance.now();
+    let pageCount;
+    try {
+      ({ pageCount } = await request("loadFile", { data: Array.from(fromBase64(body.data)), fileName: name,
+        skipUnsavedGuard: true, suppressDialogs: true }));
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.render", { path, micros: microsSince(start), ok: false, error: errorText(error) });
+      throw error;
+    }
+    emitEvent("debug", "plugin.hwp.render", { path, pages: pageCount, micros: microsSince(start), ok: true });
     diskVersion = body.version;
     showBanner(null);
     publish({ version: body.version, pages: pageCount, disk: "same" });
@@ -136,8 +190,9 @@ export async function mount(root, context) {
   };
 
   async function diskChanged() {
-    const body = await read();
+    const body = await read("change");
     if (body.version === state.version) return;
+    emitEvent("info", "plugin.hwp.disk.changed", { path, modified: state.modified, action: state.modified ? "banner" : "reload" });
     if (!state.modified) {
       await open(body);
       return;
@@ -149,6 +204,7 @@ export async function mount(root, context) {
 
   save = async ({ overwrite = false } = {}) => {
     if (typeof overwrite !== "boolean") throw new TypeError("hwp.save requires overwrite as true or false");
+    const start = performance.now();
     try {
       const bytes = Uint8Array.from(await request(EXPORTS[format]));
       const reply = await files.request({ operation: "writeBytes", path, data: toBase64(bytes),
@@ -159,8 +215,10 @@ export async function mount(root, context) {
       publish({ version: reply.version, disk: "same" });
       setModified(false);
       context.tab.error(null);
+      emitEvent("info", "plugin.hwp.save", { path, format, overwrite, size: bytes.length, micros: microsSince(start), ok: true });
       return { version: reply.version };
     } catch (error) {
+      emitEvent("warn", "plugin.hwp.save", { path, format, overwrite, micros: microsSince(start), ok: false, error: errorText(error) });
       context.tab.error(`저장하지 못했습니다 · ${error.message}`);
       throw error;
     }
@@ -168,7 +226,7 @@ export async function mount(root, context) {
 
   const reload = async () => {
     try {
-      const body = await read();
+      const body = await read("reload");
       await open(body);
       context.tab.error(null);
       return { version: body.version };
@@ -180,17 +238,36 @@ export async function mount(root, context) {
 
   await region.load(address);
   await loaded;
-  publish({ phase: "starting" });
+  setPhase("starting");
   await request("ready");
-  publish({ phase: "reading" });
-  const body = await read();
-  publish({ phase: "opening" });
+  setPhase("reading");
+  const body = await read("start");
+  setPhase("opening");
   await open(body);
-  await files.request({ operation: "watch", paths: [path] });
+  const watchStart = performance.now();
+  try {
+    await files.request({ operation: "watch", paths: [path] });
+  } catch (error) {
+    emitEvent("warn", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: false, error: errorText(error) });
+    throw error;
+  }
+  emitEvent("info", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: true });
 
-  expose.command("hwp.save", save);
-  expose.command("hwp.reload", reload);
-  expose.command("hwp.request", ({ method, params } = {}) => request(method, params));
+  /** Registers a command that stores its result with the time. */
+  const command = (name, run) => expose.command(name, async (params) => {
+    const start = performance.now();
+    try {
+      const result = await run(params);
+      emitEvent("debug", "plugin.hwp.command", { path, name, micros: microsSince(start), ok: true });
+      return result;
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.command", { path, name, micros: microsSince(start), ok: false, error: errorText(error) });
+      throw error;
+    }
+  });
+  command("hwp.save", save);
+  command("hwp.reload", reload);
+  command("hwp.request", ({ method, params } = {}) => request(method, params));
   for (const element of root.querySelectorAll("[data-expose]")) expose.dom(element.dataset.expose, element);
 
   // save and reload show their failures as the tab error, so a control that runs them does not report them again.
@@ -200,10 +277,11 @@ export async function mount(root, context) {
   await expose.bind(banner.querySelector('[data-expose="hwp.reload"]'), "hwp.reload", {}, { failed: shown });
   await expose.bind(banner.querySelector('[data-expose="hwp.overwrite"]'), "hwp.save", { overwrite: true }, { failed: shown });
 
-  publish({ phase: "ready" });
+  setPhase("ready");
   context.status.report("ready");
   return {
     async dispose() {
+      emitEvent("info", "plugin.hwp.close", { path });
       stopMessages();
       listeners.clear();
       files.dispose();
