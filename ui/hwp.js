@@ -280,8 +280,8 @@ export async function mount(root, context) {
   }
   emitEvent("info", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: true });
 
-  /** Registers a command that stores its result with the time. */
-  const command = (name, run) => expose.command(name, async (params) => {
+  /** The handler of the command `name` that stores its result with the time. */
+  const recorded = (name, run) => async (params) => {
     const start = performance.now();
     try {
       const result = await run(params);
@@ -291,10 +291,10 @@ export async function mount(root, context) {
       emitEvent("warn", "plugin.hwp.command", { path, name, micros: microsSince(start), ok: false, error: errorText(error) });
       throw error;
     }
-  });
-  command("hwp.save", save);
-  command("hwp.reload", reload);
-  command("hwp.request", ({ method, params } = {}) => request(method, params));
+  };
+  expose.command("hwp.save", recorded("hwp.save", save));
+  expose.command("hwp.reload", recorded("hwp.reload", reload));
+  expose.command("hwp.request", recorded("hwp.request", ({ method, params } = {}) => request(method, params)));
   for (const element of root.querySelectorAll("[data-expose]")) expose.dom(element.dataset.expose, element);
 
   // save and reload show their failures as the tab error, so a control that runs them does not report them again.

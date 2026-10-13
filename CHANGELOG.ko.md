@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H14.6: 표면이 `hwp.save`, `hwp.reload`, `hwp.request`를 문자 그대로의 이름으로 등록하므로, `make test`의 exposure 검사가 그 등록을 찾는다.
 - H13: 편집기 쪽이 `rhwp-studio`의 script가 실행된 뒤 `listening`을 보내고, plugin은 그 message 뒤에 첫 요청을 보낸다. 편집기가 message listener를 설치하기 전에 보낸 요청이 사라져 시작이 `phase: starting`에 머물렀기 때문이다. message의 대기와 각 embed 요청은 한도 뒤에 단계를 밝히는 error로 실패한다.
 - H14.5: plugin event는 level이 저장될 때만 비싼 field를 만들고, plugin에는 `cids`를 가진 입력이 없다.
 - H14: 전달자 `ui/events.js`가 넘기는 event 이름에 `events: forwarded`를 표시하므로, core의 catalog 검사가 `emitEvent` 호출에서 이름을 읽는다.
