@@ -1,5 +1,5 @@
 # Tests, builds and packs the hwp plugin (docs/features.md). pack uses the sok of core.
-.PHONY: test studio pack
+.PHONY: test studio pack hooks
 
 SOK ?= sok
 # DIAGNOSTICS=1 adds diagnostics.json to the plugin release.
@@ -27,3 +27,7 @@ studio: node_modules
 pack: studio
 	@test -n "$(OUT)" || { echo "make pack OUT=<folder>" >&2; exit 2; }
 	$(SOK) plugin pack . $(OUT) $(PACK_FLAGS)
+
+# Sets this repository to use .githooks, which checks commit messages and records at commit time.
+hooks:
+	@git config core.hooksPath .githooks

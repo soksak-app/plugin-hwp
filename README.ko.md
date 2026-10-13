@@ -8,6 +8,7 @@ HWP plugin은 프로젝트의 HWP와 HWPX 문서를 [rhwp](https://github.com/ed
 make test                                   # test
 make studio                                 # ui/studio의 rhwp-studio
 make pack OUT=<folder> SOK=<core>/target/debug/sok   # plugin을 <folder>에 pack한다
+make hooks                                  # clone 후 한 번: commit 때 commit message와 record를 검사
 ```
 
 Checklist는 [docs/features.md](docs/features.md)다.

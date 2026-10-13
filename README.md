@@ -8,6 +8,7 @@ HWP plugin: opens the HWP and HWPX documents of the project in rhwp-studio, the 
 make test                                   # tests
 make studio                                 # rhwp-studio in ui/studio
 make pack OUT=<folder> SOK=<core>/target/debug/sok   # packs the plugin into <folder>
+make hooks                                  # once after cloning: check commit messages and records at commit time
 ```
 
 The checklist is [docs/features.md](docs/features.md).
