@@ -2,8 +2,9 @@
 
 [English](CHANGELOG.md)
 
-## 미배포
+## 0.0.1 (2026-10-14)
 
+- H6: version 0.0.1을 release한다. tag `v0.0.1`이 core 0.0.12의 `sok`로 plugin을 게시하며, plugin은 files sidecar `>=0.0.5`를 요구한다.
 - H18: `@soksak/plugin-api`를 core release 0.0.12에서 받고, `engines.soksak`은 `>=0.0.12`이며, release workflow가 `CORE_RELEASE: v0.0.12`에서 `sok`를 build한다.
 - H17: `make hooks`가 `.githooks`를 hook 폴더로 정해, commit message의 형식이나 용어 규칙, record 규칙을 어긴 commit이 만들어질 때 거부된다.
 - H15.1: `params.path` 없는 tab은 편집기의 빈 문서를 열고, 그 첫 저장은 `core.file.place`로 파일을 물은 뒤 그 파일을 쓰고 감시한다.

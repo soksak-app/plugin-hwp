@@ -2,8 +2,9 @@
 
 [한국어](CHANGELOG.ko.md)
 
-## Unreleased
+## 0.0.1 (2026-10-14)
 
+- H6: Release version 0.0.1; the tag `v0.0.1` publishes the plugin with `sok` of core 0.0.12, and the plugin requires the files sidecar `>=0.0.5`.
 - H18: `@soksak/plugin-api` comes from the core release 0.0.12, `engines.soksak` is `>=0.0.12`, and the release workflow builds `sok` from `CORE_RELEASE: v0.0.12`.
 - H17: `make hooks` sets `.githooks` as the hook folder, so a commit whose message breaks the commit form or the term rules, or whose records break the record rules, is refused when it is made.
 - H15.1: a tab without `params.path` opens a blank document of the editor, whose first save asks for its file through `core.file.place` and then writes and watches that file.
