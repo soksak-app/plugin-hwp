@@ -24,6 +24,11 @@ function fakeFiles(files) {
     async send(surface, body) {
       if (body.operation === "watch") return reply({ id: body.id });
       if (body.operation === "readBytes") return reply({ id: body.id, data: toBase64(files.get(body.path)), version: sha(files.get(body.path)) });
+      if (body.operation === "writeBytes" && body.expect === null) {
+        if (files.has(body.path)) return reply({ id: body.id, error: `exists: ${body.path}` });
+        files.set(body.path, fromBase64(body.data));
+        return reply({ id: body.id, version: sha(files.get(body.path)) });
+      }
       if (body.operation === "writeBytes") {
         if (sha(files.get(body.path)) !== body.expect) return reply({ id: body.id, error: `changed on disk: ${body.path}` });
         files.set(body.path, fromBase64(body.data));
@@ -45,7 +50,7 @@ function fakeFiles(files) {
 function fakeStudio({ listens = true, silent = [] } = {}) {
   const messages = new Set();
   const states = new Set();
-  const studio = { document: null, requests: [], dropped: [], loaded: null };
+  const studio = { document: null, requests: [], dropped: [], loaded: null, savedAs: [] };
   let listening = false;
   const deliver = (message) => queueMicrotask(() => { for (const fn of messages) fn(message); });
   const answers = {
@@ -53,7 +58,14 @@ function fakeStudio({ listens = true, silent = [] } = {}) {
     loadFile: ({ data }) => { studio.document = Uint8Array.from(data); return { pageCount: 1 }; },
     exportHwp: () => Array.from(studio.document),
     exportHwpx: () => Array.from(studio.document),
-    notifySaved: () => ({ ok: true, wasDirty: true }),
+    notifySaved: ({ fileName }) => { studio.savedAs.push(fileName); return { ok: true, wasDirty: true }; },
+    // The studio command file:new-doc replaces the document with a blank document.
+    "automation.execute": ({ id }) => {
+      if (id !== "file:new-doc") throw new Error(`unexpected automation command ${id}`);
+      studio.document = new Uint8Array();
+      return { ok: true };
+    },
+    pageCount: () => 1,
   };
   studio.edit = (text) => {
     studio.document = new Uint8Array([...studio.document, ...bytes(text)]);
@@ -85,13 +97,14 @@ function fakeStudio({ listens = true, silent = [] } = {}) {
   return studio;
 }
 
-async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", bytes("첫 문단")]]), onStatus = () => {}, listens = true, silent = [] } = {}) {
+async function setup(t, { path = "docs/plan.hwp", params = { path }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]), onStatus = () => {}, listens = true,
+  silent = [], place = () => { throw new Error("the test runs no core command"); } } = {}) {
   const host = window.document.createElement("div");
   window.document.body.append(host);
   const root = host.attachShadow({ mode: "open" });
   const commands = new Map();
   const statuses = new Map();
-  const reports = { modified: [], error: [], title: [] };
+  const reports = { modified: [], error: [], title: [], commands: [] };
   const studio = fakeStudio({ listens, silent });
   const sidecar = fakeFiles(files);
   const logs = [];
@@ -103,9 +116,10 @@ async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.h
     surfaceId: "hwp-1",
     pluginId: "hwp",
     project: { root: "/project" },
-    tab: { params: { path }, title: (text) => reports.title.push(text), footer() {}, directory() {}, notify() {},
+    tab: { params, title: (text) => reports.title.push(text), footer() {}, directory() {}, notify() {},
       modified: (value) => reports.modified.push(value), error: (text) => reports.error.push(text) },
-    runtime: { sidecar: () => sidecar, log },
+    runtime: { sidecar: () => sidecar, log,
+      command: async (name, commandParams) => { reports.commands.push([name, commandParams]); return place(name, commandParams); } },
     composition: {
       async create({ regions, overlays }) {
         assert.deepEqual(Object.keys(regions), ["studio"]);
@@ -378,4 +392,76 @@ test("every stored event is declared in the catalog with its level and fields", 
     for (const name of Object.keys(fields)) assert.ok(declared.includes(name), `${event} has the undeclared field ${name}`);
     for (const name of Object.keys(entry.fields).filter((key) => !key.endsWith("?"))) assert.ok(name in fields, `${event} lacks ${name}`);
   }
+});
+
+test("a tab without a path opens a blank document of the editor and reads no file", async (t) => {
+  const { studio, status, reports } = await setup(t, { params: {}, files: new Map() });
+  assert.deepEqual(studio.requests, ["ready", "automation.execute", "pageCount"]);
+  assert.deepEqual(status("hwp.document"), { path: null, format: "hwp", version: null, modified: false, selection: false, pages: 1,
+    disk: "same", phase: "ready" });
+  assert.deepEqual(reports.title, ["새 문서"]);
+});
+
+test("the first save of a blank document asks for the file, exports its format, writes it and watches it", async (t) => {
+  const files = new Map();
+  const { studio, run, status, reports, settle } = await setup(t, { params: {}, files, place: () => ({ path: "docs/new.hwpx" }) });
+  studio.edit("본문");
+  await settle();
+  const { version } = await run("hwp.save");
+  assert.deepEqual(reports.commands, [["core.file.place", { name: "새 문서.hwp" }]]);
+  assert.deepEqual(files.get("docs/new.hwpx"), bytes("본문"));
+  assert.equal(version, sha(bytes("본문")));
+  assert.deepEqual(studio.requests.slice(3), ["exportHwpx", "notifySaved"]);
+  assert.deepEqual(studio.savedAs, ["new.hwpx"]);
+  const document = status("hwp.document");
+  assert.equal(document.path, "docs/new.hwpx");
+  assert.equal(document.format, "hwpx");
+  assert.equal(document.modified, false);
+  assert.deepEqual(reports.title, ["새 문서", "new.hwpx"]);
+  // The next save writes the named file in place.
+  studio.edit("!");
+  await settle();
+  await run("hwp.save");
+  assert.deepEqual(files.get("docs/new.hwpx"), bytes("본문!"));
+  assert.equal(reports.commands.length, 1, "a named document does not ask for its place again");
+});
+
+test("a cancelled place keeps the blank document modified and writes nothing", async (t) => {
+  const files = new Map();
+  const { studio, run, status, settle } = await setup(t, { params: {}, files, place: () => ({ path: null }) });
+  studio.edit("x");
+  await settle();
+  assert.deepEqual(await run("hwp.save"), { version: null });
+  assert.equal(status("hwp.document").path, null);
+  assert.equal(status("hwp.document").modified, true);
+  assert.equal(files.size, 0);
+});
+
+test("a place that is not an hwp or hwpx file is refused as the tab error", async (t) => {
+  const { studio, run, status, reports, settle } = await setup(t, { params: {}, files: new Map(), place: () => ({ path: "notes.txt" }) });
+  studio.edit("x");
+  await settle();
+  await assert.rejects(run("hwp.save"), /opens \.hwp and \.hwpx files, not notes\.txt/);
+  assert.equal(status("hwp.document").path, null);
+  assert.match(reports.error.at(-1), /not notes\.txt/);
+});
+
+test("every event of a blank document and its first save is declared in the catalog with its level and fields", async (t) => {
+  const { studio, run, logs, settle } = await setup(t, { params: {}, files: new Map(), place: () => ({ path: "new.hwp" }) });
+  studio.edit("y");
+  await settle();
+  await run("hwp.save");
+  for (const { level, event, fields } of logs) {
+    const entry = catalog.events[event];
+    assert.ok(entry, `${event} is not declared`);
+    assert.ok([entry.level].flat().includes(level), `${event} stored at ${level}`);
+    const declared = Object.keys(entry.fields).map((name) => name.replace(/\?$/, ""));
+    for (const name of Object.keys(fields)) assert.ok(declared.includes(name), `${event} has the undeclared field ${name}`);
+    for (const name of Object.keys(entry.fields).filter((key) => !key.endsWith("?"))) assert.ok(name in fields, `${event} lacks ${name}`);
+    for (const [name, value] of Object.entries(fields)) {
+      const type = entry.fields[name] ?? entry.fields[`${name}?`];
+      assert.ok(type.split("|").includes(value === null ? "null" : typeof value), `${event}.${name} is ${value === null ? "null" : typeof value}, declared ${type}`);
+    }
+  }
+  assert.ok(logs.some((entry) => entry.event === "plugin.hwp.new") && logs.some((entry) => entry.event === "plugin.hwp.place"));
 });

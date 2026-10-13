@@ -2,7 +2,8 @@
 // "studio", opens the .hwp or .hwpx file tab.params.path of the project in it through the files sidecar, and saves the
 // document in its own format. The page talks to rhwp-studio with its embed requests {type: "rhwp-request", id, method,
 // params}, which rhwp-studio answers with {type: "rhwp-response", id, result | error}, and receives the messages of
-// ui/studio-host.js {type: "soksak-hwp", event}.
+// ui/studio-host.js {type: "soksak-hwp", event}. A tab without a path opens a blank document of the editor, whose first
+// save asks for its file through core.file.place.
 import { createEmitter, errorText } from "./events.js";
 import { connect } from "./requests.js";
 
@@ -18,6 +19,10 @@ button:hover{background:var(--inset);color:var(--fg)}
 const HTML = `<style>${css}</style><div id="frame" data-expose="hwp.frame">
 <div id="banner" data-expose="hwp.banner" hidden><span></span><button data-expose="hwp.reload">다시 읽기</button><button data-expose="hwp.overwrite">덮어쓰기</button></div>
 <div id="studio" data-expose="hwp.studio"></div></div>`;
+
+/** The tab title of a blank document and the file name that its first save proposes. */
+const NEW_TITLE = "새 문서";
+const NEW_NAME = "새 문서.hwp";
 
 /* The embed request that exports each format. */
 const EXPORTS = { hwp: "exportHwp", hwpx: "exportHwpx" };
@@ -49,14 +54,15 @@ const microsSince = (start) => Math.round((performance.now() - start) * 1000);
 export const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
 
 export async function mount(root, context) {
-  // default: a tab without params cannot name a file; core.file.open always passes {path}.
-  const path = context.tab.params?.path;
-  if (typeof path !== "string" || path === "") throw new Error("the hwp tab requires params.path");
+  // default: a tab without params.path holds a blank document; core.file.open always passes {path}.
+  let path = context.tab.params?.path ?? null;
+  if (path !== null && (typeof path !== "string" || path === "")) throw new Error("the hwp tab params.path must be a non-empty string");
   if (context.project === null) throw new Error("this window shows no project");
-  const format = formatOf(path);
+  let format = path === null ? "hwp" : formatOf(path);
   const emitEvent = createEmitter(context.runtime, context.pluginId);
-  emitEvent("info", "plugin.hwp.open", { path, format });
-  const name = path.slice(path.lastIndexOf("/") + 1);
+  if (path === null) emitEvent("info", "plugin.hwp.new", { name: NEW_NAME });
+  else emitEvent("info", "plugin.hwp.open", { path, format });
+  let name = path === null ? NEW_TITLE : path.slice(path.lastIndexOf("/") + 1);
   context.tab.title(name);
   root.innerHTML = HTML;
   const frame = root.querySelector("#frame");
@@ -223,8 +229,67 @@ export async function mount(root, context) {
     showBanner("디스크의 파일이 바뀌었습니다");
   }
 
+  const startWatch = async () => {
+    const watchStart = performance.now();
+    try {
+      await files.request({ operation: "watch", paths: [path] });
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: false, error: errorText(error) });
+      throw error;
+    }
+    emitEvent("info", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: true });
+  };
+
+  // The first save of a blank document: the file that core.file.place answers is written in the format of its extension;
+  // a file that exists there is written over, because the save panel asked the person to replace it.
+  const saveNew = async () => {
+    const placeStart = performance.now();
+    let chosen;
+    try {
+      ({ path: chosen } = await context.runtime.command("core.file.place", { name: NEW_NAME }));
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.place", { name: NEW_NAME, path: null, micros: microsSince(placeStart), ok: false, error: errorText(error) });
+      context.tab.error(`저장하지 못했습니다 · ${error.message}`);
+      throw error;
+    }
+    emitEvent("info", "plugin.hwp.place", { name: NEW_NAME, path: chosen, micros: microsSince(placeStart), ok: true });
+    if (chosen === null) return { version: null };
+    const start = performance.now();
+    let chosenFormat = null;
+    try {
+      chosenFormat = formatOf(chosen);
+      const bytes = Uint8Array.from(await request(EXPORTS[chosenFormat]));
+      const write = (expect) => files.request({ operation: "writeBytes", path: chosen, data: toBase64(bytes), expect });
+      let reply;
+      try {
+        reply = await write(null);
+      } catch (error) {
+        if (!String(error.message).startsWith("exists")) throw error;
+        reply = await write((await files.request({ operation: "readBytes", path: chosen })).version);
+      }
+      path = chosen;
+      format = chosenFormat;
+      name = path.slice(path.lastIndexOf("/") + 1);
+      context.tab.title(name);
+      diskVersion = reply.version;
+      await request("notifySaved", { fileName: name });
+      publish({ path, format, version: reply.version, disk: "same" });
+      setModified(false);
+      context.tab.error(null);
+      emitEvent("info", "plugin.hwp.save", { path, format, overwrite: false, size: bytes.length, micros: microsSince(start), ok: true });
+      await startWatch();
+      return { version: reply.version };
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.save", { path: chosen, format: chosenFormat, overwrite: false, micros: microsSince(start), ok: false,
+        error: errorText(error) });
+      context.tab.error(`저장하지 못했습니다 · ${error.message}`);
+      throw error;
+    }
+  };
+
   save = async ({ overwrite = false } = {}) => {
     if (typeof overwrite !== "boolean") throw new TypeError("hwp.save requires overwrite as true or false");
+    if (path === null) return saveNew();
     const start = performance.now();
     try {
       const bytes = Uint8Array.from(await request(EXPORTS[format]));
@@ -246,6 +311,7 @@ export async function mount(root, context) {
   };
 
   const reload = async () => {
+    if (path === null) throw new Error("a blank document has no file to read");
     try {
       const body = await read("reload");
       await open(body);
@@ -267,18 +333,19 @@ export async function mount(root, context) {
     bound = setTimeout(() => reject(new Error(`the editor page loaded and did not post listening within ${LISTENING_LIMIT_MS / 1000} s`)), LISTENING_LIMIT_MS);
   })]).finally(() => clearTimeout(bound));
   await request("ready");
-  setPhase("reading");
-  const body = await read("start");
-  setPhase("opening");
-  await open(body);
-  const watchStart = performance.now();
-  try {
-    await files.request({ operation: "watch", paths: [path] });
-  } catch (error) {
-    emitEvent("warn", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: false, error: errorText(error) });
-    throw error;
+  if (path === null) {
+    // The editor creates the blank document with its own command file:new-doc.
+    setPhase("opening");
+    await request("automation.execute", { id: "file:new-doc" });
+    publish({ pages: await request("pageCount") });
+    setModified(false);
+  } else {
+    setPhase("reading");
+    const body = await read("start");
+    setPhase("opening");
+    await open(body);
+    await startWatch();
   }
-  emitEvent("info", "plugin.hwp.watch", { path, micros: microsSince(watchStart), ok: true });
 
   /** The handler of the command `name` that stores its result with the time. */
   const recorded = (name, run) => async (params) => {

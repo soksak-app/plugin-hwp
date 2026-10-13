@@ -44,12 +44,15 @@
     "status": [
       {
         "name": "hwp.document",
-        "description": "The open document: its path relative to the project root, its format hwp or hwpx, the SHA-256 version of the last read or write, whether the editor holds unsaved edits as modified, whether it holds a selection, the number of pages of the last load, and whether the file on disk is the same or changed, and the step of the start as phase: loading the editor page, starting the editor, reading the file, opening it in the editor, or ready.",
+        "description": "The open document: its path relative to the project root, or null for a blank document that was never saved, its format hwp or hwpx, the SHA-256 version of the last read or write, whether the editor holds unsaved edits as modified, whether it holds a selection, the number of pages of the last load, and whether the file on disk is the same or changed, and the step of the start as phase: loading the editor page, starting the editor, reading the file, opening it in the editor, or ready.",
         "schema": {
           "type": "object",
           "properties": {
             "path": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "format": {
               "type": "string"
@@ -93,7 +96,7 @@
     "commands": [
       {
         "name": "hwp.save",
-        "description": "Exports the document of the editor in its own format and writes it in place when the file on disk still has the version that the surface read; with overwrite, writes over the version that changed on disk. Failures are shown as the tab's error.",
+        "description": "Exports the document of the editor in its own format and writes it in place when the file on disk still has the version that the surface read; with overwrite, writes over the version that changed on disk. A blank document asks for its file through core.file.place first, is written in the format of the chosen extension, and answers version null when the person cancels. Failures are shown as the tab's error.",
         "params": {
           "type": "object",
           "properties": {
@@ -106,7 +109,10 @@
           "type": "object",
           "properties": {
             "version": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }
