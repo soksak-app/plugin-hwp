@@ -23,6 +23,7 @@ A later build reuses the checkout and its dependencies.
 
 `rhwp-studio` exposes `window.rhwpStudio.automation` to hosts that integrate inside its page. `ui/studio-host.js` runs in the page and posts these messages to the window, which the document region passes to the surface page:
 
+- `{type: "soksak-hwp", event: "listening"}` once, when the script runs: the script is the last module script of the page, so the scripts of `rhwp-studio`, which install its message listener, have run before it; the surface page posts its first request only after this message, because the load of the page can report the page before those scripts end and a request posted before the listener exists is lost;
 - `{type: "soksak-hwp", event: "save"}` on Command-S, because the embed mode of `rhwp-studio` registers no save command and only prevents the default action of the shortcut;
 - `{type: "soksak-hwp", event: "modified", modified}` when `isDirty` of the automation context changes, read after each input event and each reply of the editor, because `rhwp-studio` has no change event for a page at the top level;
 - `{type: "soksak-hwp", event: "selection", selection}` when `hasSelection` of the automation context changes, read at the same times;

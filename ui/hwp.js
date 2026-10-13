@@ -38,6 +38,11 @@ export const toBase64 = (bytes) => {
 /** The number of bytes that the base64 text holds. */
 export const base64Size = (text) => Math.floor(text.length * 3 / 4) - (text.endsWith("==") ? 2 : text.endsWith("=") ? 1 : 0);
 
+/** The bound of the wait for the listening message of the editor page after its load. */
+const LISTENING_LIMIT_MS = 10000;
+/** The bound of the wait for the answer of one embed request; an export or a load of a large document fits in it. */
+const REQUEST_LIMIT_MS = 60000;
+
 /** The microseconds since start, a value of performance.now(). */
 const microsSince = (start) => Math.round((performance.now() - start) * 1000);
 
@@ -88,17 +93,25 @@ export async function mount(root, context) {
 
   const pending = new Map();
   let next = 0;
-  /** Sends the embed request method with params to rhwp-studio and resolves its result. */
+  /**
+   * Sends the embed request method with params to rhwp-studio and resolves its result. No event reports a request that the
+   * editor never answers, so each request has a bound and then fails with its id and the phase of the start.
+   */
   const request = (method, params = {}) => {
     const start = performance.now();
+    let bound;
     return new Promise((resolve, reject) => {
       const id = `${method}-${++next}`;
       pending.set(id, { resolve, reject });
+      bound = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`rhwp-studio did not answer ${id} within ${REQUEST_LIMIT_MS / 1000} s in phase ${state.phase}`));
+      }, REQUEST_LIMIT_MS);
       region.post({ type: "rhwp-request", id, method, params }).catch((failure) => {
         pending.delete(id);
         reject(failure);
       });
-    }).then((result) => {
+    }).finally(() => clearTimeout(bound)).then((result) => {
       emitEvent("debug", "plugin.hwp.request", { path, method, micros: microsSince(start), ok: true });
       return result;
     }, (error) => {
@@ -108,6 +121,10 @@ export async function mount(root, context) {
   };
 
   let save = null;
+  // The editor page installs its message listener while its scripts run, which can end after the load reports the page;
+  // ui/studio-host.js runs after them and posts listening, and a request posted before that would be lost.
+  let markListening;
+  const listening = new Promise((resolve) => { markListening = resolve; });
   const stopMessages = region.onMessage((message) => {
     // The region passes every message that the document posts to its own window, so it passes the requests of this
     // page back too.
@@ -119,6 +136,10 @@ export async function mount(root, context) {
       if (message.error !== undefined) entry.reject(new Error(`rhwp-studio ${message.id}: ${message.error}`));
       else entry.resolve(message.result);
       return;
+    }
+    if (message?.type === "soksak-hwp" && message.event === "listening") {
+      emitEvent("debug", "plugin.hwp.studio.message", { path, event: "listening" });
+      return markListening();
     }
     if (message?.type === "soksak-hwp" && message.event === "modified") {
       emitEvent("debug", "plugin.hwp.studio.message", { path, event: "modified", modified: message.modified });
@@ -239,6 +260,12 @@ export async function mount(root, context) {
   await region.load(address);
   await loaded;
   setPhase("starting");
+  // No event reports that a loaded page never posts listening, so the wait has a bound: the scripts of the page have run
+  // when the load reports it, and the message follows them.
+  let bound;
+  await Promise.race([listening, new Promise((resolve, reject) => {
+    bound = setTimeout(() => reject(new Error(`the editor page loaded and did not post listening within ${LISTENING_LIMIT_MS / 1000} s`)), LISTENING_LIMIT_MS);
+  })]).finally(() => clearTimeout(bound));
   await request("ready");
   setPhase("reading");
   const body = await read("start");

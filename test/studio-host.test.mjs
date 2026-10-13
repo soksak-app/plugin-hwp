@@ -7,7 +7,17 @@ globalThis.location = window.location;
 globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
 const context = { isDirty: false, hasSelection: false };
 window.rhwpStudio = { automation: { getContext: () => context } };
+const announced = [];
+const announce = (event) => { if (event.data?.type === "soksak-hwp") announced.push(event.data); };
+window.addEventListener("message", announce);
 await import("../ui/studio-host.js");
+// jsdom delivers a posted message in a later task; the message is awaited before the tests listen.
+for (let turn = 0; turn < 20 && announced.length === 0; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0));
+window.removeEventListener("message", announce);
+
+test("the script posts listening once when it runs", () => {
+  assert.deepEqual(announced, [{ type: "soksak-hwp", event: "listening" }]);
+});
 
 /** Collects the messages of the host script that the window receives while run() and two animation frames pass. */
 async function posted(run) {

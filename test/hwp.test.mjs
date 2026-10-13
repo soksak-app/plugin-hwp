@@ -37,13 +37,16 @@ function fakeFiles(files) {
 /**
  * A document region that shows a fake rhwp-studio: it passes every posted message back, as the region passes each
  * message that the document posts to its own window, and answers the embed requests ready, loadFile, exportHwp,
- * exportHwpx and notifySaved. The document is its bytes; edit(text) appends text and posts the modified message of
- * ui/studio-host.js.
+ * exportHwpx and notifySaved. The page installs its message listener after the load reports the page, in a later task,
+ * and then posts the listening message of ui/studio-host.js; a request posted before that is lost, as a message posted
+ * to a window without a listener is, and is kept in dropped. The document is its bytes; edit(text) appends text and
+ * posts the modified message of ui/studio-host.js.
  */
-function fakeStudio() {
+function fakeStudio({ listens = true, silent = [] } = {}) {
   const messages = new Set();
   const states = new Set();
-  const studio = { document: null, requests: [], loaded: null };
+  const studio = { document: null, requests: [], dropped: [], loaded: null };
+  let listening = false;
   const deliver = (message) => queueMicrotask(() => { for (const fn of messages) fn(message); });
   const answers = {
     ready: () => true,
@@ -61,13 +64,19 @@ function fakeStudio() {
     async load(url) {
       studio.loaded = url;
       queueMicrotask(() => { for (const fn of states) fn({ url, loading: false, error: null }); });
+      if (listens) setTimeout(() => {
+        listening = true;
+        deliver({ type: "soksak-hwp", event: "listening" });
+      }, 0);
     },
     onState(fn) { states.add(fn); return () => states.delete(fn); },
     onMessage(fn) { messages.add(fn); return () => messages.delete(fn); },
     async post(message) {
       assert.doesNotThrow(() => JSON.stringify(message));
       deliver(message);
+      if (!listening) return void studio.dropped.push(message.method);
       studio.requests.push(message.method);
+      if (silent.includes(message.method)) return;
       const answer = answers[message.method];
       if (!answer) return deliver({ type: "rhwp-response", id: message.id, error: `unknown method ${message.method}` });
       deliver({ type: "rhwp-response", id: message.id, result: answer(message.params) });
@@ -76,14 +85,14 @@ function fakeStudio() {
   return studio;
 }
 
-async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", bytes("첫 문단")]]), onStatus = () => {} } = {}) {
+async function setup(t, { path = "docs/plan.hwp", files = new Map([["docs/plan.hwp", bytes("첫 문단")]]), onStatus = () => {}, listens = true, silent = [] } = {}) {
   const host = window.document.createElement("div");
   window.document.body.append(host);
   const root = host.attachShadow({ mode: "open" });
   const commands = new Map();
   const statuses = new Map();
   const reports = { modified: [], error: [], title: [] };
-  const studio = fakeStudio();
+  const studio = fakeStudio({ listens, silent });
   const sidecar = fakeFiles(files);
   const logs = [];
   const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => logs.push({ level, event: `plugin.hwp.${event}`, fields: typeof fields === "function" ? fields() : fields })]));
@@ -137,6 +146,27 @@ test("the surface loads the editor page of the plugin and opens the file in it",
   assert.deepEqual(status("hwp.document"), { path: "docs/plan.hwp", format: "hwp", version: sha(bytes("첫 문단")),
     modified: false, selection: false, pages: 1, disk: "same", phase: "ready" });
   assert.deepEqual(reports.title, ["plan.hwp"]);
+});
+
+test("the start waits until the editor page listens, so its first request is not lost", { timeout: 5000 }, async (t) => {
+  const { studio, status } = await setup(t);
+  assert.deepEqual(studio.dropped, []);
+  assert.deepEqual(studio.requests.slice(0, 2), ["ready", "loadFile"]);
+  assert.equal(status("hwp.document").phase, "ready");
+});
+
+test("a loaded editor page that never posts listening fails the start with an error that names the step", { timeout: 20000 }, async (t) => {
+  await assert.rejects(setup(t, { listens: false }), /the editor page loaded and did not post listening within 10 s/);
+});
+
+test("an embed request that the editor never answers fails with its id and the phase", { timeout: 5000 }, async (t) => {
+  const { studio, run } = await setup(t, { silent: ["exportHwp"] });
+  studio.edit("!");
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const saving = assert.rejects(run("hwp.save"), /rhwp-studio did not answer exportHwp-3 within 60 s in phase ready/);
+  await Promise.resolve();
+  t.mock.timers.tick(60000);
+  await saving;
 });
 
 test("an edit marks the tab modified, and a save exports the format, writes it and tells the editor", async (t) => {
@@ -291,7 +321,8 @@ test("the messages of the editor page are stored, and its error as an error", as
   studio.post({ type: "soksak-hwp", event: "error", message: "no automation" });
   await settle();
   assert.deepEqual(named(logs, "studio.message").map((entry) => entry.fields),
-    [{ path: "docs/plan.hwp", event: "selection", selection: true }, { path: "docs/plan.hwp", event: "modified", modified: true }]);
+    [{ path: "docs/plan.hwp", event: "listening" }, { path: "docs/plan.hwp", event: "selection", selection: true },
+      { path: "docs/plan.hwp", event: "modified", modified: true }]);
   assert.deepEqual(named(logs, "studio.error").map((entry) => [entry.level, entry.fields]), [["error", { path: "docs/plan.hwp", message: "no automation" }]]);
 });
 

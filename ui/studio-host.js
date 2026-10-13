@@ -1,6 +1,8 @@
 // The host script of the editor page (docs/studio.md). scripts/build-studio.mjs adds it to ui/studio/index.html, so it
 // runs in the page of rhwp-studio, which exposes window.rhwpStudio.automation to hosts that integrate inside the page.
 // It posts these messages to its own window, and the document region passes them to the surface page:
+//   {type: "soksak-hwp", event: "listening"} once, when the script runs: the script is the last module script of the
+//   page, so the scripts of rhwp-studio, which install its message listener, have run before it.
 //   {type: "soksak-hwp", event: "save"} when Command-S is pressed; the embed mode of rhwp-studio registers no save
 //   command and only prevents the default action of the shortcut.
 //   {type: "soksak-hwp", event: "modified", modified} when the unsaved state of the document changes. rhwp-studio has no
@@ -59,3 +61,5 @@ for (const type of ["keyup", "input", "compositionend", "paste", "cut", "drop", 
 window.addEventListener("message", (event) => {
   if (event.source === window && event.data?.type === "rhwp-response") schedule();
 });
+
+post({ event: "listening" });

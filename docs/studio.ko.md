@@ -23,6 +23,7 @@ Script는:
 
 `rhwp-studio`는 자기 페이지 안에서 통합하는 host에게 `window.rhwpStudio.automation`을 내준다. `ui/studio-host.js`는 그 페이지에서 실행되어 window에 다음 message를 보내고, 문서 영역은 그것을 표면 페이지에 전달한다.
 
+- script가 실행될 때 한 번 `{type: "soksak-hwp", event: "listening"}`. 이 script는 쪽의 마지막 module script이므로 message listener를 설치하는 `rhwp-studio`의 script가 먼저 실행된다. 쪽의 load는 그 script가 끝나기 전에 쪽을 알릴 수 있고 listener가 생기기 전에 보낸 요청은 사라지므로, surface 쪽은 이 message 뒤에야 첫 요청을 보낸다.
 - Command-S에서 `{type: "soksak-hwp", event: "save"}`. `rhwp-studio`의 embed mode는 저장 command를 등록하지 않고 단축키의 기본 동작만 막기 때문이다.
 - automation context의 `isDirty`가 바뀌면 `{type: "soksak-hwp", event: "modified", modified}`. 입력 event와 편집기의 응답마다 읽는다. `rhwp-studio`에는 최상위 페이지를 위한 변경 event가 없기 때문이다.
 - automation context의 `hasSelection`이 바뀌면 `{type: "soksak-hwp", event: "selection", selection}`. 같은 때에 읽는다.
