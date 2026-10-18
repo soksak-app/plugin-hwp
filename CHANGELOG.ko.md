@@ -2,8 +2,9 @@
 
 [English](CHANGELOG.md)
 
-## 미배포
+## 0.0.2 (2026-10-19)
 
+- H20: 메모리 절약 선언(H19)을 담은 version 0.0.2를 release한다. tag `v0.0.2`가 core v0.0.18의 `sok`로 만든 `hwp-0.0.2.tgz`를 게시한다.
 - H19: 표면이 `surface.unload` `{format: 1, maxBytes: 8192}`를 선언하고, `{path}`를 core 탭 상태로 쓰며, mount에서 저장한 파일을 열고, 문서 영역이 세션 기록을 restore하지 않았을 때만 편집기 페이지를 load한다. `@soksak/plugin-api`와 `CORE_RELEASE`는 core 0.0.18에서 오고 `engines.soksak`이 이를 요구한다. Red: 탭 상태, history, 거부 case; Green: `make test` 42 of 42 통과.
 
 ## 0.0.1 (2026-10-14)
