@@ -54,8 +54,19 @@ const microsSince = (start) => Math.round((performance.now() - start) * 1000);
 export const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
 
 export async function mount(root, context) {
+  // The tab state {path} names the file that a restored or restarted tab opens (core docs/spec/plugins.md#memory-saver); it
+  // follows the first save of a blank document, which params do not. An unloaded tab gives up the view of the editor page.
+  // default: a new tab has no tab state and reads null.
+  const stored = context.tab.state.read();
+  if (stored !== null && (typeof stored !== "object" || !(stored.path === null || (typeof stored.path === "string" && stored.path !== "")))) {
+    throw new Error(`the tab state of hwp tab ${context.surfaceId} is not {path}: ${JSON.stringify(stored)}`);
+  }
   // default: a tab without params.path holds a blank document; core.file.open always passes {path}.
-  let path = context.tab.params?.path ?? null;
+  let path = stored !== null ? stored.path : context.tab.params?.path ?? null;
+  const writeTabState = () => {
+    if (stored !== null && stored.path === path) return;
+    context.tab.state.write({ path });
+  };
   if (path !== null && (typeof path !== "string" || path === "")) throw new Error("the hwp tab params.path must be a non-empty string");
   if (context.project === null) throw new Error("this window shows no project");
   let format = path === null ? "hwp" : formatOf(path);
@@ -271,6 +282,7 @@ export async function mount(root, context) {
       format = chosenFormat;
       name = path.slice(path.lastIndexOf("/") + 1);
       context.tab.title(name);
+      context.tab.state.write({ path });
       diskVersion = reply.version;
       await request("notifySaved", { fileName: name });
       publish({ path, format, version: reply.version, disk: "same" });
@@ -323,7 +335,9 @@ export async function mount(root, context) {
     }
   };
 
-  await region.load(address);
+  // A region that restored the session history of an unloaded tab loads the editor page itself, and a load would add an entry
+  // after it (core docs/spec/plugins.md#memory-saver).
+  if (!region.history) await region.load(address);
   await loaded;
   setPhase("starting");
   // No event reports that a loaded page never posts listening, so the wait has a bound: the scripts of the page have run
@@ -371,6 +385,7 @@ export async function mount(root, context) {
   await expose.bind(banner.querySelector('[data-expose="hwp.reload"]'), "hwp.reload", {}, { failed: shown });
   await expose.bind(banner.querySelector('[data-expose="hwp.overwrite"]'), "hwp.save", { overwrite: true }, { failed: shown });
 
+  writeTabState();
   setPhase("ready");
   context.status.report("ready");
   return {

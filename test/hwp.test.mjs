@@ -47,7 +47,7 @@ function fakeFiles(files) {
  * to a window without a listener is, and is kept in dropped. The document is its bytes; edit(text) appends text and
  * posts the modified message of ui/studio-host.js.
  */
-function fakeStudio({ listens = true, silent = [] } = {}) {
+function fakeStudio({ listens = true, silent = [], history = false } = {}) {
   const messages = new Set();
   const states = new Set();
   const studio = { document: null, requests: [], dropped: [], loaded: null, savedAs: [] };
@@ -72,14 +72,20 @@ function fakeStudio({ listens = true, silent = [] } = {}) {
     deliver({ type: "soksak-hwp", event: "modified", modified: true });
   };
   studio.post = deliver;
+  // Shows the editor page at url as a load does, or as a region that restored a session history does by itself.
+  const show = (url) => {
+    queueMicrotask(() => { for (const fn of states) fn({ url, loading: false, error: null }); });
+    if (listens) setTimeout(() => {
+      listening = true;
+      deliver({ type: "soksak-hwp", event: "listening" });
+    }, 0);
+  };
+  studio.show = show;
   studio.region = {
+    history,
     async load(url) {
       studio.loaded = url;
-      queueMicrotask(() => { for (const fn of states) fn({ url, loading: false, error: null }); });
-      if (listens) setTimeout(() => {
-        listening = true;
-        deliver({ type: "soksak-hwp", event: "listening" });
-      }, 0);
+      show(url);
     },
     onState(fn) { states.add(fn); return () => states.delete(fn); },
     onMessage(fn) { messages.add(fn); return () => messages.delete(fn); },
@@ -98,14 +104,14 @@ function fakeStudio({ listens = true, silent = [] } = {}) {
 }
 
 async function setup(t, { path = "docs/plan.hwp", params = { path }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]), onStatus = () => {}, listens = true,
-  silent = [], place = () => { throw new Error("the test runs no core command"); } } = {}) {
+  silent = [], stored = null, history = false, place = () => { throw new Error("the test runs no core command"); } } = {}) {
   const host = window.document.createElement("div");
   window.document.body.append(host);
   const root = host.attachShadow({ mode: "open" });
   const commands = new Map();
   const statuses = new Map();
-  const reports = { modified: [], error: [], title: [], commands: [] };
-  const studio = fakeStudio({ listens, silent });
+  const reports = { modified: [], error: [], title: [], commands: [], state: [] };
+  const studio = fakeStudio({ listens, silent, history });
   const sidecar = fakeFiles(files);
   const logs = [];
   const log = Object.fromEntries(LEVELS.map((level) => [level, (event, fields) => logs.push({ level, event: `plugin.hwp.${event}`, fields: typeof fields === "function" ? fields() : fields })]));
@@ -117,13 +123,15 @@ async function setup(t, { path = "docs/plan.hwp", params = { path }, files = new
     pluginId: "hwp",
     project: { root: "/project" },
     tab: { params, title: (text) => reports.title.push(text), footer() {}, directory() {}, notify() {},
-      modified: (value) => reports.modified.push(value), error: (text) => reports.error.push(text) },
+      modified: (value) => reports.modified.push(value), error: (text) => reports.error.push(text),
+      state: { read: () => stored, write: (value) => reports.state.push(value) } },
     runtime: { sidecar: () => sidecar, log,
       command: async (name, commandParams) => { reports.commands.push([name, commandParams]); return place(name, commandParams); } },
     composition: {
       async create({ regions, overlays }) {
         assert.deepEqual(Object.keys(regions), ["studio"]);
         assert.deepEqual(overlays, {});
+        if (history) setTimeout(() => studio.show(ADDRESS), 0);
         return { region: (name) => { assert.equal(name, "studio"); return studio.region; }, async dispose() {} };
       },
     },
@@ -464,4 +472,24 @@ test("every event of a blank document and its first save is declared in the cata
     }
   }
   assert.ok(logs.some((entry) => entry.event === "plugin.hwp.new") && logs.some((entry) => entry.event === "plugin.hwp.place"));
+});
+
+test("the surface writes its file as the tab state and a restored tab opens the stored file", async (t) => {
+  const opened = await setup(t);
+  assert.deepEqual(opened.reports.state, [{ path: "docs/plan.hwp" }]);
+  const files = new Map([["docs/plan.hwp", bytes("첫 문단")], ["docs/saved.hwp", bytes("저장한 문단")]]);
+  const restored = await setup(t, { params: {}, stored: { path: "docs/saved.hwp" }, files });
+  assert.equal(restored.status("hwp.document").path, "docs/saved.hwp");
+  assert.deepEqual(restored.studio.document, bytes("저장한 문단"));
+  assert.deepEqual(restored.reports.state, [], "a state that keeps the stored file writes nothing");
+});
+
+test("a region that restored the session history loads no editor page", async (t) => {
+  const { studio, status } = await setup(t, { stored: { path: "docs/plan.hwp" }, history: true });
+  assert.equal(studio.loaded, null);
+  assert.equal(status("hwp.document").phase, "ready");
+});
+
+test("a tab state of another form is refused", async (t) => {
+  await assert.rejects(setup(t, { stored: { path: 3 } }), /the tab state of hwp tab hwp-1 is not \{path\}: \{"path":3\}/);
 });

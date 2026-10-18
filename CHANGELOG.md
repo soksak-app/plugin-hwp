@@ -2,6 +2,10 @@
 
 [한국어](CHANGELOG.ko.md)
 
+## Unreleased
+
+- H19: The surface declares `surface.unload` `{format: 1, maxBytes: 8192}`, writes `{path}` as the core tab state, opens the stored file at mount, and loads the editor page only when its document region restored no session history; `@soksak/plugin-api` and `CORE_RELEASE` come from core 0.0.18, which `engines.soksak` requires. Red: the tab state, history and refusal cases; Green: `make test` passes 42 of 42.
+
 ## 0.0.1 (2026-10-14)
 
 - H6: Release version 0.0.1; the tag `v0.0.1` publishes the plugin with `sok` of core 0.0.12, and the plugin requires the files sidecar `>=0.0.5`.
