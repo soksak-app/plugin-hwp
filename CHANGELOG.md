@@ -2,6 +2,10 @@
 
 [한국어](CHANGELOG.ko.md)
 
+## Unreleased
+
+- H21: new commits are authored as `min-0-max <max@blue.tools>`; `.mailmap` maps the former name `min-median-max`, and published commits are not rewritten.
+
 ## 0.0.2 (2026-10-19)
 
 - H20: Release version 0.0.2 with the memory saver declaration (H19); the tag `v0.0.2` publishes `hwp-0.0.2.tgz` built with `sok` of core v0.0.18.
