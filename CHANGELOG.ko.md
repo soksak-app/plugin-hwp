@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H22: view로 옮기는 항목의 막힘을 2026-10-21의 core main에 대해 다시 적었다. view의 탭 보고와 runtime call은 제공된다(core F212.7-11). 결손 하나가 남는다: view에는 자신의 문서 영역을 놓거나 그 문서를 붙이는 경로가 없고, 일반 `runtime.native.call`은 영역의 세션 기록(`region.history`)을 거치지 않는다. view bridge `@soksak/plugin-api/view`를 담은 core release는 아직 없다.
 - H22, H23: 표면을 문서 영역을 옮겨 가지는 view로 옮기는 항목(core F212.10)과 release 전 view 측정 항목을 등록했다. H22는 branch `feat/view-kind-F212.7`의 두 결손을 기다린다: view에 영역 연산의 call 경로가 없고, 제공되는 view call에 탭 보고(`tab.title`, `tab.modified`, `tab.error`)가 없다.
 - H21: 새 커밋의 작성자는 `min-0-max <max@blue.tools>`다. `.mailmap`이 이전 이름 `min-median-max`를 잇고, 게시된 커밋은 다시 쓰지 않는다.
 

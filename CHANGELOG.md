@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- H22: restated the blocker of the move to a view against core main of 2026-10-21. The tab reports and runtime calls of a view are served (core F212.7-11); one gap remains: a view has no route that places its document region or attaches its document, and the generic `runtime.native.call` bypasses the session history of the region (`region.history`). No core release carries the view bridge `@soksak/plugin-api/view` yet.
 - H22, H23: registered the move of the surface to a view that carries its document region (core F212.10) and the view measurement before the release. H22 waits on two gaps of the branch `feat/view-kind-F212.7` of 2026-10-21: a view has no call route for the region operations, and the served view calls name no tab reports (`tab.title`, `tab.modified`, `tab.error`).
 - H21: new commits are authored as `min-0-max <max@blue.tools>`; `.mailmap` maps the former name `min-median-max`, and published commits are not rewritten.
 
