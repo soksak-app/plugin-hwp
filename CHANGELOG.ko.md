@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H22, H23: 표면을 문서 영역을 옮겨 가지는 view로 옮기는 항목(core F212.10)과 release 전 view 측정 항목을 등록했다. H22는 branch `feat/view-kind-F212.7`의 두 결손을 기다린다: view에 영역 연산의 call 경로가 없고, 제공되는 view call에 탭 보고(`tab.title`, `tab.modified`, `tab.error`)가 없다.
 - H21: 새 커밋의 작성자는 `min-0-max <max@blue.tools>`다. `.mailmap`이 이전 이름 `min-median-max`를 잇고, 게시된 커밋은 다시 쓰지 않는다.
 
 ## 0.0.2 (2026-10-19)
