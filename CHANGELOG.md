@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- H22-1: The view page tests run without the SDK. `scripts/build-test.mjs` builds `build/test/ui` with each `@soksak/plugin-api` import rewritten to a model in `test/sdk-models/`, and `test/sdk-models/conformance.test.mjs` replays the copied view, binder and call-limit cases (core F246, F248 to F248-4). The embed limit test enables the mocked clock before the save. Red: `test/sdk-boundary.test.mjs` failed on the SDK import in `test/hwp.test.mjs`. Green: `make test` passes 46 of 46. `@soksak/plugin-api` is pinned to the release `v0.0.18`, so `make check` fails its case copy check until a core release carries the cases.
 - H22: the surface is a view: `plugin.json` declares the view composition with the page `ui/index.html` and the document region `studio`, and `ui/view.js` mounts the surface module `ui/hwp.js` over `@soksak/plugin-api/view`, with the region calls of core. The case of a restored session history runs: the page reads `region.state` before it subscribes, and names the files sidecar `@soksak/sidecar-files`. Red and Green are recorded in the checklist.
 - H22: `@soksak/plugin-api` is pinned to core main, which exposes `history` on the view region (core F245) and names the sidecar of each view request. `make test` runs the tests of the plugin only, and `make check` runs the pinned SDK validators.
 - H5: the CI and release workflows are verified by their runs (no change of the workflows).
