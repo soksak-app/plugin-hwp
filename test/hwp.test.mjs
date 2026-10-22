@@ -425,12 +425,9 @@ test("the surface writes its file as the tab state and a restored tab opens the 
 });
 
 // The page reads region.history and loads no editor page when the attach restored a session history
-// (core docs/spec/plugins.md#memory-saver). The composition controller of the pinned @soksak/plugin-api does not
-// expose the history of the attach reply on the region of the page, so the case is held until core exposes it.
-// Measured on 2026-10-22: the failing run loads the editor page over the restored history (the region reports history
-// undefined). Held as skipped until core exposes history on the view region (surface-composition.js, the exposed object of
-// region()); the case then runs unchanged.
-test("a region that restored the session history loads no editor page", { skip: "core's view composition region omits history (plugin-api surface-composition.js region()); retry when it exposes history" }, async (t) => {
+// (core docs/spec/plugins.md#memory-saver). The region handle reports history as a boolean after its attach
+// (core docs/spec/surface-composition.md); the fake attach reply carries it and the fake restores the entry by itself.
+test("a region that restored the session history loads no editor page", async (t) => {
   const host = await setup(t, { stored: { path: "docs/plan.hwp" }, history: true });
   assert.equal(host.studio.loaded, null);
   assert.equal((await host.status()).phase, "ready");

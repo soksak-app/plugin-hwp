@@ -21,6 +21,8 @@ const HTML = `<style>${css}</style><div id="frame" data-expose="hwp.frame">
 <div id="studio" data-expose="hwp.studio"></div></div>`;
 
 /** The tab title of a blank document and the file name that its first save proposes. */
+// The files sidecar, named by its package name in the dependencies of plugin.json (docs/spec/sidecars.md).
+const FILES_SIDECAR = "@soksak/sidecar-files";
 const NEW_TITLE = "새 문서";
 const NEW_NAME = "새 문서.hwp";
 
@@ -181,15 +183,21 @@ export async function mount(root, context) {
 
   /** Resolves when the document region has loaded the editor page, and rejects with its load error. */
   const loaded = new Promise((resolve, reject) => {
-    const stop = region.onState((current) => {
-      if (current.url !== address || current.loading) return;
+    let stop = () => {};
+    const settle = (current) => {
+      if (current.url !== address || current.loading) return false;
       stop();
       if (current.error !== null) reject(new Error(`the editor page did not load: ${current.error}`));
       else resolve();
-    });
+      return true;
+    };
+    // onState does not replay a state that the region reported before this subscription, and region.state keeps it: a
+    // restored session history loads its entry before the page subscribes.
+    if (region.state !== null && settle(region.state)) return;
+    stop = region.onState(settle);
   });
 
-  const files = await connect(context.runtime.sidecar(), context.surfaceId, (body) => {
+  const files = await connect(context.runtime.sidecar(FILES_SIDECAR), context.surfaceId, (body) => {
     if (body.changed !== undefined) {
       diskChanged().catch((error) => context.tab.error(`다시 읽지 못했습니다 · ${error.message}`));
       return;

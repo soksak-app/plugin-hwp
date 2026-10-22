@@ -41,6 +41,8 @@ function installViewChannel(window, handler) {
 
 const MANIFEST = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
 const declared = (kind, name) => (MANIFEST.exposes[kind] ?? []).some((entry) => entry.name === name);
+// The sidecars of a view are the dependencies of plugin.json, named by their package names.
+const sidecarDeclared = (name) => Object.hasOwn(MANIFEST.dependencies ?? {}, name);
 
 const settle = (rounds = 10) => {
   let done = Promise.resolve();
@@ -226,11 +228,15 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
           if (!declared("commands", params.name)) throw new Error(`command ${params.name} is not declared`);
           reports.registered.push(params.name);
           return null;
-        case "runtime.sidecar.send": return sidecar.send(params.id, params.body);
+        case "runtime.sidecar.send":
+          if (!sidecarDeclared(params.sidecar)) throw new Error(`sidecar ${params.sidecar} is not a dependency of the plugin`);
+          return sidecar.send(params.id, params.body);
         case "runtime.sidecar.on":
+          if (!sidecarDeclared(params.sidecar)) throw new Error(`sidecar ${params.sidecar} is not a dependency of the plugin`);
           await sidecar.on(params.id, (body) => post({ sok: 1, event: "sidecar.message", data: { id: params.id, body } }));
           return null;
         case "runtime.sidecar.onFailure":
+          if (!sidecarDeclared(params.sidecar)) throw new Error(`sidecar ${params.sidecar} is not a dependency of the plugin`);
           return null;
         case "core.file.place": {
           // A core.* command of the view runs as runtime.command runs it; its params are the parameters of the command.
@@ -241,6 +247,12 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
           return JSON.parse(JSON.stringify(MANIFEST.surface.composition));
         case "composition.place":
           calls.push(["composition.place", params]);
+          // The composition reply ends the create of the page, which subscribes to the region after it; the restored entry
+          // shows in a later task, as a restored editor loads after the page has attached.
+          if (studio.restoring) {
+            studio.restoring = false;
+            setTimeout(() => studio.show(`sok://${window.location.host}/ui/studio/index.html?chrome=embed`), 0);
+          }
           return null;
         case "composition.report":
           calls.push(["composition.report", params]);
@@ -250,7 +262,11 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
           const operation = command.slice("document.".length);
           calls.push([command, params]);
           if (params.name !== "studio") throw new Error(`the page called ${command} for the unknown region ${params.name}`);
-          if (operation === "attach") return { history: studio.history };
+          if (operation === "attach") {
+            // A restored session history shows its entry by itself once the page has placed the composition (below).
+            studio.restoring = studio.history;
+            return { history: studio.history };
+          }
           if (operation === "load") return await studio.region.load(params.url);
           if (operation === "post") return await studio.region.post(params.message);
           return null;

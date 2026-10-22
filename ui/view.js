@@ -90,11 +90,8 @@ export function createViewContext({ bridge, start, report }) {
         },
       },
       runtime: {
-        sidecar: () => ({
-          send: (surface, body, cids) => calls.request("runtime.sidecar.send", { id: surface, body, cids }),
-          on: (surface, fn) => runtime.sidecar().on(surface, fn),
-          onFailure: (surface, fn) => runtime.sidecar().onFailure(surface, fn),
-        }),
+        // The sidecar is named by the page, as the view bridge names it (core docs/spec/native-surfaces.md#view-surfaces).
+        sidecar: (name) => runtime.sidecar(name),
         command: (name, params) => calls.request(name, params),
         // The fields are built before the send, because a call carries values and not builders. Core applies the level
         // gate at the delivery and gives the view no level query, so the fields are built while the level is off too.
