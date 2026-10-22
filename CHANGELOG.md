@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F238-c-24: The CI workflow runs `make check` after `make test`, and the release workflow runs `make test`, `make check`, then `make pack`. `test/workflows.test.mjs` requires both orders. Red: the test failed on the previous workflows. Green: `make test` passes 67 tests. `make check` fails its case copy check until a core release publishes the contract files, which is the expected result.
 - H12: The hwp page starts its operations (open, save) with `runtime.beginOperation`, passes the returned cids to its files sidecar sends and records, and declares the operation event `plugin.hwp.operation`; the record events of the reads, renders and saves are recorded as events of the plugin. Red: the operation test failed on the committed page; Green: `make test` passes.
 - F252-contract-hwp: The copied command, binder and exposure cases follow core origin/main (`create-binder.json`, `expose.json`, `view-commands.json` changed). The replay models cover the function-params binds and the command cids.
 - F252-hwp: An export reply that is not a non-empty byte array fails the save and leaves the file unchanged. A studio error without text shows the whole event. A failed context read posts the error event of the contract. A save whose editor notice fails is saved, and the tab reports that the notice failed (`plugin.hwp.notify`). A refused `runtime.log` record is shown as `runtime.error {where: "log"}` and kept on the console.
