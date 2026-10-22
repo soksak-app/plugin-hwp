@@ -17,6 +17,7 @@
     "plugin.hwp.studio.error": { "layer": "plugin", "class": "lifecycle", "level": "error", "fields": { "path": "string|null", "message": "string" }, "description": "The editor page reported that it cannot read its state." },
     "plugin.hwp.studio.save_failed": { "layer": "plugin", "class": "lifecycle", "level": "warn", "fields": { "path": "string|null", "error": "string" }, "description": "A save that the editor page started with Command-S failed; the tab shows the same failure." },
     "plugin.hwp.request": { "layer": "plugin", "class": "call", "level": ["debug", "warn"], "fields": { "path": "string|null", "method": "string", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One embed request to the editor page and its answer." },
-    "plugin.hwp.command": { "layer": "plugin", "class": "call", "level": ["debug", "warn"], "fields": { "path": "string|null", "name": "string", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One run of a command of the surface: hwp.save, hwp.reload or hwp.request." }
+    "plugin.hwp.command": { "layer": "plugin", "class": "call", "level": ["debug", "warn"], "fields": { "path": "string|null", "name": "string", "micros": "number", "ok": "boolean", "error?": "string" }, "description": "One run of a command of the surface: hwp.save, hwp.reload or hwp.request." },
+    "plugin.hwp.report": { "layer": "plugin", "class": "call", "level": "error", "fields": { "text": "string" }, "description": "The page of the view failed: an error or a rejection of the page, a refused call of the view channel, or a loss of the view calls; text states the error." }
   }
 }

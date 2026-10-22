@@ -56,8 +56,9 @@ export const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => c
 export async function mount(root, context) {
   // The tab state {path} names the file that a restored or restarted tab opens (core docs/spec/plugins.md#memory-saver); it
   // follows the first save of a blank document, which params do not. An unloaded tab gives up the view of the editor page.
+  // The read is a call of the view channel, so the page awaits it.
   // default: a new tab has no tab state and reads null.
-  const stored = context.tab.state.read();
+  const stored = await context.tab.state.read();
   if (stored !== null && (typeof stored !== "object" || !(stored.path === null || (typeof stored.path === "string" && stored.path !== "")))) {
     throw new Error(`the tab state of hwp tab ${context.surfaceId} is not {path}: ${JSON.stringify(stored)}`);
   }
