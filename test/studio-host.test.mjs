@@ -10,7 +10,7 @@ window.rhwpStudio = { automation: { getContext: () => context } };
 const announced = [];
 const announce = (event) => { if (event.data?.type === "soksak-hwp") announced.push(event.data); };
 window.addEventListener("message", announce);
-await import("../ui/studio-host.js");
+await import("../build/test/ui/studio-host.js");
 // jsdom delivers a posted message in a later task; the message is awaited before the tests listen.
 for (let turn = 0; turn < 20 && announced.length === 0; turn += 1) await new Promise((resolve) => setTimeout(resolve, 0));
 window.removeEventListener("message", announce);

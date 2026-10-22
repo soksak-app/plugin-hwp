@@ -20,11 +20,12 @@
   ],
   "scripts": {
     "build": "node scripts/build-studio.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node scripts/build-test.mjs && node --test test/*.test.mjs",
+    "check:cases": "node scripts/check-test-cases.mjs"
   },
   "devDependencies": {
     "@rhwp/core": "0.8.7",
-    "@soksak/plugin-api": "git+https://github.com/soksak-app/core.git#dde824ccbbaf8467c17d32aa46624564d2b540a5&path:/packages/plugin-api",
+    "@soksak/plugin-api": "git+https://github.com/soksak-app/core.git#v0.0.18&path:/packages/plugin-api",
     "jsdom": "^30.1.1"
   }
 }

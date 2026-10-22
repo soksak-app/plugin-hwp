@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { createEmitter, errorText } from "../ui/events.js";
+import { createEmitter, errorText } from "../build/test/ui/events.js";
 
 const read = (name) => JSON.parse(readFileSync(new URL(`../${name}`, import.meta.url), "utf8"));
 const manifest = read("plugin.json");

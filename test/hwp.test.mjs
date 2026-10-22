@@ -6,7 +6,6 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { validateManifest } from "@soksak/plugin-api";
 import { createViewPage } from "./view-host.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
@@ -40,7 +39,7 @@ async function setup(t, options = {}) {
   const host = createViewPage(t, caseId, options);
   // A start that fails is a record of the page, not a rejection of the import: the page reports the error through
   // runtime.log and stays mounted with no surface.
-  await import(`../ui/view.js?case=${caseId}`);
+  await import(`../build/test/ui/view.js?case=${caseId}`);
   await host.settle();
   host.status = async () => (await host.expose("status.get", { name: "hwp.document" })).result;
   return host;
@@ -71,7 +70,8 @@ test("the view page carries the import map of the view and the page script", () 
 });
 
 test("plugin.json is a valid manifest that opens hwp and hwpx files in the document region of a view", () => {
-  assert.equal(validateManifest(manifest), manifest);
+  // The manifest fields that the view page relies on; the SDK validator of the manifest runs in make check.
+  assert.equal(manifest.surface.composition.kind, "view");
   assert.deepEqual(manifest.surface.opens, { extensions: ["hwp", "hwpx"] });
   assert.deepEqual(manifest.surface.composition,
     { kind: "view", page: "ui/index.html", regions: [{ name: "studio", kind: "document", input: "native" }], overlays: [] });
@@ -80,7 +80,7 @@ test("plugin.json is a valid manifest that opens hwp and hwpx files in the docum
 test("the view page refuses to mount without the start values of the surface", async (t) => {
   const host = createViewPage(t, "no-start");
   host.window.sokSurface = null;
-  await assert.rejects(import("../ui/view.js?case=no-start"),
+  await assert.rejects(import("../build/test/ui/view.js?case=no-start"),
     /the view of hwp has no start values: the host provides window\.sokSurface/);
 });
 
@@ -122,9 +122,11 @@ test("a loaded editor page that never posts listening fails the start with an er
 test("an embed request that the editor never answers fails when its document.post call reaches its limit", { timeout: 5000 }, async (t) => {
   const host = await setup(t, { silent: ["exportHwp"] });
   host.studio.edit("!");
+  // The mocked clock is enabled before the save starts: the call limit of the document.post call that the save makes is
+  // a timer created while the save runs, and the timer must be the mocked one that the tick advances.
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   // Each document.post is a view call, whose default limit bounds the wait of the embed request.
   const saving = assert.rejects(host.run("hwp.save"), /command document.post did not reply within 10000ms/);
-  t.mock.timers.enable({ apis: ["setTimeout"] });
   await Promise.resolve();
   t.mock.timers.tick(10000);
   await saving;

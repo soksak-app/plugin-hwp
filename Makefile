@@ -23,6 +23,7 @@ check: node_modules
 	pnpm exec soksak-engines
 	pnpm exec soksak-events --census census.json --catalog events.json
 	pnpm exec soksak-records
+	node scripts/check-test-cases.mjs
 
 # studio builds rhwp-studio into ui/studio (docs/studio.md).
 studio: node_modules
