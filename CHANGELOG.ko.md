@@ -4,7 +4,8 @@
 
 ## 미배포
 
-- H22: 표면은 view다. `plugin.json`은 페이지 `ui/index.html`과 문서 영역 `studio`를 담은 view composition을 선언하고, `ui/view.js`는 `@soksak/plugin-api/view`로 표면 module `ui/hwp.js`를 core의 영역 call과 함께 mount한다. 저장된 세션 기록이 restore된 case는 core가 view 영역에 `history`를 노출할 때까지 보류한다. Red와 Green은 체크리스트에 기록했다.
+- H22: 표면은 view다. `plugin.json`은 페이지 `ui/index.html`과 문서 영역 `studio`를 담은 view composition을 선언하고, `ui/view.js`는 `@soksak/plugin-api/view`로 표면 module `ui/hwp.js`를 core의 영역 call과 함께 mount한다. 저장된 세션 기록이 restore된 case는 실행한다. 페이지는 구독 전에 `region.state`를 읽고, files sidecar를 `@soksak/sidecar-files`로 이름 붙인다. Red와 Green은 체크리스트에 기록했다.
+- H22: `@soksak/plugin-api`를 core main에 고정했다. 이 core main은 view 영역에 `history`를 노출하고(core F245), view 요청마다 sidecar 이름을 받는다. `make test`는 플러그인 test만 실행하고, `make check`는 고정된 SDK 검사를 실행한다.
 - H5: CI와 release workflow는 그 실행으로 확인했다(workflow는 바꾸지 않았다).
 - H22: view로 옮기는 항목의 막힘을 2026-10-21의 core main에 대해 다시 적었다. view의 탭 보고와 runtime call은 제공된다(core F212.7-11). 결손 하나가 남는다: view에는 자신의 문서 영역을 놓거나 그 문서를 붙이는 경로가 없고, 일반 `runtime.native.call`은 영역의 세션 기록(`region.history`)을 거치지 않는다. view bridge `@soksak/plugin-api/view`를 담은 core release는 아직 없다.
 - H22, H23: 표면을 문서 영역을 옮겨 가지는 view로 옮기는 항목(core F212.10)과 release 전 view 측정 항목을 등록했다. H22는 branch `feat/view-kind-F212.7`의 두 결손을 기다린다: view에 영역 연산의 call 경로가 없고, 제공되는 view call에 탭 보고(`tab.title`, `tab.modified`, `tab.error`)가 없다.
