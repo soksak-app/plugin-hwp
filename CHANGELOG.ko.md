@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F238-b-10-2: test 명령이 `test/` 전체를 실행하므로 `test/sdk-models/`의 conformance test가 `make test`에서 실행된다(이전 46개, 이제 56개 중 56개 통과). `test/test-script.test.mjs`는 `test/` 아래의 test 파일이 test 명령에 선택되지 않으면 실패한다.
 - F238-b-10-1: core view bridge 계약 사본을 현재 core 사례 집합으로 새로 고쳤다. `view.bridge.runtime-log-without-level-query`가 `view.bridge.runtime-log-level-gate`를 대신하며, view는 level 질의를 부르지 않는다. 이 저장소에서는 conformance test(`test/sdk-models/conformance.test.mjs`)가 사례를 제외 목록에 적는다. view bridge model에 `runtime.log`가 없기 때문이다.
 - H22-1: `test/sdk-models/conformance.test.mjs`가 `view-commands.json`을 bridge model에 재생한다(command 등록과 command 요청의 응답). Red: model의 거부 code를 바꾼 mutation이 등록되지 않은 command의 재생에서 실패했다. Green: 복원한 model은 9개 중 9개 통과한다.
 - H22-1: view 페이지 test는 SDK 없이 실행한다. `scripts/build-test.mjs`는 각 `@soksak/plugin-api` import를 `test/sdk-models/`의 model로 바꾼 `build/test/ui`를 만들고, `test/sdk-models/conformance.test.mjs`는 복사된 view, binder, call 한도 case를 재생한다(core F246, F248부터 F248-4까지). embed 한도 test는 save 전에 mock clock을 켠다. Red: `test/sdk-boundary.test.mjs`가 `test/hwp.test.mjs`의 SDK import에서 실패했다. Green: `make test`가 46개 중 46개 통과한다. `@soksak/plugin-api`는 release `v0.0.18`에 고정했으므로, core release가 case를 담을 때까지 `make check`의 case 복사 검사는 실패한다.

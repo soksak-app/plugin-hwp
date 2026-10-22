@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "node scripts/build-studio.mjs",
-    "test": "node scripts/build-test.mjs && node --test test/*.test.mjs",
+    "test": "node scripts/build-test.mjs && node --test test/",
     "check:cases": "node scripts/check-test-cases.mjs"
   },
   "devDependencies": {

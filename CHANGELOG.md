@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F238-b-10-2: the test command runs the whole `test/` directory, so the conformance tests of `test/sdk-models/` run in `make test` (56 of 56 tests, 46 before). `test/test-script.test.mjs` fails when a test file under `test/` is not selected by the test command.
 - F238-b-10-1: the core view bridge contract copy is refreshed to the current core case set; `view.bridge.runtime-log-without-level-query` replaces `view.bridge.runtime-log-level-gate`, and the view calls no level query. In this repository the conformance test (`test/sdk-models/conformance.test.mjs`) lists the case as excluded, because the view bridge model has no `runtime.log`.
 - H22-1: `test/sdk-models/conformance.test.mjs` replays `view-commands.json` against the bridge model (command registration and the reply to a command request). Red: a mutated refusal code of the model failed the replay at the unregistered command; Green: the restored model passes 9 of 9.
 - H22-1: The view page tests run without the SDK. `scripts/build-test.mjs` builds `build/test/ui` with each `@soksak/plugin-api` import rewritten to a model in `test/sdk-models/`, and `test/sdk-models/conformance.test.mjs` replays the copied view, binder and call-limit cases (core F246, F248 to F248-4). The embed limit test enables the mocked clock before the save. Red: `test/sdk-boundary.test.mjs` failed on the SDK import in `test/hwp.test.mjs`. Green: `make test` passes 46 of 46. `@soksak/plugin-api` is pinned to the release `v0.0.18`, so `make check` fails its case copy check until a core release carries the cases.
