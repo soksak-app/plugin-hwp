@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F238-c-23-1: `make check` validates `plugin.json` with `validateManifest` of the plugin API (`scripts/check-manifest.mjs`), and reads that API and runs the SDK tools from `CORE_PLUGIN_API_DIR` when it is set. `test/check-manifest.test.mjs` checks that a fixture API's rejection message fails the check. Red: the check file did not exist. Green: `make test` passes 69 of 69, and `make check` exits 0 against the extract of core origin/main.
 - F238-c-14: No line of `test/` names the SDK package. `test/sdk-boundary.test.mjs` fails on any line of `test/` that contains the needle, which the test builds from parts. The model comments name the plugin API, and `test/hwp.test.mjs` builds its import-map names from parts. Red: the guard listed five lines. Green: `make test` passes 68 tests.
 - F238-c-24: The CI workflow runs `make check` after `make test`, and the release workflow runs `make test`, `make check`, then `make pack`. `test/workflows.test.mjs` requires both orders. Red: the test failed on the previous workflows. Green: `make test` passes 67 tests. `make check` fails its case copy check until a core release publishes the contract files, which is the expected result.
 - H12: The hwp page starts its operations (open, save) with `runtime.beginOperation`, passes the returned cids to its files sidecar sends and records, and declares the operation event `plugin.hwp.operation`; the record events of the reads, renders and saves are recorded as events of the plugin. Red: the operation test failed on the committed page; Green: `make test` passes.
