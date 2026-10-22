@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F238-c-14: No line of `test/` names the SDK package. `test/sdk-boundary.test.mjs` fails on any line of `test/` that contains the needle, which the test builds from parts. The model comments name the plugin API, and `test/hwp.test.mjs` builds its import-map names from parts. Red: the guard listed five lines. Green: `make test` passes 68 tests.
 - F238-c-24: The CI workflow runs `make check` after `make test`, and the release workflow runs `make test`, `make check`, then `make pack`. `test/workflows.test.mjs` requires both orders. Red: the test failed on the previous workflows. Green: `make test` passes 67 tests. `make check` fails its case copy check until a core release publishes the contract files, which is the expected result.
 - H12: The hwp page starts its operations (open, save) with `runtime.beginOperation`, passes the returned cids to its files sidecar sends and records, and declares the operation event `plugin.hwp.operation`; the record events of the reads, renders and saves are recorded as events of the plugin. Red: the operation test failed on the committed page; Green: `make test` passes.
 - F252-contract-hwp: The copied command, binder and exposure cases follow core origin/main (`create-binder.json`, `expose.json`, `view-commands.json` changed). The replay models cover the function-params binds and the command cids.

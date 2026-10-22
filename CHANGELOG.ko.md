@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F238-c-14: `test/`의 어느 줄도 SDK 패키지 이름을 싣지 않는다. `test/sdk-boundary.test.mjs`는 needle을 포함한 `test/`의 줄마다 실패하며, needle은 부분 문자열에서 조립한다. model 주석은 plugin API로 적고, `test/hwp.test.mjs`는 import map 이름을 부분 문자열에서 조립한다. Red: guard가 다섯 줄을 나열했다. Green: `make test`가 test 68개를 통과한다.
 - F238-c-24: CI workflow는 `make test` 다음에 `make check`를 실행하고, release workflow는 `make test`, `make check`, `make pack` 순서로 실행한다. `test/workflows.test.mjs`가 두 순서를 요구한다. Red: 이전 workflow에서 test가 실패했다. Green: `make test`가 67개 test를 통과한다. `make check`는 core release가 계약 파일을 게시할 때까지 case 복사 검사에서 실패하며, 이것이 예상된 결과다.
 - H12: hwp page는 operation(open, save)을 `runtime.beginOperation`으로 시작하고, 돌려받은 cids를 files sidecar 요청과 record에 넘기며, operation event `plugin.hwp.operation`을 선언한다. read, render, save의 record는 plugin의 event로 기록된다. Red: operation test가 커밋된 page에서 실패했다. Green: `make test`가 통과한다.
 - F252-contract-hwp: 복사한 command, binder, 노출 사례를 core origin/main에 맞췄다(`create-binder.json`, `expose.json`, `view-commands.json`이 바뀌었다). replay model은 매개변수 함수 bind와 command cids를 포괄한다.

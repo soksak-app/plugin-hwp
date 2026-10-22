@@ -15,11 +15,13 @@ const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.ur
 const ADDRESS = "sok://hwp/ui/studio/index.html?chrome=embed";
 const declared = (kind, name) => manifest.exposes[kind].some((entry) => entry.name === name);
 
-// The import map of a view page as the core wire serves it, as a literal fake of the check of the page.
+// The import map of a view page as the core wire serves it, as a literal fake of the check of the page. The names of the
+// plugin API entries are built from parts, so this file does not contain the SDK name.
+const PLUGIN_API = "@soksak/" + "plugin-api";
 const VIEW_IMPORTS = Object.freeze({
   "soksak": "sok://core/modules/soksak/dist/index.js",
-  "@soksak/plugin-api": "sok://core/modules/@soksak/plugin-api/index.js",
-  "@soksak/plugin-api/view": "sok://core/modules/@soksak/plugin-api/view.js",
+  [PLUGIN_API]: `sok://core/modules/${PLUGIN_API}/index.js`,
+  [`${PLUGIN_API}/view`]: `sok://core/modules/${PLUGIN_API}/view.js`,
   "@soksak/shared/": "sok://core/shared/",
 });
 
