@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H12: hwp page는 operation(open, save)을 `runtime.beginOperation`으로 시작하고, 돌려받은 cids를 files sidecar 요청과 record에 넘기며, operation event `plugin.hwp.operation`을 선언한다. read, render, save의 record는 plugin의 event로 기록된다. Red: operation test가 커밋된 page에서 실패했다. Green: `make test`가 통과한다.
 - F252-contract-hwp: 복사한 command, binder, 노출 사례를 core origin/main에 맞췄다(`create-binder.json`, `expose.json`, `view-commands.json`이 바뀌었다). replay model은 매개변수 함수 bind와 command cids를 포괄한다.
 - F252-hwp: byte 값 배열이 아닌 export 응답은 저장을 실패시키고 파일을 바꾸지 않는다. 텍스트가 없는 studio 오류는 event 전체를 표시한다. 실패한 context 읽기는 계약의 오류 event를 보낸다. 편집기 알림이 실패한 저장은 저장된 상태로 두고, tab은 알림 실패를 표시한다(`plugin.hwp.notify`). 거부된 `runtime.log` 기록은 `runtime.error {where: "log"}`로 표시하고 콘솔에도 남긴다.
 - F238-b-10-2: test 명령이 `test/` 전체를 실행하므로 `test/sdk-models/`의 conformance test가 `make test`에서 실행된다(이전 46개, 이제 56개 중 56개 통과). `test/test-script.test.mjs`는 `test/` 아래의 test 파일이 test 명령에 선택되지 않으면 실패한다.
