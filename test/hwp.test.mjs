@@ -15,24 +15,11 @@ const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.ur
 const ADDRESS = "sok://hwp/ui/studio/index.html?chrome=embed";
 const declared = (kind, name) => manifest.exposes[kind].some((entry) => entry.name === name);
 
-// The import map of a view page as the core wire serves it, as a literal fake of the check of the page. The names of the
-// plugin API entries are built from parts, so this file does not contain the SDK name.
-const PLUGIN_API = "@soksak/" + "plugin-api";
-const VIEW_IMPORTS = Object.freeze({
-  "soksak": "sok://core/modules/soksak/dist/index.js",
-  [PLUGIN_API]: `sok://core/modules/${PLUGIN_API}/index.js`,
-  [`${PLUGIN_API}/view`]: `sok://core/modules/${PLUGIN_API}/view.js`,
-  [`${PLUGIN_API}/screen-hash`]: `sok://core/modules/${PLUGIN_API}/screen-hash.js`,
-  "@soksak/shared/": "sok://core/shared/",
-});
-
+// The check of a view page (core docs/spec/plugin-processes.md, rule 4): the page begins with its doctype and holds no import map,
+// because the host inserts the view import map after the doctype of each view page.
 function checkViewPage(html) {
-  const maps = [...html.matchAll(/<script type="importmap">([\s\S]*?)<\/script>/g)];
-  assert.equal(maps.length, 1, "expected one import map");
-  const map = JSON.parse(maps[0][1]);
-  const field = Object.keys(map).find((key) => key !== "imports");
-  assert.equal(field, undefined, "the import map has an unexpected field");
-  assert.deepEqual(map.imports, VIEW_IMPORTS);
+  assert.match(html, /^<!doctype html>/i, "the view page begins with its doctype");
+  assert.doesNotMatch(html, /<script\b[^>]*\btype\s*=\s*["']?importmap\b/i, "the view page holds no import map of its own");
 }
 
 let cases = 0;
@@ -66,7 +53,7 @@ const waitForLog = async (host, name, reason) => {
 };
 
 
-test("the view page carries the import map of the view and the page script", () => {
+test("the view page begins with its doctype, holds no import map, and carries the page script", () => {
   const html = readFileSync(new URL("../ui/index.html", import.meta.url), "utf8");
   assert.equal(checkViewPage(html), undefined);
   assert.match(html, /<script type="module" src="\.\/view\.js"><\/script>/);
