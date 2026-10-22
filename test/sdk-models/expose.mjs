@@ -204,12 +204,13 @@ export function createExpose({ register, unregister, onRequest, reply }, declara
       refuseDisposed();
       if (!isDeclared("commands", name)) throw new Error(`command ${name} is not declared`);
       element.dataset.command = name;
-      if (params !== undefined) element.dataset.params = JSON.stringify(params);
+      // A function of params is read at each run and is not marked on the element (core binder.js).
+      if (params !== undefined && typeof params !== "function") element.dataset.params = JSON.stringify(params);
       bindings += 1;
       const type = options.event ?? "click";
       const handler = async (event) => {
         if (options.when && !options.when(event)) return;
-        const callParams = params ?? {};
+        const callParams = (typeof params === "function" ? params(event) : params) ?? {};
         calls.push({ name, params: callParams, element: element.id });
         try {
           const command = commands.get(name);

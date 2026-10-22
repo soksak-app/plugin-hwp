@@ -59,7 +59,7 @@ export function createViewBridge({ handler, report }) {
       return;
     }
     try {
-      const result = await run(message.params);
+      const result = await run(message.params, message.cids === undefined ? {} : { cids: message.cids });
       post({ sok: 1, reply: message.id, result: result === undefined ? null : result });
     } catch (error) {
       post({ sok: 1, reply: message.id, error: failure(error) });

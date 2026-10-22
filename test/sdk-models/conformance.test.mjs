@@ -78,6 +78,7 @@ test("expose cases replay against the exposure model", async () => {
         const element = {
           id: name,
           dataset: {},
+          value: "",
           getBoundingClientRect: () => {
             const rect = testCase.rects?.[name] ?? { left: 0, top: 0, width: 0, height: 0 };
             return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, x: rect.left, y: rect.top };
@@ -86,7 +87,8 @@ test("expose cases replay against the exposure model", async () => {
           removeEventListener: (type, fn) => { listeners[type] = (listeners[type] ?? []).filter((other) => other !== fn); },
           click: () => {
             effects.push(`click ${name}`);
-            for (const fn of [...(listeners.click ?? [])]) fn({ type: "click" });
+            // The event names its element as the target and the current target, as the event of a click does.
+            for (const fn of [...(listeners.click ?? [])]) fn({ type: "click", target: element, currentTarget: element });
           },
         };
         elements.set(selector, element);
@@ -101,8 +103,16 @@ test("expose cases replay against the exposure model", async () => {
         if (step.status) await expose.status(step.status.name, () => value, (fn) => { subscribers.add(fn); return () => subscribers.delete(fn); });
         else if (step.dom) await expose.dom(step.dom.name, elementOf(step.dom.selector));
         else if (step.command) await expose.command(step.command.name, (params) => { effects.push(`run ${step.command.name} ${JSON.stringify(params)}`); });
-        else if (step.bind) await expose.bind(elementOf(step.bind.selector), step.bind.command, step.bind.params);
-        else if (step.click) elementOf(step.click.selector).click();
+        // paramsFromValue binds a function that reads the value of the element at each run.
+        else if (step.bind) await expose.bind(elementOf(step.bind.selector), step.bind.command,
+          step.bind.paramsFromValue ? (event) => ({ value: event.currentTarget.value }) : step.bind.params);
+        // inspect reads the bound element and changes nothing.
+        else if (step.inspect) elementOf(step.inspect.selector);
+        else if (step.click) {
+          const target = elementOf(step.click.selector);
+          if (step.click.value !== undefined) target.value = step.click.value;
+          target.click();
+        }
         else if (step.dispose) await expose.dispose();
         else if (step.race) {
           // The race of a registration with the dispose: the dispose has begun when the registration is made.
@@ -177,7 +187,7 @@ test("view command cases replay against the bridge model", async () => {
     const sokView = viewWindow();
     const posted = [];
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
-    const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined };
+    const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined, context: (params, context) => context };
     for (const [index, step] of testCase.steps.entries()) {
       const label = `${testCase.id}#${index}`;
       const before = posted.length;
@@ -214,7 +224,7 @@ test("command registration cases replay against the exposure model", async () =>
       onRequest: (answer) => { handle = answer; },
       reply: (id, payload) => { replies.push({ id, payload }); },
     }, testCase.declarations);
-    const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined };
+    const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined, context: (params, context) => context };
     for (const [index, step] of testCase.steps.entries()) {
       const label = `${testCase.id}#${index}`;
       const before = { registered: registered.length, replies: replies.length };
@@ -402,7 +412,7 @@ test("binder cases replay against the bind of the exposure model", async () => {
     const elementFor = (id, tag) => {
       if (!elements.has(id)) {
         const listeners = {};
-        elements.set(id, { id, tag, dataset: {}, addEventListener: (type, fn) => { (listeners[type] ??= []).push(fn); }, listeners });
+        elements.set(id, { id, tag, dataset: {}, value: "", addEventListener: (type, fn) => { (listeners[type] ??= []).push(fn); }, listeners });
       }
       return elements.get(id);
     };
@@ -422,14 +432,19 @@ test("binder cases replay against the bind of the exposure model", async () => {
         // The trace gives the when filter as an object of expected event fields; the page gives a predicate of the event.
         const when = spec.when ? (event) => Object.entries(spec.when).every(([key, value]) => event[key] === value) : undefined;
         try {
-          await expose.bind(element, spec.command, spec.params, { event: spec.event, when, failed: () => {} });
+          // paramsFromValue binds a function that reads the value of the element at each run.
+          const params = spec.paramsFromValue ? (event) => ({ value: event.currentTarget.value }) : spec.params;
+          await expose.bind(element, spec.command, params, { event: spec.event, when, failed: () => {} });
         } catch (failure) {
           error = errorText(failure);
         }
       } else if (step.event) {
         id = step.event.id;
         const element = elementFor(id);
-        const event = { type: step.event.type, key: step.event.key, value: step.event.value, preventDefault: () => {} };
+        // The control holds the value of the event, and the event names the control as its target (core binder.js reads it at each run).
+        if (step.event.value !== undefined) element.value = step.event.value;
+        const event = { type: step.event.type, key: step.event.key, value: step.event.value, target: element, currentTarget: element,
+          preventDefault: () => {} };
         for (const handler of element.listeners[step.event.type] ?? []) handler(event);
       } else throw new Error(`unknown binder step in ${label}`);
       await settle();

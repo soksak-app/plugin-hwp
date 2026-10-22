@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F252-contract-hwp: 복사한 command, binder, 노출 사례를 core origin/main에 맞췄다(`create-binder.json`, `expose.json`, `view-commands.json`이 바뀌었다). replay model은 매개변수 함수 bind와 command cids를 포괄한다.
 - F252-hwp: byte 값 배열이 아닌 export 응답은 저장을 실패시키고 파일을 바꾸지 않는다. 텍스트가 없는 studio 오류는 event 전체를 표시한다. 실패한 context 읽기는 계약의 오류 event를 보낸다. 편집기 알림이 실패한 저장은 저장된 상태로 두고, tab은 알림 실패를 표시한다(`plugin.hwp.notify`). 거부된 `runtime.log` 기록은 `runtime.error {where: "log"}`로 표시하고 콘솔에도 남긴다.
 - F238-b-10-2: test 명령이 `test/` 전체를 실행하므로 `test/sdk-models/`의 conformance test가 `make test`에서 실행된다(이전 46개, 이제 56개 중 56개 통과). `test/test-script.test.mjs`는 `test/` 아래의 test 파일이 test 명령에 선택되지 않으면 실패한다.
 - F238-b-10-1: core view bridge 계약 사본을 현재 core 사례 집합으로 새로 고쳤다. `view.bridge.runtime-log-without-level-query`가 `view.bridge.runtime-log-level-gate`를 대신하며, view는 level 질의를 부르지 않는다. 이 저장소에서는 conformance test(`test/sdk-models/conformance.test.mjs`)가 사례를 제외 목록에 적는다. view bridge model에 `runtime.log`가 없기 때문이다.
