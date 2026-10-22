@@ -217,11 +217,11 @@ export async function mount(root, context) {
     context.tab.error(`파일 감시가 멈췄습니다 · ${body.error}`);
   });
   /** Reads the file through the files sidecar; reason is start, reload or change. */
-  const read = async (reason) => {
+  const read = async (reason, cids = []) => {
     const start = performance.now();
     try {
-      const body = await files.request({ operation: "readBytes", path });
-      emitEvent("debug", "plugin.hwp.read", () => ({ path, reason, size: base64Size(body.data), micros: microsSince(start), ok: true }));
+      const body = await files.request({ operation: "readBytes", path }, cids);
+      emitEvent("debug", "plugin.hwp.read", () => ({ path, reason, size: base64Size(body.data), micros: microsSince(start), ok: true }), cids);
       return body;
     } catch (error) {
       emitEvent("warn", "plugin.hwp.read", { path, reason, micros: microsSince(start), ok: false, error: errorText(error) });
@@ -336,20 +336,23 @@ export async function mount(root, context) {
     if (typeof overwrite !== "boolean") throw new TypeError("hwp.save requires overwrite as true or false");
     if (path === null) return saveNew();
     const start = performance.now();
+    let cids = [];
     try {
       const bytes = exportedBytes(await request(EXPORTS[format]), EXPORTS[format]);
+      // The operation starts after the export, before its first sidecar send and record.
+      cids = await context.runtime.beginOperation("operation", { kind: "save", path, overwrite });
       const reply = await files.request({ operation: "writeBytes", path, data: toBase64(bytes),
-        expect: overwrite ? diskVersion : state.version });
+        expect: overwrite ? diskVersion : state.version }, cids);
       diskVersion = reply.version;
       const notified = await notifySaved();
       showBanner(null);
       publish({ version: reply.version, disk: "same" });
       setModified(false);
       if (notified) context.tab.error(null);
-      emitEvent("info", "plugin.hwp.save", { path, format, overwrite, size: bytes.length, micros: microsSince(start), ok: true });
+      emitEvent("info", "plugin.hwp.save", { path, format, overwrite, size: bytes.length, micros: microsSince(start), ok: true }, cids);
       return { version: reply.version };
     } catch (error) {
-      emitEvent("warn", "plugin.hwp.save", { path, format, overwrite, micros: microsSince(start), ok: false, error: errorText(error) });
+      emitEvent("warn", "plugin.hwp.save", { path, format, overwrite, micros: microsSince(start), ok: false, error: errorText(error) }, cids);
       context.tab.error(`저장하지 못했습니다 · ${messageText(error)}`);
       throw error;
     }
@@ -358,7 +361,8 @@ export async function mount(root, context) {
   const reload = async () => {
     if (path === null) throw new Error("a blank document has no file to read");
     try {
-      const body = await read("reload");
+      const cids = await context.runtime.beginOperation("operation", { kind: "reload", path });
+      const body = await read("reload", cids);
       await open(body);
       context.tab.error(null);
       return { version: body.version };
@@ -388,7 +392,8 @@ export async function mount(root, context) {
     setModified(false);
   } else {
     setPhase("reading");
-    const body = await read("start");
+    const openCids = await context.runtime.beginOperation("operation", { kind: "open", path });
+    const body = await read("start", openCids);
     setPhase("opening");
     await open(body);
     await startWatch();

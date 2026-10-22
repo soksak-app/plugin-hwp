@@ -2,14 +2,17 @@
 // whole name `plugin.<plugin>.<event>`, which events.json declares, and passes the rest to context.runtime.log.
 const LEVELS = ["error", "warn", "info", "debug", "trace"];
 
-/** Returns emitEvent(level, name, fields), which stores the event `name` of the plugin `pluginId` through runtime.log. */
+/**
+ * Returns emitEvent(level, name, fields, cids), which stores the event `name` of the plugin `pluginId` through runtime.log.
+ * cids is the list that beginOperation returned for the operation of the event, and it is omitted when none is given.
+ */
 export function createEmitter(runtime, pluginId) {
   const prefix = `plugin.${pluginId}.`;
-  return function emitEvent(level, name, fields) {
+  return function emitEvent(level, name, fields, cids) {
     if (!LEVELS.includes(level)) throw new TypeError(`emitEvent requires a level of ${LEVELS.join(", ")}, not ${String(level)}`);
     if (typeof name !== "string" || !name.startsWith(prefix)) throw new TypeError(`emitEvent requires a name that starts with ${prefix}`);
     // events: forwarded
-    runtime.log[level](name.slice(prefix.length), fields);
+    runtime.log[level](name.slice(prefix.length), fields, cids === undefined ? undefined : { cids });
   };
 }
 

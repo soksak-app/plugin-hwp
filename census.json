@@ -1,1 +1,16 @@
-{"exclude":"^ui/studio/","entrances":{},"pending":{}}
+{
+  "exclude": "^ui/studio/",
+  "entrances": {},
+  "pending": {},
+  "emitters": {
+    "js": [
+      {
+        "call": "beginOperation",
+        "fixed": "info",
+        "event": 0,
+        "fields": 1,
+        "name": "plugin.hwp.operation"
+      }
+    ]
+  }
+}

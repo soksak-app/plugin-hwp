@@ -214,6 +214,43 @@ test("view command cases replay against the bridge model", async () => {
   }
 });
 
+test("view operation cases replay against the bridge model", async () => {
+  // The identifiers of a case are p<time origin of the page>.<n>; the case writes the origin as $ORIGIN.
+  const origin = globalThis.performance.timeOrigin;
+  const expected = (value) => JSON.parse(JSON.stringify(value).replaceAll("p$ORIGIN.", `p${origin}.`));
+  for (const testCase of fixture("view-operations")) {
+    const sokView = viewWindow();
+    const posted = [];
+    const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
+    const stored = new Map();
+    for (const [index, step] of testCase.steps.entries()) {
+      const label = `${testCase.id}#${index}`;
+      const before = posted.length;
+      let result = null;
+      let throws = null;
+      try {
+        let promise;
+        if (step.operation) {
+          promise = bridge.runtime.beginOperation(step.operation.event, step.operation.fields);
+        } else if (step.sidecar) {
+          promise = bridge.runtime.sidecar(step.sidecar.name).send(step.sidecar.id, step.sidecar.body, stored.get(step.sidecar.cids));
+        } else if (step.command) {
+          promise = bridge.runtime.command(step.command.name, step.command.params, { cids: stored.get(step.command.cids) });
+        } else throw new Error(`unknown operation step in ${label}`);
+        await settle();
+        if (step.answer) sokView.listener({ sok: 1, id: posted.at(-1).id, ...step.answer });
+        result = await promise;
+        if (step.operation) stored.set(step.operation.as, result);
+        result = result === undefined ? null : result;
+      } catch (failure) {
+        throws = errorText(failure);
+      }
+      await settle();
+      assert.deepEqual({ posted: posted.slice(before), result, throws }, expected(pick(step.output, ["posted", "result", "throws"])), label);
+    }
+  }
+});
+
 test("command registration cases replay against the exposure model", async () => {
   for (const testCase of fixture("command-registration")) {
     const registered = [];

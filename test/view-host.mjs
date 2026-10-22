@@ -166,6 +166,8 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
   const reports = { title: [], modified: [], error: [], errorLines: [], state: [], registered: [], native: [], commands: [] };
   const logs = [];
   const calls = [];
+  // Each sidecar send of the page, with the cids that it carries.
+  const sidecarSends = [];
   const pending = new Map();
   const subscribed = new Set();
   const exposurePending = new Map();
@@ -232,6 +234,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
           reports.registered.push(params.name);
           return null;
         case "runtime.sidecar.send":
+          sidecarSends.push(params);
           if (!sidecarDeclared(params.sidecar)) throw new Error(`sidecar ${params.sidecar} is not a dependency of the plugin`);
           return sidecar.send(params.id, params.body);
         case "runtime.sidecar.on":
@@ -333,5 +336,5 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
     exposurePending.set(id, resolve);
     post({ sok: 1, event: "exposure-request", data: { id, surface: "hwp-1", method, params: paramsOfRequest } });
   });
-  return { window, studio, sidecar, files, reports, logs, calls, snapshots: [], subscribed, run, post, expose, settle };
+  return { window, studio, sidecar, files, reports, logs, calls, sidecarSends, snapshots: [], subscribed, run, post, expose, settle };
 }

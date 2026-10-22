@@ -104,12 +104,14 @@ export function createViewContext({ bridge, start, report }) {
       runtime: {
         // The sidecar is named by the page, as the view bridge names it (core docs/spec/native-surfaces.md#view-surfaces).
         sidecar: (name) => runtime.sidecar(name),
-        command: (name, params) => calls.request(name, params),
+        command: (name, params, options) => runtime.command(name, params, options),
+        // beginOperation writes the first event of an operation and returns the identifiers that its later calls carry.
+        beginOperation: runtime.beginOperation,
         // The fields are built before the send, because a call carries values and not builders. Core applies the level
         // gate at the delivery and gives the view no level query, so the fields are built while the level is off too.
         // A refused runtime.log call is reported as the error line of the view (refusedLog).
         log: Object.fromEntries(LOG_LEVELS.map((level) => [level,
-          (event, fields) => calls.request("runtime.log", { level, event, fields: typeof fields === "function" ? fields() : fields })
+          (event, fields, options) => calls.request("runtime.log", { level, event, fields: typeof fields === "function" ? fields() : fields, ...(options?.cids === undefined ? {} : { cids: options.cids }) })
             .then(undefined, (error) => refusedLog(calls, event, error))])),
         theme: runtime.theme,
       },

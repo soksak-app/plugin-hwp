@@ -485,3 +485,24 @@ test("a refused runtime.log is shown as an error line of the view and written to
   assert.deepEqual(host.reports.errorLines.find((line) => line.text.startsWith("report:")),
     { where: "log", text: "report: log route refused" });
 });
+
+test("the open and the save of a file carry the cids of their operations on the sidecar sends and the records", async (t) => {
+  const host = await setup(t);
+  const operations = host.logs.filter((entry) => entry.event === "plugin.hwp.operation");
+  const opened = operations.find((entry) => entry.fields.kind === "open");
+  assert.ok(opened, "the open starts an operation");
+  assert.match(opened.cids[0], /^p\d+(?:\.\d+)?\.\d+$/, "the operation identifier has the form p<time origin>.<n>");
+  const reads = host.sidecarSends.filter((send) => send.body.operation === "readBytes");
+  assert.deepEqual(reads.map((send) => send.cids), [opened.cids], "the read of the open carries the cids of the open");
+  assert.ok(named(host.logs, "read").every((entry) => entry.cids === undefined || entry.cids.length === 1), "the records of the read keep the cids");
+  const readRecord = named(host.logs, "read").find((entry) => entry.fields.reason === "start");
+  assert.deepEqual(readRecord.cids, opened.cids, "the read record carries the cids of the open");
+
+  host.studio.edit("!");
+  await host.expose("command.run", { name: "hwp.save", params: {} });
+  const saved = host.logs.filter((entry) => entry.event === "plugin.hwp.operation" && entry.fields.kind === "save");
+  assert.equal(saved.length, 1, "the save starts one operation");
+  const writes = host.sidecarSends.filter((send) => send.body.operation === "writeBytes");
+  assert.deepEqual(writes.map((send) => send.cids), [saved[0].cids], "the write of the save carries the cids of the save");
+  assert.deepEqual(named(host.logs, "save").map((entry) => entry.cids), [saved[0].cids], "the save record carries the cids of the save");
+});

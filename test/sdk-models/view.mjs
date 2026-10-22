@@ -14,6 +14,7 @@ const DEFAULT_LIMIT = 10000;
 export function createViewBridge({ handler, report }) {
   if (typeof report !== "function") throw new TypeError("createViewBridge requires the report function");
   let sequence = 0;
+  let operationSequence = 0;
   const pending = new Map();
   const late = new Map();
   const commands = new Map();
@@ -30,7 +31,7 @@ export function createViewBridge({ handler, report }) {
   };
   // A request posts {sok, id, command, params} and resolves with the result of the reply with the same id. A reply that
   // arrives after the limit is reported as late and is not passed to the caller.
-  function request(command, params, timeout = DEFAULT_LIMIT) {
+  function request(command, params, timeout = DEFAULT_LIMIT, cids) {
     const id = ++sequence;
     const startedAt = Date.now();
     return new Promise((resolve, reject) => {
@@ -45,7 +46,7 @@ export function createViewBridge({ handler, report }) {
         reject(error);
       }, timeout);
       pending.set(id, entry);
-      post({ sok: 1, id, command, params });
+      post({ sok: 1, id, command, params, ...(cids === undefined ? {} : { cids }) });
       openCalls();
     });
   }
@@ -139,14 +140,24 @@ export function createViewBridge({ handler, report }) {
         return subscribe(`native:${name}`, "runtime.native.on", { name }, listener, listener);
       },
     },
+    // An operation starts with its first event: the event is written through runtime.log with the identifiers that
+    // beginOperation returns, and the identifiers are the cids of every later call of the operation.
+    beginOperation(event, fields) {
+      const cids = [`p${globalThis.performance.timeOrigin}.${++operationSequence}`];
+      return request("runtime.log", { level: "info", event, fields, cids }).then(() => cids);
+    },
+    // A command of the host with cids: the request carries them, and its answer is the answer of the command.
+    command(name, params, options = {}) {
+      return request(name, params, DEFAULT_LIMIT, options.cids);
+    },
     theme(listener) {
       themeListeners.set(listener, listener);
       return () => themeListeners.delete(listener);
     },
     sidecar(name) {
       return {
-        send(id, body) {
-          return request("runtime.sidecar.send", { id, sidecar: name, body, cids: [] });
+        send(id, body, cids = []) {
+          return request("runtime.sidecar.send", { id, sidecar: name, body, cids });
         },
         on(id, fn) {
           const entry = { kind: "message", id, fn };

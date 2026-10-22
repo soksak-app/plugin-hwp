@@ -3,7 +3,7 @@
 
 /**
  * Connects to the sidecar of surfaceId. onEvent receives every message without an id: a change {changed} or a watch
- * failure {error}. Returns {request(body), dispose()}.
+ * failure {error}. Returns {request(body, cids), dispose()}.
  */
 export async function connect(sidecar, surfaceId, onEvent) {
   const pending = new Map();
@@ -19,10 +19,11 @@ export async function connect(sidecar, surfaceId, onEvent) {
     if (body.error !== undefined) request.reject(new Error(body.error));
     else request.resolve(body);
   });
-  const request = (body) => new Promise((resolve, reject) => {
+  // cids is the list of the operation of the request, which the send carries (core docs/spec/logging.md).
+  const request = (body, cids = []) => new Promise((resolve, reject) => {
     const id = `${body.operation}-${++next}`;
     pending.set(id, { resolve, reject });
-    sidecar.send(surfaceId, { ...body, id }).catch((failure) => {
+    sidecar.send(surfaceId, { ...body, id }, cids).catch((failure) => {
       pending.delete(id);
       reject(failure);
     });
