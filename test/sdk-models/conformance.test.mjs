@@ -50,7 +50,7 @@ function viewWindow() {
 }
 
 test("the excluded cases and steps are present in the copied fixtures", () => {
-  const ids = new Set(["view-bridge", "view-native", "view-composition", "create-binder", "expose", "calls"].flatMap((name) => fixture(name)).map((entry) => entry.id));
+  const ids = new Set(["view-bridge", "view-native", "view-composition", "create-binder", "expose", "calls", "view-commands"].flatMap((name) => fixture(name)).map((entry) => entry.id));
   for (const id of [...Object.keys(EXCLUDED_CASES), ...Object.keys(EXCLUDED_STEPS)]) assert.ok(ids.has(id), `excluded case ${id} is not in the fixtures`);
 });
 
@@ -169,6 +169,38 @@ test("call limit cases replay against the bridge model on a mocked clock", async
       assert.deepEqual(output, step.output, label);
     }
     t.mock.timers.reset();
+  }
+});
+
+test("view command cases replay against the bridge model", async () => {
+  for (const testCase of replayable("view-commands")) {
+    const sokView = viewWindow();
+    const posted = [];
+    const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
+    const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined };
+    for (const [index, step] of testCase.steps.entries()) {
+      const label = `${testCase.id}#${index}`;
+      const before = posted.length;
+      let result = null;
+      let throws = null;
+      try {
+        if (step.register) {
+          const run = typeof step.register.run === "string" && step.register.run in behaviors ? behaviors[step.register.run] : step.register.run;
+          const promise = bridge.commands.register(step.register.name, run);
+          if (step.answer ?? step.register.answer) {
+            await settle();
+            sokView.listener({ sok: 1, id: posted.at(-1).id, ...(step.answer ?? step.register.answer) });
+          }
+          result = await promise;
+        } else if (step.request) {
+          sokView.listener({ sok: 1, ...step.request });
+        } else throw new Error(`unknown command step in ${label}`);
+      } catch (failure) {
+        throws = errorText(failure);
+      }
+      await settle();
+      assert.deepEqual({ posted: posted.slice(before), result, throws }, pick(step.output, ["posted", "result", "throws"]), label);
+    }
   }
 });
 

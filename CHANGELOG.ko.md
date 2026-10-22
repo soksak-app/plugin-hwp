@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H22-1: `test/sdk-models/conformance.test.mjs`가 `view-commands.json`을 bridge model에 재생한다(command 등록과 command 요청의 응답). Red: model의 거부 code를 바꾼 mutation이 등록되지 않은 command의 재생에서 실패했다. Green: 복원한 model은 9개 중 9개 통과한다.
 - H22-1: view 페이지 test는 SDK 없이 실행한다. `scripts/build-test.mjs`는 각 `@soksak/plugin-api` import를 `test/sdk-models/`의 model로 바꾼 `build/test/ui`를 만들고, `test/sdk-models/conformance.test.mjs`는 복사된 view, binder, call 한도 case를 재생한다(core F246, F248부터 F248-4까지). embed 한도 test는 save 전에 mock clock을 켠다. Red: `test/sdk-boundary.test.mjs`가 `test/hwp.test.mjs`의 SDK import에서 실패했다. Green: `make test`가 46개 중 46개 통과한다. `@soksak/plugin-api`는 release `v0.0.18`에 고정했으므로, core release가 case를 담을 때까지 `make check`의 case 복사 검사는 실패한다.
 - H22: 표면은 view다. `plugin.json`은 페이지 `ui/index.html`과 문서 영역 `studio`를 담은 view composition을 선언하고, `ui/view.js`는 `@soksak/plugin-api/view`로 표면 module `ui/hwp.js`를 core의 영역 call과 함께 mount한다. 저장된 세션 기록이 restore된 case는 실행한다. 페이지는 구독 전에 `region.state`를 읽고, files sidecar를 `@soksak/sidecar-files`로 이름 붙인다. Red와 Green은 체크리스트에 기록했다.
 - H22: `@soksak/plugin-api`를 core main에 고정했다. 이 core main은 view 영역에 `history`를 노출하고(core F245), view 요청마다 sidecar 이름을 받는다. `make test`는 플러그인 test만 실행하고, `make check`는 고정된 SDK 검사를 실행한다.
