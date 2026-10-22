@@ -308,7 +308,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
 
   // The start values in the form that core injects (docs/spec/native-surfaces.md#view-surfaces, start values): the
   // declarations are the exposes of the plugin.
-  window.sokSurface = Object.freeze({ surface: "hwp-1", params, origin: { directory: "/project" }, project: { root: "/project" }, declarations: MANIFEST.exposes });
+  window.sokSurface = Object.freeze({ surface: "hwp-1", params, origin: { directory: "/project" }, project: { id: "prj-project", root: "/project" }, declarations: MANIFEST.exposes });
   installViewChannel(window, handler);
   post({ sok: 1, event: "theme", data: { scheme: "dark", tokens: {} } });
 

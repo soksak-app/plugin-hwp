@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- H27: The start values of a view require the project id: the validator refuses a project without `id`, because core gives `{id, root}`. The view test refuses a project that has only a root. Red: the refusal test failed against the validator of the previous version. Green: the test passes with the validator that requires the id.
 - H26: The view page map holds the screen-hash entry of core's view import map, which `checkViewPage` requires. The view test's copy of the map holds the five entries of `VIEW_IMPORTS`. Red: `test/hwp.test.mjs` failed with a deep-equal difference, because the page map lacked the screen-hash entry. Green: `make test` passes 69 of 69, and `make check` passes with CORE_PLUGIN_API_DIR.
 - H24: The pre-push hook runs `make push-check`, which runs `make test`, `make check` and the commit message check of the pushed range, as the ci workflow does. Red: `.githooks/pre-push` did not exist and `git push --dry-run` ran no check. Green: the hook runs the checks; `make test` passes 69 of 69, and `make check` fails at the pinned SDK, which H25 records.
 - F238-c-23-1: `make check` validates `plugin.json` with `validateManifest` of the plugin API (`scripts/check-manifest.mjs`), and reads that API and runs the SDK tools from `CORE_PLUGIN_API_DIR` when it is set. `test/check-manifest.test.mjs` checks that a fixture API's rejection message fails the check. Red: the check file did not exist. Green: `make test` passes 69 of 69, and `make check` exits 0 against the extract of core origin/main.

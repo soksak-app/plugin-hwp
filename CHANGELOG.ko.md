@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H27: view의 start 값은 project id를 요구한다. 검증기는 `id`가 없는 project를 거부한다. core가 `{id, root}`를 주기 때문이다. view 시험은 root만 가진 project를 거부한다. Red: 이전 검증기에 대해 거부 시험이 실패했다. Green: id를 요구하는 검증기에서 시험이 통과한다.
 - H26: view 페이지 map이 core view import map의 screen-hash 항목을 가진다. `checkViewPage`가 이 항목을 요구한다. 시험의 map 복사본은 `VIEW_IMPORTS`의 다섯 항목을 가진다. Red: `test/hwp.test.mjs`가 page map에 screen-hash 항목이 없어 deep-equal 차이로 실패했다. Green: `make test`가 69개 중 69개를 통과하고, `CORE_PLUGIN_API_DIR`로 `make check`가 통과한다.
 - H24: pre-push 훅이 `make push-check`를 실행한다. 이것은 ci workflow와 같이 `make test`, `make check`, push 범위의 commit message 검사를 실행한다. Red: `.githooks/pre-push`가 없었고 `git push --dry-run`은 검사를 실행하지 않았다. Green: 훅이 검사를 실행한다. `make test`는 69개 중 69개를 통과하고, `make check`는 고정 SDK에서 실패하며 이것은 H25가 기록한다.
 - F238-c-23-1: `make check`는 plugin API의 `validateManifest`로 `plugin.json`을 검사하며(`scripts/check-manifest.mjs`), `CORE_PLUGIN_API_DIR`가 설정되면 그 API를 읽고 SDK 도구를 그 폴더에서 실행한다. `test/check-manifest.test.mjs`는 fixture API의 거부 메시지가 검사를 실패시키는지 확인한다. Red: 검사 파일이 없었다. Green: `make test`가 69개 중 69개를 통과하며, `make check`는 core origin/main 추출본에 대해 0으로 종료된다.

@@ -87,6 +87,12 @@ test("the view page refuses to mount without the start values of the surface", a
     /the view of hwp has no start values: the host provides window\.sokSurface/);
 });
 
+test("the view page refuses a project in its start values that has no id", async (t) => {
+  const host = createViewPage(t, "project-without-id");
+  host.window.sokSurface = Object.freeze({ surface: "hwp-1", params: {}, origin: { directory: "/project" }, project: { root: "/project" }, declarations: manifest.exposes });
+  await assert.rejects(import("../build/test/ui/view.js?case=project-without-id"), /project is \{"root":"\/project"\}/);
+});
+
 test("the view page mounts the surface over the view channel and registers every declared name", async (t) => {
   const host = await setup(t);
   assert.deepEqual(host.reports.registered.toSorted(), manifest.exposes.commands.map((entry) => entry.name).toSorted());
