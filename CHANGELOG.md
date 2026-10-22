@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F252-hwp: An export reply that is not a non-empty byte array fails the save and leaves the file unchanged. A studio error without text shows the whole event. A failed context read posts the error event of the contract. A save whose editor notice fails is saved, and the tab reports that the notice failed (`plugin.hwp.notify`). A refused `runtime.log` record is shown as `runtime.error {where: "log"}` and kept on the console.
 - F238-b-10-2: the test command runs the whole `test/` directory, so the conformance tests of `test/sdk-models/` run in `make test` (56 of 56 tests, 46 before). `test/test-script.test.mjs` fails when a test file under `test/` is not selected by the test command.
 - F238-b-10-1: the core view bridge contract copy is refreshed to the current core case set; `view.bridge.runtime-log-without-level-query` replaces `view.bridge.runtime-log-level-gate`, and the view calls no level query. In this repository the conformance test (`test/sdk-models/conformance.test.mjs`) lists the case as excluded, because the view bridge model has no `runtime.log`.
 - H22-1: `test/sdk-models/conformance.test.mjs` replays `view-commands.json` against the bridge model (command registration and the reply to a command request). Red: a mutated refusal code of the model failed the replay at the unregistered command; Green: the restored model passes 9 of 9.

@@ -9,6 +9,18 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { mount } from "./hwp.js";
+import { messageText } from "./events.js";
+
+/**
+ * A refused record is an error of the view: it is shown as the error line of the view (runtime.error), and the console of the
+ * page keeps the line too. A refusal of the error line itself has no other route left, so the console takes it.
+ */
+function refusedLog(calls, event, error) {
+  const text = `${event}: ${messageText(error)}`;
+  console.error(`runtime.log ${text}`);
+  calls.request("runtime.error", { where: "log", text })
+    .then(undefined, (refusal) => console.error(`runtime.error log: ${messageText(refusal)}`));
+}
 
 const LOG_LEVELS = ["error", "warn", "info", "debug", "trace"];
 
@@ -95,11 +107,10 @@ export function createViewContext({ bridge, start, report }) {
         command: (name, params) => calls.request(name, params),
         // The fields are built before the send, because a call carries values and not builders. Core applies the level
         // gate at the delivery and gives the view no level query, so the fields are built while the level is off too.
-        // A refused runtime.log call is not reported through runtime.log, which is the route that refused it: the refusal goes to the
-        // console of the page.
+        // A refused runtime.log call is reported as the error line of the view (refusedLog).
         log: Object.fromEntries(LOG_LEVELS.map((level) => [level,
           (event, fields) => calls.request("runtime.log", { level, event, fields: typeof fields === "function" ? fields() : fields })
-            .then(undefined, (error) => console.error(`view call runtime.log of ${event}: ${error?.message ?? error}`))])),
+            .then(undefined, (error) => refusedLog(calls, event, error))])),
         theme: runtime.theme,
       },
       // The composition of the declared regions and overlays of the view, whose operations reach the main page as

@@ -83,7 +83,7 @@ function fakeFiles(files) {
  * ui/studio-host.js. post(message) delivers one message of the editor page. The document is its bytes; edit(text)
  * appends text and posts the modified message.
  */
-function fakeStudio(name, emit, { listens = true, silent = [], history = false } = {}) {
+function fakeStudio(name, emit, { listens = true, silent = [], history = false, replies = {} } = {}) {
   const studio = { document: null, requests: [], dropped: [], loaded: null, savedAs: [], history };
   let listening = false;
   const deliver = (message) => queueMicrotask(() => emit("document-message", { document: name, message }));
@@ -128,7 +128,7 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false }
       if (!listening) return void studio.dropped.push(message.method);
       studio.requests.push(message.method);
       if (silent.includes(message.method)) return;
-      const answer = answers[message.method];
+      const answer = replies[message.method] ?? answers[message.method];
       if (!answer) return deliver({ type: "rhwp-response", id: message.id, error: `unknown method ${message.method}` });
       deliver({ type: "rhwp-response", id: message.id, result: answer(message.params) });
     },
@@ -152,7 +152,7 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false }
  * Returns { window, studio, files, reports, logs, calls, registered, run, post, expose, settle }.
  */
 export function createViewPage(t, caseId, { stored = null, params = { path: "docs/plan.hwp" }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]),
-  listens = true, silent = [], history = false, place = () => { throw new Error("the test runs no core command"); } } = {}) {
+  listens = true, silent = [], history = false, replies = {}, refuseLog = null, place = () => { throw new Error("the test runs no core command"); } } = {}) {
   const { window } = createWindow(`sok://hwp/ui/index.html?case=${caseId}`);
   useWindow(window);
   // The composition controller measures the insets of the region element against the viewport of the view and observes
@@ -163,7 +163,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
     unobserve() {}
     disconnect() {}
   };
-  const reports = { title: [], modified: [], error: [], state: [], registered: [], native: [], commands: [] };
+  const reports = { title: [], modified: [], error: [], errorLines: [], state: [], registered: [], native: [], commands: [] };
   const logs = [];
   const calls = [];
   const pending = new Map();
@@ -175,7 +175,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
     if (nativeEmit.get(name)) post({ sok: 1, event: name, data });
   };
   const sidecar = fakeFiles(files);
-  const studio = fakeStudio("studio", emitNative, { listens, silent, history });
+  const studio = fakeStudio("studio", emitNative, { listens, silent, history, replies });
   const LEVELS = ["error", "warn", "info", "debug", "trace"];
   const handler = { postMessage: (sent) => { const message = JSON.parse(JSON.stringify(sent)); deliver(message); } };
   window.webkit = { messageHandlers: { "sok-view": handler } };
@@ -210,10 +210,13 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
         case "tab.title": reports.title.push(params); return null;
         case "tab.modified": reports.modified.push(params); return null;
         case "tab.error": reports.error.push(params); return null;
+        case "runtime.error": reports.errorLines.push(params); return null;
         case "tab.footer": case "tab.notify": case "tab.keep": case "tab.directory": return null;
         case "runtime.log":
           if (params === null || typeof params !== "object" || Array.isArray(params)) throw new Error("runtime.log requires {level, event, fields}");
           if (!LEVELS.includes(params.level)) throw new Error(`runtime.log level ${params.level} is not a log level`);
+          // refuseLog makes the host refuse every record, as the application log route of a host can.
+          if (refuseLog !== null) throw new Error(refuseLog);
           // The runtime adds the prefix plugin.<plugin>. to the event name of a view call (core packages/plugin-api/plugin-runtime.js).
           logs.push({ ...params, event: `plugin.${window.location.host}.${params.event}` });
           return null;

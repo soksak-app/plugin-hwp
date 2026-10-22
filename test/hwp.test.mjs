@@ -439,3 +439,49 @@ test("a tab state of another form is refused", async (t) => {
   const host = await setup(t, { stored: { path: 3 } });
   await waitForLog(host, "report", /the tab state of hwp tab hwp-1 is not \{path\}: \{"path":3\}/);
 });
+
+test("an export reply that is not an array of byte values fails the save and keeps the file", async (t) => {
+  const host = await setup(t, { params: { path: "docs/plan.hwp" }, replies: { exportHwp: () => "not bytes" } });
+  host.studio.edit("!");
+  await host.settle();
+  await assert.rejects(host.run("hwp.save"), /exportHwp did not reply with a non-empty array of byte values/);
+  assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단"));
+  assert.match(host.reports.error.at(-1), /^저장하지 못했습니다 · exportHwp did not reply/);
+});
+
+test("an export reply with no bytes fails the save instead of writing an empty file", async (t) => {
+  const host = await setup(t, { params: { path: "docs/plan.hwp" }, replies: { exportHwp: () => [] } });
+  host.studio.edit("!");
+  await host.settle();
+  await assert.rejects(host.run("hwp.save"), /non-empty array/);
+  assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단"));
+});
+
+test("a save whose notice to the editor fails is saved, and the tab shows that the notice failed", async (t) => {
+  const host = await setup(t, { params: { path: "docs/plan.hwp" }, replies: { notifySaved: () => { throw new Error("editor gone"); } } });
+  host.studio.edit("!");
+  await host.settle();
+  const { result } = await host.expose("command.run", { name: "hwp.save", params: {} });
+  assert.equal(result.version, sha(bytes("첫 문단!")));
+  assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단!"));
+  assert.equal((await host.status()).modified, false);
+  assert.equal(host.reports.error.at(-1), "저장했지만 편집기에 알리지 못했습니다 · editor gone");
+  assert.equal(named(host.logs, "notify").length, 1);
+});
+
+test("an error message of the editor page without text shows the whole event", async (t) => {
+  const host = await setup(t);
+  host.studio.post({ type: "soksak-hwp", event: "error" });
+  await host.settle();
+  assert.equal(host.reports.error.at(-1), '편집기 · {"type":"soksak-hwp","event":"error"}');
+});
+
+test("a refused runtime.log is shown as an error line of the view and written to the console", async (t) => {
+  const consoleError = t.mock.method(console, "error", () => {});
+  const host = await setup(t, { refuseLog: "log route refused" });
+  host.window.dispatchEvent(new host.window.ErrorEvent("error", { error: new Error("failed"), message: "failed" }));
+  await host.settle();
+  assert.ok(consoleError.mock.callCount() > 0, "the refused record reached no console line");
+  assert.deepEqual(host.reports.errorLines.find((line) => line.text.startsWith("report:")),
+    { where: "log", text: "report: log route refused" });
+});

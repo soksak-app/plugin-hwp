@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { createEmitter, errorText } from "../build/test/ui/events.js";
+import { createEmitter, errorText, messageText } from "../build/test/ui/events.js";
 
 const read = (name) => JSON.parse(readFileSync(new URL(`../${name}`, import.meta.url), "utf8"));
 const manifest = read("plugin.json");
@@ -55,4 +55,9 @@ test("plugin.json names the catalog and the catalog declares plugin events of th
 
 test("the release holds the catalog", () => {
   assert.ok(read("package.json").files.includes("events.json"));
+});
+
+test("messageText gives the message of an Error and the value of a thrown string", () => {
+  assert.equal(messageText(new Error("boom")), "boom");
+  assert.equal(messageText("place refused"), "place refused");
 });

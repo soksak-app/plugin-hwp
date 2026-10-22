@@ -13,6 +13,11 @@ export function createEmitter(runtime, pluginId) {
   };
 }
 
+/** The text of a thrown value for the tab error: the message of an Error, and the value itself otherwise. */
+export function messageText(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /** A failure as `<code>: <text>`: the name of the error is its code. */
 export function errorText(error) {
   return error instanceof Error ? `${error.name}: ${error.message}` : `Error: ${String(error)}`;

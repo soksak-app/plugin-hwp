@@ -71,3 +71,15 @@ test("a context without isDirty posts an error", async () => {
   assert.deepEqual(messages, [{ type: "soksak-hwp", event: "error", message: "rhwp-studio reports isDirty undefined" }]);
   context.isDirty = false;
 });
+
+test("a failure of the editor to read its context posts an error and keeps the script running", async () => {
+  const automation = window.rhwpStudio.automation;
+  const getContext = automation.getContext;
+  automation.getContext = () => { throw new Error("context unavailable"); };
+  try {
+    assert.deepEqual(await posted(() => window.document.body.dispatchEvent(key({ code: "KeyC", key: "c" }))),
+      [{ type: "soksak-hwp", event: "error", message: "rhwp-studio getContext failed: context unavailable" }]);
+  } finally {
+    automation.getContext = getContext;
+  }
+});

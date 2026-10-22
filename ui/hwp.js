@@ -4,7 +4,7 @@
 // params}, which rhwp-studio answers with {type: "rhwp-response", id, result | error}, and receives the messages of
 // ui/studio-host.js {type: "soksak-hwp", event}. A tab without a path opens a blank document of the editor, whose first
 // save asks for its file through core.file.place.
-import { createEmitter, errorText } from "./events.js";
+import { createEmitter, errorText, messageText } from "./events.js";
 import { connect } from "./requests.js";
 
 const css = `:host{display:block;height:100%}
@@ -28,6 +28,15 @@ const NEW_NAME = "새 문서.hwp";
 
 /* The embed request that exports each format. */
 const EXPORTS = { hwp: "exportHwp", hwpx: "exportHwpx" };
+// The bytes of an export reply, which rhwp-studio answers as an array of byte values. Any other reply, and an empty one, is
+// refused: writing it would replace the file with other bytes, or with an empty file.
+const exportedBytes = (reply, method) => {
+  const bytes = Array.isArray(reply) || reply instanceof Uint8Array ? Array.from(reply) : null;
+  if (bytes === null || bytes.length === 0 || !bytes.every((byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255)) {
+    throw new TypeError(`${method} did not reply with a non-empty array of byte values`);
+  }
+  return Uint8Array.from(bytes);
+};
 
 /** The format of path from its extension, hwp or hwpx. */
 export function formatOf(path) {
@@ -175,8 +184,10 @@ export async function mount(root, context) {
       return void save().catch((error) => emitEvent("warn", "plugin.hwp.studio.save_failed", { path, error: errorText(error) }));
     }
     if (message?.type === "soksak-hwp" && message.event === "error") {
-      emitEvent("error", "plugin.hwp.studio.error", { path, message: message.message });
-      return context.tab.error(`편집기 · ${message.message}`);
+      // An error event without a text shows the whole event, so that the failure is not shown as an empty value.
+      const text = typeof message.message === "string" ? message.message : JSON.stringify(message);
+      emitEvent("error", "plugin.hwp.studio.error", { path, message: text });
+      return context.tab.error(`편집기 · ${text}`);
     }
     throw new Error(`the hwp document posted an unknown message ${JSON.stringify(message)}`);
   });
@@ -199,7 +210,7 @@ export async function mount(root, context) {
 
   const files = await connect(context.runtime.sidecar(FILES_SIDECAR), context.surfaceId, (body) => {
     if (body.changed !== undefined) {
-      diskChanged().catch((error) => context.tab.error(`다시 읽지 못했습니다 · ${error.message}`));
+      diskChanged().catch((error) => context.tab.error(`다시 읽지 못했습니다 · ${messageText(error)}`));
       return;
     }
     emitEvent("error", "plugin.hwp.watch.failed", { path, error: String(body.error) });
@@ -269,7 +280,7 @@ export async function mount(root, context) {
       ({ path: chosen } = await context.runtime.command("core.file.place", { name: NEW_NAME }));
     } catch (error) {
       emitEvent("warn", "plugin.hwp.place", { name: NEW_NAME, path: null, micros: microsSince(placeStart), ok: false, error: errorText(error) });
-      context.tab.error(`저장하지 못했습니다 · ${error.message}`);
+      context.tab.error(`저장하지 못했습니다 · ${messageText(error)}`);
       throw error;
     }
     emitEvent("info", "plugin.hwp.place", { name: NEW_NAME, path: chosen, micros: microsSince(placeStart), ok: true });
@@ -278,7 +289,7 @@ export async function mount(root, context) {
     let chosenFormat = null;
     try {
       chosenFormat = formatOf(chosen);
-      const bytes = Uint8Array.from(await request(EXPORTS[chosenFormat]));
+      const bytes = exportedBytes(await request(EXPORTS[chosenFormat]), EXPORTS[chosenFormat]);
       const write = (expect) => files.request({ operation: "writeBytes", path: chosen, data: toBase64(bytes), expect });
       let reply;
       try {
@@ -293,18 +304,31 @@ export async function mount(root, context) {
       context.tab.title(name);
       context.tab.state.write({ path });
       diskVersion = reply.version;
-      await request("notifySaved", { fileName: name });
+      const notified = await notifySaved();
       publish({ path, format, version: reply.version, disk: "same" });
       setModified(false);
-      context.tab.error(null);
+      if (notified) context.tab.error(null);
       emitEvent("info", "plugin.hwp.save", { path, format, overwrite: false, size: bytes.length, micros: microsSince(start), ok: true });
       await startWatch();
       return { version: reply.version };
     } catch (error) {
       emitEvent("warn", "plugin.hwp.save", { path: chosen, format: chosenFormat, overwrite: false, micros: microsSince(start), ok: false,
         error: errorText(error) });
-      context.tab.error(`저장하지 못했습니다 · ${error.message}`);
+      context.tab.error(`저장하지 못했습니다 · ${messageText(error)}`);
       throw error;
+    }
+  };
+
+  // The editor is told of a file after the file is written, so a failure of this notice leaves the file saved. The failure is
+  // shown as its own error, and the save does not fail; the result tells whether the notice was delivered.
+  const notifySaved = async () => {
+    try {
+      await request("notifySaved", { fileName: name });
+      return true;
+    } catch (error) {
+      emitEvent("warn", "plugin.hwp.notify", { path, error: errorText(error) });
+      context.tab.error(`저장했지만 편집기에 알리지 못했습니다 · ${messageText(error)}`);
+      return false;
     }
   };
 
@@ -313,20 +337,20 @@ export async function mount(root, context) {
     if (path === null) return saveNew();
     const start = performance.now();
     try {
-      const bytes = Uint8Array.from(await request(EXPORTS[format]));
+      const bytes = exportedBytes(await request(EXPORTS[format]), EXPORTS[format]);
       const reply = await files.request({ operation: "writeBytes", path, data: toBase64(bytes),
         expect: overwrite ? diskVersion : state.version });
       diskVersion = reply.version;
-      await request("notifySaved", { fileName: name });
+      const notified = await notifySaved();
       showBanner(null);
       publish({ version: reply.version, disk: "same" });
       setModified(false);
-      context.tab.error(null);
+      if (notified) context.tab.error(null);
       emitEvent("info", "plugin.hwp.save", { path, format, overwrite, size: bytes.length, micros: microsSince(start), ok: true });
       return { version: reply.version };
     } catch (error) {
       emitEvent("warn", "plugin.hwp.save", { path, format, overwrite, micros: microsSince(start), ok: false, error: errorText(error) });
-      context.tab.error(`저장하지 못했습니다 · ${error.message}`);
+      context.tab.error(`저장하지 못했습니다 · ${messageText(error)}`);
       throw error;
     }
   };
@@ -339,7 +363,7 @@ export async function mount(root, context) {
       context.tab.error(null);
       return { version: body.version };
     } catch (error) {
-      context.tab.error(`다시 읽지 못했습니다 · ${error.message}`);
+      context.tab.error(`다시 읽지 못했습니다 · ${messageText(error)}`);
       throw error;
     }
   };

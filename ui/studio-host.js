@@ -23,7 +23,14 @@ const check = () => {
     post({ event: "error", message: "rhwp-studio exposes no window.rhwpStudio.automation" });
     return;
   }
-  const { isDirty, hasSelection } = automation.getContext();
+  let context;
+  try {
+    context = automation.getContext();
+  } catch (error) {
+    post({ event: "error", message: `rhwp-studio getContext failed: ${error instanceof Error ? error.message : String(error)}` });
+    return;
+  }
+  const { isDirty, hasSelection } = context;
   if (typeof isDirty !== "boolean") {
     post({ event: "error", message: `rhwp-studio reports isDirty ${JSON.stringify(isDirty)}` });
     return;
