@@ -3,6 +3,7 @@
 [English](features.md)
 
 - [o] H29 — P1: manifest가 process display identity를 필수로 요구하는 files sidecar 0.0.8 이상을 사용한다. 이 plugin을 0.0.3으로 올린다. Red: `the plugin requires the files sidecar display identity release`가 기존 `>=0.0.5`에서 실패했다. Green: dependency 하한과 package version을 올린 뒤 통과한다.
+- [ ] H29-1 — P1: files sidecar 최소 버전 0.0.8을 선언한 HWP plugin 0.0.3을 게시하고 설치된 plugin registry를 갱신한다. local archive는 준비됐지만 version이 게시될 때까지 이 dependency correction은 미배포 상태다.
 
 - [o] F238-c-23-1 — P1, F238-c-23의 후속 항목: `make check`는 `scripts/check-manifest.mjs`를 실행해 plugin API의 `validateManifest`로 `plugin.json`을 검사하며, `CORE_PLUGIN_API_DIR`가 설정되면 그 API를 읽고 exposure, engines, events, records 도구를 그 폴더에서 실행한다. `test/check-manifest.test.mjs`는 알려진 메시지를 던지는 fixture API로 검사를 실행하고 그 메시지를 기대한다. Red: 검사 파일이 없어서 test가 `scripts/check-manifest.mjs`의 `Cannot find module`로 실패했다. Green: test가 통과하고, `make test`가 69개 중 69개를 통과하며, `CORE_PLUGIN_API_DIR=<core origin/main packages/plugin-api 추출본> make check`가 0으로 종료되어 manifest, exposure, engines, events, records, contract 복사 검사가 통과한다.
 - [o] F238-c-14 — P1, core F238-c-14 테스트 규칙: `test/`의 어느 줄도 SDK needle을 포함하지 않는다. `test/sdk-boundary.test.mjs`는 `test/` 아래 모든 파일을 검사해 needle을 포함한 줄을 나열하며, needle은 부분 문자열에서 조립한다. Red: guard가 다섯 줄을 나열했다: `hwp.test.mjs:21`, `hwp.test.mjs:22`, `sdk-models/expose.mjs:1`, `sdk-models/index.mjs:1`, `sdk-models/view.mjs:1`. Green: model 주석은 plugin API로 적고, `test/hwp.test.mjs`는 import map 이름을 부분 문자열에서 조립한다. `make test`가 test 68개를 통과하고 실패는 0개다.
