@@ -28,11 +28,11 @@ const isRecord = (value) => value !== null && typeof value === "object" && !Arra
 const isText = (value) => typeof value === "string" && value !== "";
 
 // The form of each start value (core docs/spec/native-surfaces.md#view-surfaces, start values): params are the tab
-// parameters or null, origin is {directory} with a directory, project is {root} or null, and declarations
+// parameters or null, origin is {directory} with a path or null, project is {root} or null, and declarations
 // are the exposes of the plugin.
 const START_FORM = {
   params: (value) => value !== undefined,
-  origin: (value) => isRecord(value) && isText(value.directory),
+  origin: (value) => isRecord(value) && (value.directory === null || isText(value.directory)),
   project: (value) => value === null || (isRecord(value) && isText(value.id) && isText(value.root)),
   declarations: isRecord,
 };

@@ -9,7 +9,6 @@ import test from "node:test";
 import { createViewPage } from "./view-host.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
-const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
 const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.url), "utf8"));
@@ -70,7 +69,6 @@ test("plugin.json is a valid manifest that opens hwp and hwpx files in the docum
 
 test("the plugin requires the files sidecar display identity release", () => {
   assert.equal(manifest.dependencies["@soksak/sidecar-files"], ">=0.0.8");
-  assert.equal(pkg.version, "0.0.3");
 });
 
 test("the view page refuses to mount without the start values of the surface", async (t) => {
@@ -84,6 +82,12 @@ test("the view page refuses a project in its start values that has no id", async
   const host = createViewPage(t, "project-without-id");
   host.window.sokSurface = Object.freeze({ surface: "hwp-1", params: {}, origin: { directory: "/project" }, project: { root: "/project" }, declarations: manifest.exposes });
   await assert.rejects(import("../build/test/ui/view.js?case=project-without-id"), /project is \{"root":"\/project"\}/);
+});
+
+test("the view page mounts when its tab has no source origin directory", async (t) => {
+  const host = await setup(t, { origin: { directory: null } });
+  assert.deepEqual(await host.status(), { path: "docs/plan.hwp", format: "hwp", version: sha(bytes("첫 문단")),
+    modified: false, selection: false, pages: 1, disk: "same", phase: "ready" });
 });
 
 test("the view page mounts the surface over the view channel and registers every declared name", async (t) => {

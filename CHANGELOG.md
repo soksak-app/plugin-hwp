@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- H30: The HWP view accepts `{directory: null}` as a valid tab origin when a tab has no source tab. Red: `the view page mounts when its tab has no source origin directory` failed because `startValues` refused the null directory. Green: the same test passes and the HWP document reaches phase `ready`. The package version is 0.0.4 for this fix.
+
 - H29: Require files sidecar 0.0.8 or later and bump the plugin to 0.0.3. Red: the owning manifest test rejected `>=0.0.5`; Green: it passes with the current sidecar floor.
 
 - H28: The view page begins with its doctype and holds no import map. The host inserts the view import map after the doctype, for the core checklist item F212.12-1-10-6, so the copy in the page is removed. Red: the view test failed on the page with the map. Green: `make test` passes 70 of 70, and the core `checkViewPage` accepts the page.

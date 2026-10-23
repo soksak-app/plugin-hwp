@@ -152,7 +152,8 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false, 
  * Returns { window, studio, files, reports, logs, calls, registered, run, post, expose, settle }.
  */
 export function createViewPage(t, caseId, { stored = null, params = { path: "docs/plan.hwp" }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]),
-  listens = true, silent = [], history = false, replies = {}, refuseLog = null, place = () => { throw new Error("the test runs no core command"); } } = {}) {
+  origin = { directory: "/project" }, listens = true, silent = [], history = false, replies = {}, refuseLog = null,
+  place = () => { throw new Error("the test runs no core command"); } } = {}) {
   const { window } = createWindow(`sok://hwp/ui/index.html?case=${caseId}`);
   useWindow(window);
   // The composition controller measures the insets of the region element against the viewport of the view and observes
@@ -308,7 +309,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
 
   // The start values in the form that core injects (docs/spec/native-surfaces.md#view-surfaces, start values): the
   // declarations are the exposes of the plugin.
-  window.sokSurface = Object.freeze({ surface: "hwp-1", params, origin: { directory: "/project" }, project: { id: "prj-project", root: "/project" }, declarations: MANIFEST.exposes });
+  window.sokSurface = Object.freeze({ surface: "hwp-1", params, origin, project: { id: "prj-project", root: "/project" }, declarations: MANIFEST.exposes });
   installViewChannel(window, handler);
   post({ sok: 1, event: "theme", data: { scheme: "dark", tokens: {} } });
 

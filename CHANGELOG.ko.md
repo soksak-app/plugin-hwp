@@ -4,6 +4,8 @@
 
 ## 미배포
 
+- H30: source tab이 없는 tab origin `{directory: null}`을 HWP view가 허용한다. Red: `the view page mounts when its tab has no source origin directory`가 `startValues`의 null directory 거부로 실패했다. Green: 같은 test가 통과하고 HWP 문서가 phase `ready`에 도달한다. 이 수정의 package version은 0.0.4다.
+
 - H29: files sidecar 0.0.8 이상을 요구하고 plugin을 0.0.3으로 올린다. Red: owning manifest test가 `>=0.0.5`에서 실패했다. Green: 현재 sidecar 하한으로 통과한다.
 
 - H28: view 페이지는 doctype으로 시작하고 import map을 갖지 않는다. host가 doctype 뒤에 view import map을 넣으므로(core F212.12-1-10-6), 페이지의 복사본을 뺐다. Red: 시험이 map을 가진 page에서 실패했다. Green: `make test`가 70개 중 70개를 통과하고, core의 `checkViewPage`가 page를 받아들인다.
