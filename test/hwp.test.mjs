@@ -9,6 +9,7 @@ import test from "node:test";
 import { createViewPage } from "./view-host.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
 const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.url), "utf8"));
@@ -65,6 +66,11 @@ test("plugin.json is a valid manifest that opens hwp and hwpx files in the docum
   assert.deepEqual(manifest.surface.opens, { extensions: ["hwp", "hwpx"] });
   assert.deepEqual(manifest.surface.composition,
     { kind: "view", page: "ui/index.html", regions: [{ name: "studio", kind: "document", input: "native" }], overlays: [] });
+});
+
+test("the plugin requires the files sidecar display identity release", () => {
+  assert.equal(manifest.dependencies["@soksak/sidecar-files"], ">=0.0.8");
+  assert.equal(pkg.version, "0.0.3");
 });
 
 test("the view page refuses to mount without the start values of the surface", async (t) => {

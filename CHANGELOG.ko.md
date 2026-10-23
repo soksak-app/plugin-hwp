@@ -4,6 +4,8 @@
 
 ## 미배포
 
+- H29: files sidecar 0.0.8 이상을 요구하고 plugin을 0.0.3으로 올린다. Red: owning manifest test가 `>=0.0.5`에서 실패했다. Green: 현재 sidecar 하한으로 통과한다.
+
 - H28: view 페이지는 doctype으로 시작하고 import map을 갖지 않는다. host가 doctype 뒤에 view import map을 넣으므로(core F212.12-1-10-6), 페이지의 복사본을 뺐다. Red: 시험이 map을 가진 page에서 실패했다. Green: `make test`가 70개 중 70개를 통과하고, core의 `checkViewPage`가 page를 받아들인다.
 - H27: view의 start 값은 project id를 요구한다. 검증기는 `id`가 없는 project를 거부한다. core가 `{id, root}`를 주기 때문이다. view 시험은 root만 가진 project를 거부한다. Red: 이전 검증기에 대해 거부 시험이 실패했다. Green: id를 요구하는 검증기에서 시험이 통과한다.
 - H26: view 페이지 map이 core view import map의 screen-hash 항목을 가진다. `checkViewPage`가 이 항목을 요구한다. 시험의 map 복사본은 `VIEW_IMPORTS`의 다섯 항목을 가진다. Red: `test/hwp.test.mjs`가 page map에 screen-hash 항목이 없어 deep-equal 차이로 실패했다. Green: `make test`가 69개 중 69개를 통과하고, `CORE_PLUGIN_API_DIR`로 `make check`가 통과한다.

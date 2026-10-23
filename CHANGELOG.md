@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- H29: Require files sidecar 0.0.8 or later and bump the plugin to 0.0.3. Red: the owning manifest test rejected `>=0.0.5`; Green: it passes with the current sidecar floor.
+
 - H28: The view page begins with its doctype and holds no import map. The host inserts the view import map after the doctype, for the core checklist item F212.12-1-10-6, so the copy in the page is removed. Red: the view test failed on the page with the map. Green: `make test` passes 70 of 70, and the core `checkViewPage` accepts the page.
 - H27: The start values of a view require the project id: the validator refuses a project without `id`, because core gives `{id, root}`. The view test refuses a project that has only a root. Red: the refusal test failed against the validator of the previous version. Green: the test passes with the validator that requires the id.
 - H26: The view page map holds the screen-hash entry of core's view import map, which `checkViewPage` requires. The view test's copy of the map holds the five entries of `VIEW_IMPORTS`. Red: `test/hwp.test.mjs` failed with a deep-equal difference, because the page map lacked the screen-hash entry. Green: `make test` passes 69 of 69, and `make check` passes with CORE_PLUGIN_API_DIR.
