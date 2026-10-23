@@ -154,7 +154,7 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false, 
 export function createViewPage(t, caseId, { stored = null, params = { path: "docs/plan.hwp" }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]),
   origin = { directory: "/project" }, listens = true, silent = [], history = false, replies = {}, refuseLog = null,
   place = () => { throw new Error("the test runs no core command"); } } = {}) {
-  const { window } = createWindow(`sok://hwp/ui/index.html?case=${caseId}`);
+  const { window } = createWindow(`soksak://hwp/ui/index.html?case=${caseId}`);
   useWindow(window);
   // The composition controller measures the insets of the region element against the viewport of the view and observes
   // the element sizes; jsdom reports no viewport and no size, so the test provides the forms it reads.
@@ -258,7 +258,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
           // shows in a later task, as a restored editor loads after the page has attached.
           if (studio.restoring) {
             studio.restoring = false;
-            setTimeout(() => studio.show(`sok://${window.location.host}/ui/studio/index.html?chrome=embed`), 0);
+            setTimeout(() => studio.show(`soksak://${window.location.host}/ui/studio/index.html?chrome=embed`), 0);
           }
           return null;
         case "composition.report":

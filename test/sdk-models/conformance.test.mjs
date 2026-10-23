@@ -20,7 +20,7 @@ const EXCLUDED_CASES = {
   "binder.audit.reports-unbound-controls": "the page does not call expose.audit",
   "binder.run.runs-and-refuses": "the page does not call the binder run",
   "view.bridge.refuses-malformed-host-message": "the view channel refuses messages without the marker before the bridge receives them",
-  "view.bridge.refuses-unsupported-page": "the page is always sok://hwp/, so the bridge creation check is not reached",
+  "view.bridge.refuses-unsupported-page": "the page is always soksak://hwp/, so the bridge creation check is not reached",
   "view.bridge.runtime-log-without-level-query": "the page writes runtime.log without a level query, and the view bridge model has no runtime.log, so its log steps are not replayed",
   "view.bridge.sidecar-subscriptions": "the page subscribes to sidecar messages only, not to runtime.sidecar.onFailure",
   "view.native.exposure-calls-and-refusals": "the page registers exposure entries through calls.request, not exposureRegister or exposureReply",

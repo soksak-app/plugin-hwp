@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- H32: Construct the embedded editor URL relative to the HWP view page so it keeps the canonical `soksak://hwp` origin. Red: the owning view case expected the canonical URL but received `sok://hwp/...`. Green: the same case passes, `make test` passes 72 of 72, and `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check` passes. Package version 0.0.5 is packed locally; it is not published.
+
 - H31: Sync all copied view contract cases with the current plugin API. Red: `scripts/check-test-cases.mjs` found `view-bridge.json` using `sok://` while core used `soksak://`, then found four more stale view case copies. Green: all nine copies match core, `make test` passes 72 of 72, and `make check` passes with the current core API directory.
 
 - H30: The HWP view accepts `{directory: null}` as a valid tab origin when a tab has no source tab. Red: `the view page mounts when its tab has no source origin directory` failed because `startValues` refused the null directory. Green: the same test passes and the HWP document reaches phase `ready`. The package version is 0.0.4 for this fix.

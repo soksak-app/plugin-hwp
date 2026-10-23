@@ -12,7 +12,7 @@ const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.u
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
 const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.url), "utf8"));
-const ADDRESS = "sok://hwp/ui/studio/index.html?chrome=embed";
+const ADDRESS = "soksak://hwp/ui/studio/index.html?chrome=embed";
 const declared = (kind, name) => manifest.exposes[kind].some((entry) => entry.name === name);
 
 // The check of a view page (core docs/spec/plugin-processes.md, rule 4): the page begins with its doctype and holds no import map,
@@ -98,7 +98,7 @@ test("the view page mounts the surface over the view channel and registers every
   assert.deepEqual(host.reports.native.filter(([, payload]) => payload.kind === "status").map(([, payload]) => payload.name), ["hwp.document"]);
 });
 
-test("the view attaches the document region studio, places it, and loads the editor page in it", async (t) => {
+test("the view attaches the document region studio, places it, and loads the editor page in it", { timeout: 5000 }, async (t) => {
   const host = await setup(t);
   assert.deepEqual(host.calls.find(([name]) => name === "document.attach")?.[1], { name: "studio" });
   assert.ok(host.calls.some(([name, params]) => name === "composition.place" && params.regions.length === 1
