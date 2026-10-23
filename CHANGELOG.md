@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- H31: Sync all copied view contract cases with the current plugin API. Red: `scripts/check-test-cases.mjs` found `view-bridge.json` using `sok://` while core used `soksak://`, then found four more stale view case copies. Green: all nine copies match core, `make test` passes 72 of 72, and `make check` passes with the current core API directory.
+
 - H30: The HWP view accepts `{directory: null}` as a valid tab origin when a tab has no source tab. Red: `the view page mounts when its tab has no source origin directory` failed because `startValues` refused the null directory. Green: the same test passes and the HWP document reaches phase `ready`. The package version is 0.0.4 for this fix.
 
 - H29: Require files sidecar 0.0.8 or later and bump the plugin to 0.0.3. Red: the owning manifest test rejected `>=0.0.5`; Green: it passes with the current sidecar floor.

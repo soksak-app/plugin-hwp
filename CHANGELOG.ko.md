@@ -4,6 +4,8 @@
 
 ## 미배포
 
+- H31: 복사한 view contract 사례를 현재 plugin API와 동기화한다. Red: `scripts/check-test-cases.mjs`가 `view-bridge.json`에서 core는 `soksak://`, 복사본은 `sok://`를 사용한다고 보고했고, 이후 stale view 사례 복사본 네 개를 더 찾았다. Green: 복사본 9개가 모두 core와 일치하고 `make test`는 72개 중 72개, 현재 core API 디렉터리를 지정한 `make check`는 통과한다.
+
 - H30: source tab이 없는 tab origin `{directory: null}`을 HWP view가 허용한다. Red: `the view page mounts when its tab has no source origin directory`가 `startValues`의 null directory 거부로 실패했다. Green: 같은 test가 통과하고 HWP 문서가 phase `ready`에 도달한다. 이 수정의 package version은 0.0.4다.
 
 - H29: files sidecar 0.0.8 이상을 요구하고 plugin을 0.0.3으로 올린다. Red: owning manifest test가 `>=0.0.5`에서 실패했다. Green: 현재 sidecar 하한으로 통과한다.
