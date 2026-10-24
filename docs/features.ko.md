@@ -2,6 +2,8 @@
 
 [English](features.md)
 
+- [o] H33 — P0, H29-1의 후속 항목: HWP `0.0.5`은 공개 core `v0.0.20`을 포함하는 `engines.soksak: ">=0.0.18"`을 선언한다. Manifest는 해당 reader가 요구하는 `surface.module` 없는 view composition을 사용하므로, 이 범위는 실패하는 설치까지 지원한다고 주장한다. 기대 동작: 이 manifest를 받는 core candidate만 선언하는 `^0.0.21`을 사용하고, 일치하는 core release가 게시될 때까지 public release H29-1을 대기 상태로 둔다. Red: 변경 전 `test/core-version.test.mjs`가 `">=0.0.18" !== "^0.0.21"`로 실패했다. Green: 같은 test가 1/1 통과하고 candidate `make check`에서 manifest, exposure, engines, events, records와 copied contract cases가 통과한다. 일치하는 core release가 게시될 때까지 package release는 gate에 둔다. 이 항목은 SDK pin, plugin version, archive 또는 registry를 바꾸지 않는다.
+
 - [o] H29 — P1: manifest가 process display identity를 필수로 요구하는 files sidecar 0.0.8 이상을 사용한다. 이 plugin을 0.0.3으로 올린다. Red: `the plugin requires the files sidecar display identity release`가 기존 `>=0.0.5`에서 실패했다. Green: dependency 하한과 package version을 올린 뒤 통과한다.
 - [ ] H29-1 — P1: files sidecar 최소 버전 0.0.8을 선언한 HWP plugin 0.0.5를 게시하고 설치된 plugin registry를 갱신한다. 0.0.5에는 null-origin view 수정과 canonical `soksak://` 문서 URL이 포함된다. version이 게시될 때까지 이 package는 미배포 상태다.
 - [o] H31 — P1: 복사한 view contract JSON 사례를 현재 plugin API contract와 맞춘다. Red: `scripts/check-test-cases.mjs`가 `view-bridge.json` 복사본은 `sok://`, contract는 `soksak://`를 사용한다고 보고했다. 해당 복사본을 고친 뒤 stale view 사례 복사본 네 개를 더 찾았다. Green: 계약 사례 복사본 9개가 모두 현재 core contract와 일치하고, `make test`가 72개 중 72개를 통과하며, 현재 core package API를 `CORE_PLUGIN_API_DIR`로 지정한 `make check`가 통과한다.

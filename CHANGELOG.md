@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- H33: HWP `0.0.5` now declares `engines.soksak` `^0.0.21` because published core `v0.0.20` rejects its view composition without `surface.module`. Red: `test/core-version.test.mjs` failed with `">=0.0.18" !== "^0.0.21"`. Green: the same test passes 1/1, and candidate `make check` passes manifest, exposure, engines, events, records and copied contract checks. The package release remains gated on a matching core release. No SDK pin, plugin version, archive or registry changed.
+
 - H32: Construct the embedded editor URL relative to the HWP view page so it keeps the canonical `soksak://hwp` origin. Red: the owning view case expected the canonical URL but received `sok://hwp/...`. Green: the same case passes, `make test` passes 72 of 72, and `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check` passes. Package version 0.0.5 is packed locally; it is not published.
 
 - H31: Sync all copied view contract cases with the current plugin API. Red: `scripts/check-test-cases.mjs` found `view-bridge.json` using `sok://` while core used `soksak://`, then found four more stale view case copies. Green: all nine copies match core, `make test` passes 72 of 72, and `make check` passes with the current core API directory.

@@ -4,6 +4,8 @@
 
 ## 미배포
 
+- H33: HWP `0.0.5`은 공개 core `v0.0.20`이 `surface.module` 없는 view composition을 거부하므로 `engines.soksak` `^0.0.21`을 선언한다. Red: `test/core-version.test.mjs`가 `">=0.0.18" !== "^0.0.21"`로 실패했다. Green: 같은 test가 1/1 통과하고 candidate `make check`에서 manifest, exposure, engines, events, records와 copied contract 검사가 통과한다. 일치하는 core release가 게시될 때까지 package release를 gate에 둔다. SDK pin, plugin version, archive, registry는 바꾸지 않았다.
+
 - H32: 내장 편집기 URL을 HWP view page에 대한 상대 주소로 만들어 canonical `soksak://hwp` origin을 유지한다. Red: owning view case는 canonical URL을 기대했지만 `sok://hwp/...`를 받았다. Green: 같은 case와 `make test` 72/72, `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check`가 통과한다. Package 0.0.5는 로컬 pack만 했으며 공개하지 않았다.
 
 - H31: 복사한 view contract 사례를 현재 plugin API와 동기화한다. Red: `scripts/check-test-cases.mjs`가 `view-bridge.json`에서 core는 `soksak://`, 복사본은 `sok://`를 사용한다고 보고했고, 이후 stale view 사례 복사본 네 개를 더 찾았다. Green: 복사본 9개가 모두 core와 일치하고 `make test`는 72개 중 72개, 현재 core API 디렉터리를 지정한 `make check`는 통과한다.
