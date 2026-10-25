@@ -4,6 +4,8 @@
 
 ## 미배포
 
+- F239-77-hwp: 일치하는 설치 diagnostic cohort로 로컬 schema-3 catalog acceptance를 완료한다. 현재 SDK가 source 5개와 pending rule 0개, event 19개를 검사하며 양쪽 host 설치본의 catalog가 source와 정확히 일치하고 application log audit을 통과한다. Public publication은 별도다.
+
 - F239-77-hwp: HWP event catalog를 schema 3 JSON Schema로 변환하고 event 계약을
   유지한다. Red: 현재 core `events-check`가 schema 2 catalog에서 finding 131개를
   냈다. Green: 현재 core `events-check`가 선언 19개와 source emit을 모두 받는다.

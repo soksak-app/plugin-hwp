@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- F239-77-hwp: Complete local schema-3 catalog acceptance with the matching installed diagnostic cohort. The current SDK checks 5 sources with zero pending rules and 19 events; both host installations contain the exact source catalog and pass application log audits. Public publication remains separate.
+
 - F239-77-hwp: Convert the HWP event catalog to schema 3 JSON Schema and
   preserve its event contracts. Red: current core `events-check` reported 131
   findings for the schema-2 catalog. Green: current core `events-check`
