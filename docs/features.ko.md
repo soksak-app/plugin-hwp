@@ -2,6 +2,8 @@
 
 [English](features.md)
 
+- [~] F239-77-hwp — P1, core F239-77 연결: 현재 core catalog reader가 HWP package를 설치하고 검증할 수 있도록 event catalog를 schema 3 JSON Schema로 변환한다. Event name, class, level과 required/optional field 의미를 유지한다. Runtime acceptance에는 schema-3 core와 일치하는 plugin cohort의 새 설치가 필요하다.
+
 - [o] H33 — P0, H29-1의 후속 항목: HWP `0.0.5`은 공개 core `v0.0.20`을 포함하는 `engines.soksak: ">=0.0.18"`을 선언한다. Manifest는 해당 reader가 요구하는 `surface.module` 없는 view composition을 사용하므로, 이 범위는 실패하는 설치까지 지원한다고 주장한다. 기대 동작: 이 manifest를 받는 core candidate만 선언하는 `^0.0.21`을 사용하고, 일치하는 core release가 게시될 때까지 public release H29-1을 대기 상태로 둔다. Red: 변경 전 `test/core-version.test.mjs`가 `">=0.0.18" !== "^0.0.21"`로 실패했다. Green: 같은 test가 1/1 통과하고 candidate `make check`에서 manifest, exposure, engines, events, records와 copied contract cases가 통과한다. 일치하는 core release가 게시될 때까지 package release는 gate에 둔다. 이 항목은 SDK pin, plugin version, archive 또는 registry를 바꾸지 않는다.
 
 - [o] H29 — P1: manifest가 process display identity를 필수로 요구하는 files sidecar 0.0.8 이상을 사용한다. 이 plugin을 0.0.3으로 올린다. Red: `the plugin requires the files sidecar display identity release`가 기존 `>=0.0.5`에서 실패했다. Green: dependency 하한과 package version을 올린 뒤 통과한다.

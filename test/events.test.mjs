@@ -38,7 +38,7 @@ test("errorText states a failure as <code>: <text>", () => {
 
 test("plugin.json names the catalog and the catalog declares plugin events of the contract", () => {
   assert.equal(manifest.events, "events.json");
-  assert.equal(catalog.schema, 2);
+  assert.equal(catalog.schema, 3);
   assert.deepEqual(catalog.layers, ["plugin"]);
   assert.ok(Object.keys(catalog.events).length > 0);
   for (const [name, entry] of Object.entries(catalog.events)) {
@@ -47,8 +47,12 @@ test("plugin.json names the catalog and the catalog declares plugin events of th
     assert.ok(CLASSES.includes(entry.class), `${name}: class ${entry.class}`);
     for (const level of [entry.level].flat()) assert.ok(LEVELS.includes(level), `${name}: level ${level}`);
     assert.ok(entry.description.length > 0, name);
-    for (const [field, type] of Object.entries(entry.fields)) {
-      assert.ok(type.split("|").every((part) => TYPES.includes(part)), `${name}.${field}: type ${type}`);
+    assert.equal(entry.fields.$schema, "https://json-schema.org/draft/2020-12/schema", name);
+    assert.equal(entry.fields.type, "object", name);
+    assert.ok(Array.isArray(entry.fields.required), name);
+    for (const field of entry.fields.required) assert.ok(Object.hasOwn(entry.fields.properties, field), `${name}.${field}`);
+    for (const [field, property] of Object.entries(entry.fields.properties)) {
+      for (const type of [property.type].flat()) assert.ok(TYPES.includes(type), `${name}.${field}: type ${type}`);
     }
   }
 });

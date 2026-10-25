@@ -4,6 +4,14 @@
 
 ## 미배포
 
+- F239-77-hwp: HWP event catalog를 schema 3 JSON Schema로 변환하고 event 계약을
+  유지한다. Red: 현재 core `events-check`가 schema 2 catalog에서 finding 131개를
+  냈다. Green: 현재 core `events-check`가 선언 19개와 source emit을 모두 받는다.
+  첫 package 실행은 legacy field map을 읽던 test 두 개를 드러냈다. 해당 test를
+  JSON Schema properties와 required field 검사로 바꾸고, 집중 event/HWP test가
+  48/48 통과한다. 현재 core package 검사가 통과한다. 두 test 수정 뒤 전체 package
+  suite는 재실행하지 않았다. Runtime acceptance는 대기 중이다.
+
 - H33: HWP `0.0.5`은 공개 core `v0.0.20`이 `surface.module` 없는 view composition을 거부하므로 `engines.soksak` `^0.0.21`을 선언한다. Red: `test/core-version.test.mjs`가 `">=0.0.18" !== "^0.0.21"`로 실패했다. Green: 같은 test가 1/1 통과하고 candidate `make check`에서 manifest, exposure, engines, events, records와 copied contract 검사가 통과한다. 일치하는 core release가 게시될 때까지 package release를 gate에 둔다. SDK pin, plugin version, archive, registry는 바꾸지 않았다.
 
 - H32: 내장 편집기 URL을 HWP view page에 대한 상대 주소로 만들어 canonical `soksak://hwp` origin을 유지한다. Red: owning view case는 canonical URL을 기대했지만 `sok://hwp/...`를 받았다. Green: 같은 case와 `make test` 72/72, `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check`가 통과한다. Package 0.0.5는 로컬 pack만 했으며 공개하지 않았다.

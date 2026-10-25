@@ -2,6 +2,8 @@
 
 [한국어](features.ko.md)
 
+- [~] F239-77-hwp — P1, linked to core F239-77: Convert the HWP event catalog to schema 3 JSON Schema so current core catalog readers can install and validate the package. Preserve event names, classes, levels and required/optional field semantics. Runtime acceptance requires a fresh install with the schema-3 core and matching plugin cohort.
+
 - [o] H33 — P0, follow-up to H29-1: HWP `0.0.5` declares `engines.soksak: ">=0.0.18"`, which includes published core `v0.0.20`. Its manifest uses a view composition without the `surface.module` required by that reader, so the range promises an installation that fails. Expected: declare `^0.0.21`, the core candidate that accepts this manifest, and keep the public release gate H29-1 pending until a matching core release is published. Red: `test/core-version.test.mjs` failed with `">=0.0.18" !== "^0.0.21"`. Green: the same test passes 1/1, and candidate `make check` passes manifest, exposure, engines, events, records and copied contract cases. The package release remains gated on a published matching core release. This item changes no SDK pin, plugin version, archive or registry.
 
 - [o] H29 — P1: Require files sidecar 0.0.8 or later because its manifest now requires the process display identity. Bump this plugin to 0.0.3. Red: `the plugin requires the files sidecar display identity release` failed against `>=0.0.5`. Green: the test passes with the raised minimum and package version.

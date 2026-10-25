@@ -344,9 +344,9 @@ test("every stored event is declared in the catalog with its level and fields", 
     const entry = catalog.events[event];
     assert.ok(entry, `${event} is not declared`);
     assert.ok([entry.level].flat().includes(level), `${event} stored at ${level}`);
-    const declaredFields = Object.keys(entry.fields).map((name) => name.replace(/\?$/, ""));
+    const declaredFields = Object.keys(entry.fields.properties);
     for (const name of Object.keys(fields)) assert.ok(declaredFields.includes(name), `${event} has the undeclared field ${name}`);
-    for (const name of Object.keys(entry.fields).filter((key) => !key.endsWith("?"))) assert.ok(name in fields, `${event} lacks ${name}`);
+    for (const name of entry.fields.required) assert.ok(name in fields, `${event} lacks ${name}`);
   }
 });
 
@@ -411,12 +411,12 @@ test("every event of a blank document and its first save is declared in the cata
     const entry = catalog.events[event];
     assert.ok(entry, `${event} is not declared`);
     assert.ok([entry.level].flat().includes(level), `${event} stored at ${level}`);
-    const declaredFields = Object.keys(entry.fields).map((name) => name.replace(/\?$/, ""));
+    const declaredFields = Object.keys(entry.fields.properties);
     for (const name of Object.keys(fields)) assert.ok(declaredFields.includes(name), `${event} has the undeclared field ${name}`);
-    for (const name of Object.keys(entry.fields).filter((key) => !key.endsWith("?"))) assert.ok(name in fields, `${event} lacks ${name}`);
+    for (const name of entry.fields.required) assert.ok(name in fields, `${event} lacks ${name}`);
     for (const [name, value] of Object.entries(fields)) {
-      const type = entry.fields[name] ?? entry.fields[`${name}?`];
-      assert.ok(type.split("|").includes(value === null ? "null" : typeof value), `${event}.${name} is ${value === null ? "null" : typeof value}, declared ${type}`);
+      const types = [entry.fields.properties[name].type].flat();
+      assert.ok(types.includes(value === null ? "null" : typeof value), `${event}.${name} is ${value === null ? "null" : typeof value}, declared ${types.join("|")}`);
     }
   }
   assert.ok(host.logs.some((entry) => entry.event === "plugin.hwp.new") && host.logs.some((entry) => entry.event === "plugin.hwp.place"));

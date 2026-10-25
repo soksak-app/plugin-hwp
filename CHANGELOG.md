@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- F239-77-hwp: Convert the HWP event catalog to schema 3 JSON Schema and
+  preserve its event contracts. Red: current core `events-check` reported 131
+  findings for the schema-2 catalog. Green: current core `events-check`
+  accepts all 19 declarations and source emits. The first package run exposed
+  two tests reading the legacy field map; they now validate JSON Schema
+  properties and required fields, and the focused event/HWP tests pass 48/48.
+  Current-core package checks pass. The full package suite was not rerun after
+  those test updates; runtime acceptance remains pending.
+
 - H33: HWP `0.0.5` now declares `engines.soksak` `^0.0.21` because published core `v0.0.20` rejects its view composition without `surface.module`. Red: `test/core-version.test.mjs` failed with `">=0.0.18" !== "^0.0.21"`. Green: the same test passes 1/1, and candidate `make check` passes manifest, exposure, engines, events, records and copied contract checks. The package release remains gated on a matching core release. No SDK pin, plugin version, archive or registry changed.
 
 - H32: Construct the embedded editor URL relative to the HWP view page so it keeps the canonical `soksak://hwp` origin. Red: the owning view case expected the canonical URL but received `sok://hwp/...`. Green: the same case passes, `make test` passes 72 of 72, and `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check` passes. Package version 0.0.5 is packed locally; it is not published.

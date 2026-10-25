@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "layers": [
     "plugin"
   ],
@@ -9,8 +9,20 @@
       "class": "lifecycle",
       "level": "info",
       "fields": {
-        "path": "string",
-        "format": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "format"
+        ]
       },
       "description": "The surface mounted for the file path; format is hwp or hwpx."
     },
@@ -19,7 +31,16 @@
       "class": "lifecycle",
       "level": "info",
       "fields": {
-        "name": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "description": "A tab without params.path opened a blank document of the editor; name is the file name that its first save proposes."
     },
@@ -31,11 +52,34 @@
         "warn"
       ],
       "fields": {
-        "name": "string",
-        "path": "string|null",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "micros",
+          "ok"
+        ]
       },
       "description": "The answer of core.file.place at the first save of a blank document: path is the chosen file relative to the project root, or null when the person cancelled; error names a refused place."
     },
@@ -44,7 +88,19 @@
       "class": "lifecycle",
       "level": "info",
       "fields": {
-        "path": "string|null"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ]
       },
       "description": "The surface of the file path was disposed."
     },
@@ -53,8 +109,23 @@
       "class": "lifecycle",
       "level": "info",
       "fields": {
-        "path": "string|null",
-        "phase": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phase": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "phase"
+        ]
       },
       "description": "The start reached a step: starting, reading, opening or ready."
     },
@@ -66,12 +137,34 @@
         "warn"
       ],
       "fields": {
-        "path": "string",
-        "reason": "string",
-        "size?": "number",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "reason",
+          "micros",
+          "ok"
+        ]
       },
       "description": "One read of the file through the files sidecar; reason is start, reload or change, size is the number of bytes read, and error is <code>: <text> when ok is false."
     },
@@ -83,11 +176,30 @@
         "warn"
       ],
       "fields": {
-        "path": "string",
-        "pages?": "number",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "pages": {
+            "type": "number"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "micros",
+          "ok"
+        ]
       },
       "description": "The editor loaded the bytes of the file and drew its pages; pages is the page count it reported."
     },
@@ -96,8 +208,20 @@
       "class": "io",
       "level": "warn",
       "fields": {
-        "path": "string",
-        "error": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "error"
+        ]
       },
       "description": "The notice to the editor that a file was saved failed after the write; the file is saved, and the tab shows the notice failure."
     },
@@ -109,13 +233,41 @@
         "warn"
       ],
       "fields": {
-        "path": "string",
-        "format": "string|null",
-        "overwrite": "boolean",
-        "size?": "number",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "format": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overwrite": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "number"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "format",
+          "overwrite",
+          "micros",
+          "ok"
+        ]
       },
       "description": "One save: the export of the editor and the write through the files sidecar; size is the number of bytes written; format is null when the place of a blank document has no hwp or hwpx extension."
     },
@@ -127,10 +279,27 @@
         "warn"
       ],
       "fields": {
-        "path": "string",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "micros",
+          "ok"
+        ]
       },
       "description": "The request that watches the file on disk."
     },
@@ -139,8 +308,20 @@
       "class": "lifecycle",
       "level": "error",
       "fields": {
-        "path": "string",
-        "error": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "error"
+        ]
       },
       "description": "The files sidecar reported that the watch stopped."
     },
@@ -149,9 +330,24 @@
       "class": "lifecycle",
       "level": "info",
       "fields": {
-        "path": "string",
-        "modified": "boolean",
-        "action": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "modified": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "modified",
+          "action"
+        ]
       },
       "description": "The file changed on disk; action is reload when the editor holds no unsaved edits and banner when it does."
     },
@@ -160,10 +356,29 @@
       "class": "input",
       "level": "debug",
       "fields": {
-        "path": "string|null",
-        "event": "string",
-        "modified?": "boolean",
-        "selection?": "boolean"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event": {
+            "type": "string"
+          },
+          "modified": {
+            "type": "boolean"
+          },
+          "selection": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "event"
+        ]
       },
       "description": "A message of the editor page: listening, save, modified or selection."
     },
@@ -172,8 +387,23 @@
       "class": "lifecycle",
       "level": "error",
       "fields": {
-        "path": "string|null",
-        "message": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "message"
+        ]
       },
       "description": "The editor page reported that it cannot read its state."
     },
@@ -182,8 +412,23 @@
       "class": "lifecycle",
       "level": "warn",
       "fields": {
-        "path": "string|null",
-        "error": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "error"
+        ]
       },
       "description": "A save that the editor page started with Command-S failed; the tab shows the same failure."
     },
@@ -195,11 +440,34 @@
         "warn"
       ],
       "fields": {
-        "path": "string|null",
-        "method": "string",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "method",
+          "micros",
+          "ok"
+        ]
       },
       "description": "One embed request to the editor page and its answer."
     },
@@ -211,11 +479,34 @@
         "warn"
       ],
       "fields": {
-        "path": "string|null",
-        "name": "string",
-        "micros": "number",
-        "ok": "boolean",
-        "error?": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "micros": {
+            "type": "number"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "name",
+          "micros",
+          "ok"
+        ]
       },
       "description": "One run of a command of the surface: hwp.save, hwp.reload or hwp.request."
     },
@@ -224,7 +515,16 @@
       "class": "call",
       "level": "error",
       "fields": {
-        "text": "string"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
       },
       "description": "The page of the view failed: an error or a rejection of the page, a refused call of the view channel, or a loss of the view calls; text states the error."
     },
@@ -233,9 +533,26 @@
       "class": "lifecycle",
       "level": "info",
       "fields": {
-        "kind": "string",
-        "path": "string|null",
-        "overwrite?": "boolean"
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overwrite": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "path"
+        ]
       },
       "description": "An operation of the surface started: kind is open, save or reload; its identifiers are the cids of the calls and records of the operation."
     }
