@@ -17,7 +17,27 @@
             "historyEntries": { "type": "integer" },
             "regionHistoryEntries": { "type": "integer" },
             "width": { "type": "number" },
-            "height": { "type": "number" }
+            "height": { "type": "number" },
+            "studioViewport": { "type": ["object", "null"], "properties": {
+              "markerColor": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+              "borderWidth": { "type": "number" },
+              "rect": { "type": "object", "properties": {
+                "left": { "type": "number" }, "top": { "type": "number" },
+                "right": { "type": "number" }, "bottom": { "type": "number" }
+              } },
+              "innerWidth": { "type": "number" }, "innerHeight": { "type": "number" },
+              "clientWidth": { "type": "number" }, "clientHeight": { "type": "number" },
+              "visualViewport": { "type": "object", "properties": {
+                "width": { "type": "number" }, "height": { "type": "number" },
+                "offsetLeft": { "type": "number" }, "offsetTop": { "type": "number" },
+                "scale": { "type": "number" }
+              } },
+              "fixedContainingBlock": { "type": "object", "properties": {
+                "transform": { "type": "string" }, "perspective": { "type": "string" },
+                "filter": { "type": "string" }, "contain": { "type": "string" },
+                "willChange": { "type": "string" }, "containerType": { "type": "string" }
+              } }
+            } }
           }
         }
       },
@@ -36,7 +56,27 @@
             "historyEntries": { "type": "integer" },
             "regionHistoryEntries": { "type": "integer" },
             "width": { "type": "number" },
-            "height": { "type": "number" }
+            "height": { "type": "number" },
+            "studioViewport": { "type": ["object", "null"], "properties": {
+              "markerColor": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+              "borderWidth": { "type": "number" },
+              "rect": { "type": "object", "properties": {
+                "left": { "type": "number" }, "top": { "type": "number" },
+                "right": { "type": "number" }, "bottom": { "type": "number" }
+              } },
+              "innerWidth": { "type": "number" }, "innerHeight": { "type": "number" },
+              "clientWidth": { "type": "number" }, "clientHeight": { "type": "number" },
+              "visualViewport": { "type": "object", "properties": {
+                "width": { "type": "number" }, "height": { "type": "number" },
+                "offsetLeft": { "type": "number" }, "offsetTop": { "type": "number" },
+                "scale": { "type": "number" }
+              } },
+              "fixedContainingBlock": { "type": "object", "properties": {
+                "transform": { "type": "string" }, "perspective": { "type": "string" },
+                "filter": { "type": "string" }, "contain": { "type": "string" },
+                "willChange": { "type": "string" }, "containerType": { "type": "string" }
+              } }
+            } }
           }
         }
       },
@@ -55,7 +95,27 @@
             "historyEntries": { "type": "integer" },
             "regionHistoryEntries": { "type": "integer" },
             "width": { "type": "number" },
-            "height": { "type": "number" }
+            "height": { "type": "number" },
+            "studioViewport": { "type": ["object", "null"], "properties": {
+              "markerColor": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+              "borderWidth": { "type": "number" },
+              "rect": { "type": "object", "properties": {
+                "left": { "type": "number" }, "top": { "type": "number" },
+                "right": { "type": "number" }, "bottom": { "type": "number" }
+              } },
+              "innerWidth": { "type": "number" }, "innerHeight": { "type": "number" },
+              "clientWidth": { "type": "number" }, "clientHeight": { "type": "number" },
+              "visualViewport": { "type": "object", "properties": {
+                "width": { "type": "number" }, "height": { "type": "number" },
+                "offsetLeft": { "type": "number" }, "offsetTop": { "type": "number" },
+                "scale": { "type": "number" }
+              } },
+              "fixedContainingBlock": { "type": "object", "properties": {
+                "transform": { "type": "string" }, "perspective": { "type": "string" },
+                "filter": { "type": "string" }, "contain": { "type": "string" },
+                "willChange": { "type": "string" }, "containerType": { "type": "string" }
+              } }
+            } }
           }
         }
       }

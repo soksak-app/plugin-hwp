@@ -12,6 +12,20 @@
   보고한다. Green: 현재 core 문서 검사와 current SDK를 사용한 HWP `make check`가
   통과한다.
 
+- H23.6: 중첩 HWP studio document에 diagnostic-only 고정 viewport marker를 추가한다.
+  View page는 diagnostics 선언이 있을 때만 studio companion을 활성화한다. Studio host는
+  attachment가 끝난 뒤 `listening`을 보내고 attachment 실패를 readiness로 표시하지 않고
+  오류로 전달한다. Companion은 명시적 start 때만 투명한 2 px magenta border를 추가하고
+  visual viewport, root dimension, fixed positioning, 측정 rectangle을 검증한다. 명령은
+  viewport evidence의 정확한 형태를 반환하며 stop, dispose, pagehide는 같은 marker를
+  제거한다. 기존 view-root paint는 native studio document 뒤에 가려지므로 frame observation은
+  이제 root paint를 바꾸지 않는다. Red: 중첩 page loader가 package declaration을 `/ui` 아래에서
+  찾았고 start/stop race가 marker state를 유실하거나 제거하지 못했으며 concurrent dispose는
+  cleanup 전에 반환했고 observer가 root background를 바꿨다. Green: view diagnostic test 19/19,
+  HWP consumer test 43/43, current-core `make check`가
+  통과한다. Core F212.14-5-8 capture consumer는 viewport pixel을 자연 표시 content와 cadence에서 분리해
+  측정한다.
+
 - H23.5: HWP release에 `ui/studio-host.js`를 포함한다. 빌드된 editor page는
   `../studio-host.js`에서 이 파일을 불러온다. 파일 누락으로 두 host가 plugin
   파일 없음 오류를 기록한 뒤 도착할 수 없는 editor message를 기다렸다. Red:

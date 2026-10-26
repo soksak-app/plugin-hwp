@@ -11,6 +11,8 @@
 //   {type: "soksak-hwp", event: "selection", selection} when hasSelection of the automation context changes, read at
 //   the same times.
 //   {type: "soksak-hwp", event: "error", message} when the script cannot read that state.
+import { startStudioHost } from "./view-diagnostics.js";
+
 const post = (body) => window.postMessage({ type: "soksak-hwp", ...body }, location.origin);
 
 let modified = false;
@@ -69,4 +71,4 @@ window.addEventListener("message", (event) => {
   if (event.source === window && event.data?.type === "rhwp-response") schedule();
 });
 
-post({ event: "listening" });
+void startStudioHost(location.href, { document, window, post });

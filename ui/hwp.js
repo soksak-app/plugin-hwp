@@ -90,7 +90,9 @@ export async function mount(root, context) {
   root.innerHTML = HTML;
   const frame = root.querySelector("#frame");
   const banner = root.querySelector("#banner");
-  const address = new URL("./studio/index.html?chrome=embed", window.location.href).href;
+  const addressUrl = new URL("./studio/index.html?chrome=embed", window.location.href);
+  if (context.diagnostics !== null) addressUrl.searchParams.set("diagnostics", "1");
+  const address = addressUrl.href;
 
   let state = { path, format, version: null, modified: false, selection: false, pages: 0, disk: "same", phase: "loading" };
   let diskVersion = null;
@@ -158,6 +160,7 @@ export async function mount(root, context) {
     // The region passes every message that the document posts to its own window, so it passes the requests of this
     // page back too.
     if (message?.type === "rhwp-request") return;
+    if (message?.type === "soksak-hwp-viewport-marker") return;
     if (message?.type === "rhwp-response") {
       const entry = pending.get(message.id);
       if (!entry) throw new Error(`rhwp-studio answered the unknown request ${message.id}`);

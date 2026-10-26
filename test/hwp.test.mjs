@@ -78,8 +78,18 @@ test("view-frame commands exist only in the diagnostic declaration and module", 
   assert.deepEqual(diagnostics.exposes.commands.map((entry) => entry.name), names);
   for (const command of diagnostics.exposes.commands) {
     assert.deepEqual(Object.keys(command.result.properties).sort(),
-      ["enabled", "height", "historyEntries", "regionHistoryEntries", "sequence", "width"].sort(),
-      `${command.name} must declare both view and studio history entry counts`);
+      ["enabled", "height", "historyEntries", "regionHistoryEntries", "sequence", "studioViewport", "width"].sort(),
+      `${command.name} must declare both history counts and studio viewport evidence`);
+    const viewport = command.result.properties.studioViewport;
+    assert.deepEqual(viewport.type, ["object", "null"]);
+    assert.deepEqual(Object.keys(viewport.properties).sort(), [
+      "borderWidth", "clientHeight", "clientWidth", "fixedContainingBlock", "innerHeight", "innerWidth",
+      "markerColor", "rect", "visualViewport",
+    ].sort());
+    assert.deepEqual(Object.keys(viewport.properties.rect.properties).sort(), ["bottom", "left", "right", "top"]);
+    assert.deepEqual(Object.keys(viewport.properties.visualViewport.properties).sort(), ["height", "offsetLeft", "offsetTop", "scale", "width"]);
+    assert.deepEqual(Object.keys(viewport.properties.fixedContainingBlock.properties).sort(),
+      ["contain", "containerType", "filter", "perspective", "transform", "willChange"].sort());
   }
   assert.equal(names.some((name) => manifest.exposes.commands.some((entry) => entry.name === name)), false);
   const files = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).files;
@@ -131,6 +141,8 @@ test("the view attaches the document region studio, places it, and loads the edi
 test("the start waits until the editor page listens, so its first request is not lost", { timeout: 5000 }, async (t) => {
   const host = await setup(t);
   assert.deepEqual(host.studio.dropped, []);
+  assert.equal(new URL(host.studio.loaded).searchParams.has("diagnostics"), false,
+    "normal editor startup must not enable studio diagnostics");
   assert.deepEqual(host.studio.requests.slice(0, 2), ["ready", "loadFile"]);
   assert.equal((await host.status()).phase, "ready");
 });

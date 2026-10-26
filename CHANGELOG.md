@@ -13,6 +13,22 @@
   specifications and four changelog translation mismatches. Green: current
   core documentation checks and HWP `make check` pass with the current SDK.
 
+- H23.6: Add a diagnostic-only fixed viewport marker to the nested HWP
+  studio document. The view page enables the studio companion only when its
+  diagnostics declaration is present; the studio host waits for attachment
+  before posting `listening`, and reports attach failures without declaring
+  readiness. The companion inserts a transparent 2 px magenta border only on
+  explicit start and verifies the visual viewport, root dimensions, fixed
+  positioning and measured rectangle. The commands return the exact viewport
+  evidence shape; stop, disposal and pagehide remove the same marker. Frame
+  observation no longer changes the view root paint because that paint is
+  behind the native studio document. Red: the nested-page loader resolved the
+  package declaration under `/ui`, start/stop races leaked or lost marker
+  state, concurrent disposal returned before cleanup, and the observer changed
+  the root background. Green: 19/19 view diagnostic tests, 43/43 HWP consumer tests, and the current-core `make check`
+  pass. The core F212.14-5-8 capture consumer measures viewport pixels separately from
+  natural displayed content and cadence.
+
 - H23.5: Include `ui/studio-host.js` in the HWP release. The built editor page
   loads it from `../studio-host.js`; omitting the file caused both hosts to
   report a missing plugin file and wait for an editor message that could not
