@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- H23.5: Include `ui/studio-host.js` in the HWP release. The built editor page
+  loads it from `../studio-host.js`; omitting the file caused both hosts to
+  report a missing plugin file and wait for an editor message that could not
+  arrive. Red: the tracked release test inspected an actual `npm pack` release
+  and failed because the packaged editor page referenced missing
+  `ui/studio-host.js`. Green: the same test passes after adding the bridge to
+  `package.json` `files`; `make pack` runs the release graph check before the
+  standard plugin pack command. The source bridge did not need changes.
+
 - H23.4: Pass the view document's bound `performance.now` clock to the shared
   diagnostic frame observer. The observer requires this clock to timestamp
   ResizeObserver delivery. Red: the HWP adapter test received no `now` function

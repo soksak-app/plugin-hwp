@@ -4,6 +4,14 @@
 
 ## 미배포
 
+- H23.5: HWP release에 `ui/studio-host.js`를 포함한다. 빌드된 editor page는
+  `../studio-host.js`에서 이 파일을 불러온다. 파일 누락으로 두 host가 plugin
+  파일 없음 오류를 기록한 뒤 도착할 수 없는 editor message를 기다렸다. Red:
+  추적된 release test가 실제 `npm pack` release를 검사하고 packaged editor page가
+  누락된 `ui/studio-host.js`를 참조해 실패했다. Green: bridge를 `package.json`
+  `files`에 추가한 뒤 같은 test가 통과한다. `make pack`은 표준 plugin pack 명령
+  전에 release graph 검사를 실행한다. Source bridge는 수정하지 않았다.
+
 - H23.4: 공유 diagnostic frame observer에 view document의 바인딩된
   `performance.now` clock을 전달한다. Observer는 ResizeObserver 전달 시각을
   기록할 때 이 clock을 요구한다. Red: HWP adapter test가 observer 경계에서

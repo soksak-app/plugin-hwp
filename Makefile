@@ -38,6 +38,7 @@ studio: node_modules
 
 pack: studio
 	@test -n "$(OUT)" || { echo "make pack OUT=<folder>" >&2; exit 2; }
+	node --test test/studio-package-graph.test.mjs
 	$(SOK) plugin pack . $(OUT) $(PACK_FLAGS)
 
 # The checks of the ci workflow that a push needs: make test, make check, and the commit messages of the pushed range.

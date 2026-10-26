@@ -19,6 +19,7 @@
     "ui/index.html",
     "ui/view.js",
     "ui/view-diagnostics.js",
+    "ui/studio-host.js",
     "ui/hwp.js",
     "ui/events.js",
     "ui/requests.js",
