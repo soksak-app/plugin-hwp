@@ -25,6 +25,7 @@ SDK_EVENTS = $(if $(CORE_PLUGIN_API_DIR),node $(CORE_PLUGIN_API_DIR)/events-chec
 SDK_RECORDS = $(if $(CORE_PLUGIN_API_DIR),node $(CORE_PLUGIN_API_DIR)/records-check.js,pnpm exec soksak-records)
 check: node_modules
 	node scripts/check-manifest.mjs
+	$(if $(CORE_PLUGIN_API_DIR),node scripts/check-diagnostic-view-modules.mjs,true)
 	$(SDK_EXPOSURE)
 	$(SDK_ENGINES)
 	$(SDK_EVENTS) --census census.json --catalog events.json

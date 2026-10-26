@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- H23.3: Remove the Node-only `node:assert/strict` import from the
+  browser-loaded HWP diagnostic view module. The core browser graph checker
+  rejected that import, which stopped diagnostic view loading on both hosts.
+  Explicit boundary checks preserve the diagnostic errors without a Node
+  runtime dependency. Red: the tracked graph test reported
+  `ui/view-diagnostics.js: import node:assert/strict is not in the view import
+  map`. Green: the same check passes with the current core SDK, and the graph
+  and diagnostic adapter tests pass 5/5.
+
 - H23.1: Add opt-in HWP view-root frame diagnostics through the excluded
   `diagnostics.json` declaration and module. Commands start, stop and read an
   observer of the actual view document root; each resize emits a trace record

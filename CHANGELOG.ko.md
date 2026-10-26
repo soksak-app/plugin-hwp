@@ -4,6 +4,14 @@
 
 ## 미배포
 
+- H23.3: browser에서 로드되는 HWP diagnostic view module에서 Node 전용
+  `node:assert/strict` import를 제거한다. Core browser graph checker가 이 import를
+  거부해 두 host의 diagnostic view가 로드되지 않았다. 명시적 경계 검사는 Node
+  runtime dependency 없이 진단 오류를 유지한다. Red: 추적된 graph test가
+  `ui/view-diagnostics.js: import node:assert/strict is not in the view import map`을
+  보고했다. Green: 같은 검사가 현재 core SDK에서 통과하고 graph 및 diagnostic
+  adapter test가 5/5 통과한다.
+
 - H23.1: 제외되는 `diagnostics.json` 선언과 module로 opt-in HWP view root
   frame 진단을 추가한다. 명령은 실제 view document root observer를 시작,
   중지, 조회하며 각 resize를 다음 animation frame 뒤 trace record로 보낸다.

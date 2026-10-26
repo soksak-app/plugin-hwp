@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-
 export const DIAGNOSTIC_CONTENT_COLOR = "rgb(25, 211, 162)";
 
 /** Loads the opt-in module declared by the installed diagnostic build, or returns null for a release plugin. */
@@ -14,12 +12,16 @@ export async function loadDiagnostics(pageHref = window.location.href,
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`the HWP diagnostics declaration answered ${response.status}`);
   const declaration = await response.json();
-  assert.ok(declaration && typeof declaration === "object" && !Array.isArray(declaration),
-    "the HWP diagnostics declaration must be an object");
-  assert.equal(declaration.module, "ui/hwp-diagnostics.js",
-    "the HWP diagnostics declaration must name its excluded module");
+  if (!declaration || typeof declaration !== "object" || Array.isArray(declaration)) {
+    throw new TypeError("the HWP diagnostics declaration must be an object");
+  }
+  if (declaration.module !== "ui/hwp-diagnostics.js") {
+    throw new TypeError("the HWP diagnostics declaration must name its excluded module");
+  }
   const module = await loadModule(declaration.module);
-  assert.equal(typeof module?.attach, "function", "the HWP diagnostics module must export attach");
+  if (typeof module?.attach !== "function") {
+    throw new TypeError("the HWP diagnostics module must export attach");
+  }
   return { declaration, attach: module.attach };
 }
 
@@ -27,14 +29,17 @@ export async function loadDiagnostics(pageHref = window.location.href,
 export function createViewFrameDiagnostics({ document, documentRegion, observe, runtime }) {
   const root = document?.documentElement;
   const viewWindow = document?.defaultView;
-  assert.ok(root && typeof root.getBoundingClientRect === "function",
-    "HWP view diagnostics require document.documentElement");
-  assert.ok(viewWindow?.history && viewWindow.performance,
-    "HWP view diagnostics require document history and performance");
-  assert.ok(documentRegion && typeof documentRegion === "object",
-    "HWP view diagnostics require the owned studio document region");
-  assert.equal(typeof observe, "function", "HWP view diagnostics require the shared frame observer");
-  assert.equal(typeof runtime?.log?.trace, "function", "HWP view diagnostics require runtime.log.trace");
+  if (!root || typeof root.getBoundingClientRect !== "function") {
+    throw new TypeError("HWP view diagnostics require document.documentElement");
+  }
+  if (!viewWindow?.history || !viewWindow.performance) {
+    throw new TypeError("HWP view diagnostics require document history and performance");
+  }
+  if (!documentRegion || typeof documentRegion !== "object") {
+    throw new TypeError("HWP view diagnostics require the owned studio document region");
+  }
+  if (typeof observe !== "function") throw new TypeError("HWP view diagnostics require the shared frame observer");
+  if (typeof runtime?.log?.trace !== "function") throw new TypeError("HWP view diagnostics require runtime.log.trace");
 
   let active = false;
   let starting = false;
@@ -45,11 +50,13 @@ export function createViewFrameDiagnostics({ document, documentRegion, observe, 
 
   const dimensions = () => {
     const rect = root.getBoundingClientRect();
-    assert.ok(Number.isFinite(rect.width) && rect.width >= 0 && Number.isFinite(rect.height) && rect.height >= 0,
-      "HWP view documentElement has invalid dimensions");
+    if (!(Number.isFinite(rect.width) && rect.width >= 0 && Number.isFinite(rect.height) && rect.height >= 0)) {
+      throw new Error("HWP view documentElement has invalid dimensions");
+    }
     const history = documentRegion.state?.history;
-    assert.ok(Array.isArray(history?.entries) && history.entries.length > 0,
-      "HWP studio document region has no reported session history entries");
+    if (!Array.isArray(history?.entries) || history.entries.length === 0) {
+      throw new Error("HWP studio document region has no reported session history entries");
+    }
     return {
       historyEntries: viewWindow.history.length,
       regionHistoryEntries: history.entries.length,
@@ -69,9 +76,10 @@ export function createViewFrameDiagnostics({ document, documentRegion, observe, 
   };
 
   const start = async () => {
-    assert.ok(!active && !starting, "HWP view frame diagnostics are already active");
-    assert.ok(root.style && typeof root.style.getPropertyValue === "function",
-      "HWP view diagnostics require the document root's inline style");
+    if (active || starting) throw new Error("HWP view frame diagnostics are already active");
+    if (!root.style || typeof root.style.getPropertyValue !== "function") {
+      throw new TypeError("HWP view diagnostics require the document root's inline style");
+    }
     sequence = 0;
     starting = true;
     previousBackground = {
@@ -89,17 +97,21 @@ export function createViewFrameDiagnostics({ document, documentRegion, observe, 
           timeOriginMs: viewWindow.performance.timeOrigin,
           log: {
             trace(event, fields) {
-              assert.equal(event, "view.content_frame", `unexpected HWP view diagnostic event ${JSON.stringify(event)}`);
-              assert.ok(fields && typeof fields === "object" && !Array.isArray(fields),
-                "HWP view frame record fields must be an object");
-              assert.ok(Number.isSafeInteger(fields.sequence) && fields.sequence >= sequence,
-                "HWP view frame sequence must be a nondecreasing safe integer");
+              if (event !== "view.content_frame") {
+                throw new Error(`unexpected HWP view diagnostic event ${JSON.stringify(event)}`);
+              }
+              if (!fields || typeof fields !== "object" || Array.isArray(fields)) {
+                throw new TypeError("HWP view frame record fields must be an object");
+              }
+              if (!Number.isSafeInteger(fields.sequence) || fields.sequence < sequence) {
+                throw new TypeError("HWP view frame sequence must be a nondecreasing safe integer");
+              }
               sequence = fields.sequence + 1;
               return runtime.log.trace("view.content_frame", fields);
             },
           },
         });
-        assert.equal(typeof stop, "function", "HWP view frame observer did not return a stop function");
+        if (typeof stop !== "function") throw new TypeError("HWP view frame observer did not return a stop function");
         stopObserver = stop;
         active = true;
         return read();
@@ -115,7 +127,7 @@ export function createViewFrameDiagnostics({ document, documentRegion, observe, 
   };
 
   const stop = async () => {
-    assert.ok(active && stopObserver, "HWP view frame diagnostics are not active");
+    if (!active || !stopObserver) throw new Error("HWP view frame diagnostics are not active");
     const stop = stopObserver;
     stopObserver = null;
     active = false;
