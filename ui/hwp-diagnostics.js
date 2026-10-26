@@ -79,8 +79,14 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
       };
       unsubscribe = documentRegion.onMessage((message) => {
         if (message?.type !== markerType || message.id !== id) return;
-        if (message.error !== undefined) finish(new Error(`HWP studio viewport marker ${operation}: ${message.error}`));
-        else finish(null, message.result);
+        if (exactKeys(message, ["id", "operation", "type"]) && message.operation === operation) return;
+        if (exactKeys(message, ["error", "id", "type"]) && typeof message.error === "string") {
+          finish(new Error(`HWP studio viewport marker ${operation}: ${message.error}`));
+        } else if (exactKeys(message, ["id", "result", "type"])) {
+          finish(null, message.result);
+        } else {
+          finish(new TypeError(`HWP studio viewport marker ${operation} received an invalid reply shape`));
+        }
       });
       if (typeof unsubscribe !== "function") throw new TypeError("HWP studio viewport marker listener did not return its disposer");
       timeout = setTimeout(() => {

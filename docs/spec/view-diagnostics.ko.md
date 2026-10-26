@@ -20,7 +20,9 @@ offset이 0, 크기가 `innerWidth`와 `innerHeight`와 같은지 검증하고 d
 실제 marker rectangle, inner/client dimension, visual viewport 값과 containing-block 값을 담은 `studioViewport`를 반환한다.
 Inactive read와 성공한 stop은 `studioViewport: null`을 반환한다. Stop, dispose, pagehide는 삽입한 동일한 marker element를 제거한다.
 
-View는 `type`, `id`, `operation`을 가진 document-region message로 marker request를 보낸다. Studio companion은 `type`, `id`,
+View는 `type`, `id`, `operation`을 가진 document-region message로 marker request를 보낸다. Native document-message bridge는
+이 요청을 studio document에 전달하고 view listener에도 echo한다. 대기 중인 view listener는 정확히 일치하는 request echo를 무시하고
+`result` 또는 `error`를 가진 일치하는 응답만 받는다. Studio companion은 `type`, `id`,
 `result` 또는 `error`를 가진 응답을 같은 document window에 게시한다. 같은 window의 message event가 listener에 도달하면 이 정확한
 응답 형태를 무시해 응답을 새 request로 처리하지 않는다. 지원하지 않는 request에는 명시적인 error 응답을 보낸다.
 

@@ -21,7 +21,9 @@ marker. Start and active read return `studioViewport` with the exact marker colo
 inner and client dimensions, visual viewport values, and containing-block values. Inactive read and a successful stop return
 `studioViewport: null`; stop, disposal, and pagehide remove the exact marker element.
 
-The view sends marker requests as document-region messages with `type`, `id`, and `operation`. The studio companion replies to
+The view sends marker requests as document-region messages with `type`, `id`, and `operation`. The native document-message bridge
+forwards that posted request to the view listener as well as delivering it to the studio document. The pending view listener ignores
+the exact request echo and accepts only the matching reply with either `result` or `error`. The studio companion replies to
 the same document window with `type`, `id`, and either `result` or `error`; it ignores that exact reply shape when the resulting
 same-window message event reaches its listener, so the reply is not handled as another request. An unsupported request still receives
 an explicit error reply.

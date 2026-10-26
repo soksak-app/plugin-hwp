@@ -12,6 +12,12 @@
   보고한다. Green: 현재 core 문서 검사와 current SDK를 사용한 HWP `make check`가
   통과한다.
 
+- H23.9: marker request가 대기 중이면 정확한 native document-post echo를 무시하고
+  정확한 `result` 또는 `error` reply만 받는다. Red: tracked native-contract test에서
+  studio reply보다 `{type, id, operation}`가 먼저 전달되어 marker start가 `undefined`로
+  완료되고 evidence와 cleanup 검사가 실패했다. Green: `test/view-diagnostics.test.mjs`
+  21/21과 source-SDK `make check`가 통과한다.
+
 - H23.8: same-window message event가 companion listener에 도달하면 studio marker의
   정확한 reply 형태를 무시한다. Native document post와 companion reply는 같은 studio
   window를 사용한다. Red: tracked native-envelope test는 응답 하나 대신 다섯 개를 만들었고,

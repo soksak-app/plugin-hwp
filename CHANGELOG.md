@@ -13,6 +13,13 @@
   specifications and four changelog translation mismatches. Green: current
   core documentation checks and HWP `make check` pass with the current SDK.
 
+- H23.9: Ignore the exact native document-post echo while a marker request is
+  pending, and accept only exact `result` or `error` replies. Red: the tracked
+  native-contract test delivered `{type, id, operation}` before the studio
+  reply, so marker start resolved `undefined` and failed its evidence and
+  cleanup checks. Green: `test/view-diagnostics.test.mjs` passes 21/21 and
+  source-SDK `make check` passes.
+
 - H23.8: Ignore the exact studio marker reply shape when its same-window
   message event reaches the companion listener. Native document posts and
   companion replies use the same studio window. Red: a tracked native-envelope

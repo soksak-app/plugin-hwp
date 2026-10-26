@@ -626,3 +626,66 @@ test("a native window message reply does not re-enter the studio marker handler"
   assert.ok(posted[0].result, "the native request must receive viewport evidence");
   dispose();
 });
+
+test("native document-post echoes do not resolve a marker request before the studio reply", { timeout: 1000 }, async () => {
+  const { attachStudio, createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const studioListeners = new Map();
+  const regionListeners = new Set();
+  const sentToStudio = [];
+  const markers = [];
+  const root = {
+    clientWidth: 320,
+    clientHeight: 240,
+    append(element) { markers.push(element); },
+  };
+  const style = { transform: "none", perspective: "none", filter: "none", contain: "none", willChange: "auto", containerType: "normal" };
+  const window = {
+    innerWidth: 320,
+    innerHeight: 240,
+    visualViewport: { width: 320, height: 240, offsetLeft: 0, offsetTop: 0, scale: 1 },
+    location: { origin: "soksak://hwp" },
+    getComputedStyle: () => style,
+    addEventListener(type, listener) { studioListeners.set(type, listener); },
+    removeEventListener(type, listener) { if (studioListeners.get(type) === listener) studioListeners.delete(type); },
+    postMessage(message, origin) {
+      queueMicrotask(async () => {
+        await studioListeners.get("message")({ source: window, origin, data: message });
+        for (const listener of regionListeners) listener(message);
+      });
+    },
+  };
+  const document = {
+    documentElement: root,
+    createElement: () => ({ style: {}, setAttribute() {}, getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 240 }), remove() {
+      const index = markers.indexOf(this);
+      if (index >= 0) markers.splice(index, 1);
+    } }),
+  };
+  const disposeStudio = await attachStudio({ document, window });
+  const region = {
+    onMessage(listener) { regionListeners.add(listener); return () => regionListeners.delete(listener); },
+    post(message) {
+      sentToStudio.push(message);
+      for (const listener of regionListeners) listener(message);
+      queueMicrotask(() => studioListeners.get("message")({ source: window, origin: window.location.origin, data: message }));
+      return Promise.resolve();
+    },
+  };
+  let observing = false;
+  const diagnostics = {
+    read: () => ({ enabled: observing }),
+    async start() { observing = true; return { enabled: true, sequence: 1 }; },
+    async stop() { observing = false; return { enabled: false, sequence: 1 }; },
+    async dispose() { observing = false; },
+  };
+  const commands = createStudioViewportDiagnostics({ diagnostics, documentRegion: region });
+
+  const started = await commands.start();
+  assert.deepEqual(sentToStudio.map(({ operation }) => operation), ["start"]);
+  assert.deepEqual(started.studioViewport.markerColor, [255, 0, 255]);
+  assert.equal(markers.length, 1);
+  await commands.dispose();
+  assert.deepEqual(sentToStudio.map(({ operation }) => operation), ["start", "stop"]);
+  assert.equal(markers.length, 0);
+  disposeStudio();
+});
