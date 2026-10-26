@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- H23.4: Pass the view document's bound `performance.now` clock to the shared
+  diagnostic frame observer. The observer requires this clock to timestamp
+  ResizeObserver delivery. Red: the HWP adapter test received no `now` function
+  at the observer boundary. Green: the same test verifies the function uses the
+  view performance object as `this` and returns its clock value; graph and
+  diagnostic adapter tests pass 5/5. The current-core `make check` passes.
+
 - H23.3: Remove the Node-only `node:assert/strict` import from the
   browser-loaded HWP diagnostic view module. The core browser graph checker
   rejected that import, which stopped diagnostic view loading on both hosts.

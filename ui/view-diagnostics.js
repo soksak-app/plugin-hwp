@@ -94,6 +94,7 @@ export function createViewFrameDiagnostics({ document, documentRegion, observe, 
           ResizeObserver: viewWindow.ResizeObserver,
           requestAnimationFrame: viewWindow.requestAnimationFrame.bind(viewWindow),
           cancelAnimationFrame: viewWindow.cancelAnimationFrame.bind(viewWindow),
+          now: viewWindow.performance.now.bind(viewWindow.performance),
           timeOriginMs: viewWindow.performance.timeOrigin,
           log: {
             trace(event, fields) {

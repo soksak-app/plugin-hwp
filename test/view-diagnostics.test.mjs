@@ -47,16 +47,22 @@ test("HWP document frame diagnostics stay idle until an explicit start and stop 
       removeProperty: (name) => styles.delete(name),
     },
   };
+  const performance = { timeOrigin: 1000, frameTime: 27.5, now() {
+    assert.equal(this, performance, "the observer clock must be bound to the view performance object");
+    return this.frameTime;
+  } };
   const document = { documentElement: root, defaultView: {
-    history: { length: 3 }, performance: { timeOrigin: 1000 }, ResizeObserver: class {},
+    history: { length: 3 }, performance, ResizeObserver: class {},
     requestAnimationFrame: () => 1, cancelAnimationFrame: () => {},
   } };
   const documentRegion = { state: { history: { entries: [{ url: "soksak://hwp/ui/studio/index.html" }], index: 0 } } };
   const logs = [];
   let started = 0;
   let stopped = 0;
-  const diagnostic = source.createViewFrameDiagnostics({ document, documentRegion, observe: async ({ document: observed, log }) => {
+  const diagnostic = source.createViewFrameDiagnostics({ document, documentRegion, observe: async ({ document: observed, log, now }) => {
     assert.equal(observed, document, "the observer must target the view document root");
+    assert.equal(typeof now, "function", "the observer must receive the view performance clock");
+    assert.equal(now(), 27.5, "the observer clock must return the view's performance.now value");
     assert.equal(root.style.getPropertyValue("background-color"), "rgb(25, 211, 162)",
       "explicit diagnostics must paint the real view root with the measured opaque content color");
     started++;

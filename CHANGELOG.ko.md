@@ -4,6 +4,13 @@
 
 ## 미배포
 
+- H23.4: 공유 diagnostic frame observer에 view document의 바인딩된
+  `performance.now` clock을 전달한다. Observer는 ResizeObserver 전달 시각을
+  기록할 때 이 clock을 요구한다. Red: HWP adapter test가 observer 경계에서
+  `now` 함수를 받지 못했다. Green: 같은 test가 함수의 `this`가 view performance
+  object이고 해당 clock 값을 반환하는지 확인한다. Graph 및 diagnostic adapter
+  test 5/5와 current-core `make check`가 통과한다.
+
 - H23.3: browser에서 로드되는 HWP diagnostic view module에서 Node 전용
   `node:assert/strict` import를 제거한다. Core browser graph checker가 이 import를
   거부해 두 host의 diagnostic view가 로드되지 않았다. 명시적 경계 검사는 Node
