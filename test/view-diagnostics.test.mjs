@@ -510,7 +510,7 @@ test("HWP document frame diagnostics stay idle until an explicit start and stop 
     assert.equal(root.style.getPropertyValue("background-color"), "rgb(1, 2, 3)",
       "frame observation must preserve the view root's existing paint");
     started++;
-    log.trace("view.content_frame", { sequence: 0, resizeAtMs: 8, width: 720, height: 540, documentTimeOriginMs: 1000, frameTimeMs: 16 });
+    log.trace("view.content_frame", { sequence: 0, firstResizeAtMs: 7, resizeAtMs: 8, resizeCount: 2, width: 720, height: 540, documentTimeOriginMs: 1000, frameTimeMs: 16 });
     return async () => { stopped++; };
   }, runtime: { log: { trace: (event, fields) => { logs.push({ event, fields }); } } } });
   assert.equal(started, 0, "normal creation started an observer");
@@ -535,7 +535,8 @@ test("HWP document frame diagnostics stay idle until an explicit start and stop 
   assert.deepEqual(styles.get("background-color"), { value: "rgb(1, 2, 3)", priority: "" },
     "dispose must preserve the exact root background");
   assert.deepEqual(logs, [0, 0].map((sequence) => ({ event: "view.content_frame", fields: {
-    sequence, resizeAtMs: 8, width: 720, height: 540, documentTimeOriginMs: 1000, frameTimeMs: 16,
+    sequence, firstResizeAtMs: 7, resizeAtMs: 8, resizeCount: 2, width: 720, height: 540,
+    documentTimeOriginMs: 1000, frameTimeMs: 16,
   } })));
 
   const failed = source.createViewFrameDiagnostics({ document, documentRegion, observe: async () => { throw new Error("observer refused"); },

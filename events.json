@@ -113,13 +113,15 @@
         "type": "object",
         "properties": {
           "sequence": { "type": "integer", "minimum": 0 },
+          "firstResizeAtMs": { "type": "number", "minimum": 0 },
           "resizeAtMs": { "type": "number", "minimum": 0 },
+          "resizeCount": { "type": "integer", "minimum": 1 },
           "width": { "type": "number", "minimum": 0 },
           "height": { "type": "number", "minimum": 0 },
           "documentTimeOriginMs": { "type": "number", "minimum": 0 },
           "frameTimeMs": { "type": "number", "minimum": 0 }
         },
-        "required": ["sequence", "resizeAtMs", "width", "height", "documentTimeOriginMs", "frameTimeMs"]
+        "required": ["sequence", "firstResizeAtMs", "resizeAtMs", "resizeCount", "width", "height", "documentTimeOriginMs", "frameTimeMs"]
       },
       "description": "The HWP view document root dimensions after ResizeObserver and the next animation frame while the diagnostic observer is active."
     },

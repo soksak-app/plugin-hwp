@@ -29,10 +29,12 @@ View는 `type`, `id`, `operation`을 가진 document-region message로 marker re
 `rgb(255, 0, 255)` edge pixel은 studio viewport rectangle만 식별한다. 표시된 editor content나 cadence를 증명하지 않는다.
 OCR로 확인한 자연 content와 capture frame timestamp는 별도 증거로 유지한다.
 
-전달된 resize observation마다 다음 `requestAnimationFrame` callback 뒤에 측정한 root의 width와 height를 기존 trace log에
-기록한다. 각 frame record에는 증가하는 sequence number, document performance time origin,
-animation-frame timestamp가 들어간다. HWP 진단 state는 frame record를 보관하지 않으며 trace log가 기록을 맡는다. 이 event는
-document의 resize 및 animation-frame 상태를 설명하며, 표시된 content의 증거는 계속 decoded capture pixel이 맡는다.
+ResizeObserver delivery가 발생하면 다음 `requestAnimationFrame` callback 뒤에 측정한 root의 width와 height를 기존 trace log에
+기록한다. Animation-frame callback은 최대 하나만 대기한다. 실행 전에 root delivery가 추가되면 해당 frame observation을 갱신하며,
+event에는 첫 번째와 최신 delivery 시각 및 횟수를 기록한다. 각 frame record에는 증가하는 sequence number, document performance
+time origin, `firstResizeAtMs`, `resizeAtMs`, `resizeCount`, animation-frame timestamp가 들어간다. `resizeCount`가 1이면 첫 시각과
+최신 시각은 같다. Frame timestamp는 최신 delivery timestamp보다 앞서지 않는다. HWP 진단 state는 frame record를 보관하지 않으며 trace log가 기록을 맡는다. 이 event는 document의
+resize 및 animation-frame 상태를 설명하며, 표시된 content의 증거는 계속 decoded capture pixel이 맡는다.
 
 Stop은 observer를 끊고 대기 중인 animation-frame callback을 취소하며 studio marker를 제거한다. Read는 관찰 활성 여부, 다음
 frame sequence number, 두 history entry count, root의 현재 크기와 활성 중인 marker의 live field를 반환한다. 관찰을 시작하거나

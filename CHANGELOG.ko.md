@@ -12,6 +12,12 @@
   보고한다. Green: 현재 core 문서 검사와 current SDK를 사용한 HWP `make check`가
   통과한다.
 
+- H23.10: 대기 중인 animation frame 전에 도착한 root ResizeObserver delivery를
+  하나의 frame으로 병합한다. 각 trace record는 첫 번째와 최신 전달 시각, 해당 실제
+  frame이 나타내는 양수 횟수를 보존한다. Red: core 소유 test가 기존 callback 대기 중
+  두 번째 root delivery를 보내면 helper가 record를 만들기 전에 throw했다. Green: core
+  소유 test 6/6, HWP view diagnostics 21/21 및 source-SDK `make check`가 통과한다.
+
 - H23.9: marker request가 대기 중이면 정확한 native document-post echo를 무시하고
   정확한 `result` 또는 `error` reply만 받는다. Red: tracked native-contract test에서
   studio reply보다 `{type, id, operation}`가 먼저 전달되어 marker start가 `undefined`로

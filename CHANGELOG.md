@@ -13,6 +13,14 @@
   specifications and four changelog translation mismatches. Green: current
   core documentation checks and HWP `make check` pass with the current SDK.
 
+- H23.10: Coalesce root ResizeObserver deliveries that arrive before a pending
+  animation frame. Each trace record preserves the first and latest delivery
+  timestamps and the positive count represented by its actual frame. Red: the
+  core owner test triggered a second root delivery while the existing callback
+  was pending and the helper threw before producing a record. Green: the core
+  owner test passes 6/6, HWP view diagnostics pass 21/21, and source-SDK
+  `make check` passes.
+
 - H23.9: Ignore the exact native document-post echo while a marker request is
   pending, and accept only exact `result` or `error` replies. Red: the tracked
   native-contract test delivered `{type, id, operation}` before the studio

@@ -31,11 +31,13 @@ an explicit error reply.
 The `rgb(255, 0, 255)` edge pixels identify the studio viewport rectangle only. They do not establish the displayed editor
 content or its cadence; OCR-confirmed natural content and recorded frame timestamps remain separate evidence.
 
-For each delivered resize observation, the observer writes the root's measured width and height after the next
-`requestAnimationFrame` callback to the existing trace log. Each frame record includes an increasing sequence number, the
-document performance time origin, and the animation-frame timestamp. HWP diagnostic state retains no frame records; the trace
-log is their record. These events describe the document's resize and animation-frame state; decoded capture pixels remain the
-evidence of displayed content.
+For ResizeObserver deliveries, the observer writes the root's measured width and height after the next
+`requestAnimationFrame` callback to the existing trace log. At most one animation-frame callback is pending. Further root
+deliveries before it runs update that frame's observation; the event retains the first and latest delivery timestamps and their
+count. Each frame record includes an increasing sequence number, the document performance time origin, `firstResizeAtMs`,
+`resizeAtMs`, `resizeCount`, and the animation-frame timestamp. When `resizeCount` is 1, the first and latest timestamps are
+equal. The frame timestamp is not earlier than the latest delivery timestamp. HWP diagnostic state retains no frame records; the trace log is their record. These events describe the document's
+resize and animation-frame state; decoded capture pixels remain the evidence of displayed content.
 
 Stop disconnects the observer, cancels any pending animation-frame callback, and removes the studio marker. Read returns whether
 observation is enabled, the next frame sequence number, both current history entry counts, the root's current dimensions, and
