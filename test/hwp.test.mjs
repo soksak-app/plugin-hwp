@@ -76,6 +76,11 @@ test("view-frame commands exist only in the diagnostic declaration and module", 
   const names = ["hwp.diagnostics.frames.start", "hwp.diagnostics.frames.stop", "hwp.diagnostics.frames.read"];
   assert.equal(diagnostics.module, "ui/hwp-diagnostics.js");
   assert.deepEqual(diagnostics.exposes.commands.map((entry) => entry.name), names);
+  for (const command of diagnostics.exposes.commands) {
+    assert.deepEqual(Object.keys(command.result.properties).sort(),
+      ["enabled", "height", "historyEntries", "regionHistoryEntries", "sequence", "width"].sort(),
+      `${command.name} must declare both view and studio history entry counts`);
+  }
   assert.equal(names.some((name) => manifest.exposes.commands.some((entry) => entry.name === name)), false);
   const files = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).files;
   assert.equal(files.includes("diagnostics.json"), false);
