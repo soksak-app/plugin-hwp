@@ -15,7 +15,8 @@ test: node_modules
 	pnpm test
 
 # check runs the SDK validators of the pinned @soksak/plugin-api, or of the packages/plugin-api source of core when
-# CORE_PLUGIN_API_DIR names it (README.md). scripts/check-manifest.mjs validates plugin.json with validateManifest.
+# CORE_PLUGIN_API_DIR names it (README.md). scripts/check-manifest.mjs validates plugin.json and diagnostics.json with
+# validateManifest and validateDiagnostics.
 # soksak-exposure checks the exposure names of the page against plugin.json and the core declarations, soksak-engines checks
 # that engines.soksak admits the core release of that @soksak/plugin-api, soksak-events checks that each source of occurrences
 # has an event or a stated reason and that the emit sites match events.json, and soksak-records checks the records.

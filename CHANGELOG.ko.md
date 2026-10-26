@@ -12,6 +12,13 @@
   보고한다. Green: 현재 core 문서 검사와 current SDK를 사용한 HWP `make check`가
   통과한다.
 
+- H23.7: 전체 `diagnostics.json` 선언을 public plugin API로 검증한다.
+  `make check`에서 이를 검사한다. 지원하지 않는 array length keyword를 제거하고 diagnostic producer와
+  consumer의 정확한 3-channel marker color 검증은 유지한다. Red: SDK가
+  `minItems`를 거부해 선언 test가 실패했고 manifest checker는 diagnostics를
+  검사하지 않았다. Green: 선언 test 1/1 통과, source-SDK `make check`는 두 선언과
+  나머지 검사를 통과한다.
+
 - H23.6: 중첩 HWP studio document에 diagnostic-only 고정 viewport marker를 추가한다.
   View page는 diagnostics 선언이 있을 때만 studio companion을 활성화한다. Studio host는
   attachment가 끝난 뒤 `listening`을 보내고 attachment 실패를 readiness로 표시하지 않고

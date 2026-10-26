@@ -13,6 +13,14 @@
   specifications and four changelog translation mismatches. Green: current
   core documentation checks and HWP `make check` pass with the current SDK.
 
+- H23.7: Validate the complete `diagnostics.json` declaration with the public
+  plugin API in `make check`. Remove unsupported array length keywords while
+  retaining the exact three-channel marker color checks in the diagnostic
+  producer and consumer. Red: the declaration test failed because the SDK
+  rejected `minItems`; the manifest checker did not inspect diagnostics.
+  Green: the declaration test passes 1/1 and source-SDK `make check` validates
+  both declarations and passes the remaining checks.
+
 - H23.6: Add a diagnostic-only fixed viewport marker to the nested HWP
   studio document. The view page enables the studio companion only when its
   diagnostics declaration is present; the studio host waits for attachment

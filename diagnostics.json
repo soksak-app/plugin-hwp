@@ -19,7 +19,7 @@
             "width": { "type": "number" },
             "height": { "type": "number" },
             "studioViewport": { "type": ["object", "null"], "properties": {
-              "markerColor": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+              "markerColor": { "type": "array", "items": { "type": "integer" } },
               "borderWidth": { "type": "number" },
               "rect": { "type": "object", "properties": {
                 "left": { "type": "number" }, "top": { "type": "number" },
@@ -58,7 +58,7 @@
             "width": { "type": "number" },
             "height": { "type": "number" },
             "studioViewport": { "type": ["object", "null"], "properties": {
-              "markerColor": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+              "markerColor": { "type": "array", "items": { "type": "integer" } },
               "borderWidth": { "type": "number" },
               "rect": { "type": "object", "properties": {
                 "left": { "type": "number" }, "top": { "type": "number" },
@@ -97,7 +97,7 @@
             "width": { "type": "number" },
             "height": { "type": "number" },
             "studioViewport": { "type": ["object", "null"], "properties": {
-              "markerColor": { "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3 },
+              "markerColor": { "type": "array", "items": { "type": "integer" } },
               "borderWidth": { "type": "number" },
               "rect": { "type": "object", "properties": {
                 "left": { "type": "number" }, "top": { "type": "number" },
