@@ -4,6 +4,22 @@
 
 ## Unreleased
 
+- H23.1: Add opt-in HWP view-root frame diagnostics through the excluded
+  `diagnostics.json` declaration and module. Commands start, stop and read an
+  observer of the actual view document root; each resize emits a trace record
+  after the next animation frame. The read command reports both the view
+  history count and the live `studio` region history count. The diagnostic
+  paint restores the exact prior inline background on stop, disposal and
+  observer-start failure. Red: the owner test failed because
+  `createViewFrameDiagnostics` was missing; the history follow-up failed
+  against the staged reply that lacked the studio history count. Green: the
+  focused owner test passes 4/4, including a live region-history update and
+  disposal during pending start, and the HWP test file passes 43/43. Exposure
+  and engine checks pass.
+  Current SDK census and catalog checks pass with seven sources, zero pending
+  rules and 20 declared events. Captured pixels still need to establish
+  displayed-content measurements in H23.2.
+
 - F239-77-hwp: Complete local schema-3 catalog acceptance with the matching installed diagnostic cohort. The current SDK checks 5 sources with zero pending rules and 19 events; both host installations contain the exact source catalog and pass application log audits. Public publication remains separate.
 
 - F239-77-hwp: Convert the HWP event catalog to schema 3 JSON Schema and

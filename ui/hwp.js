@@ -414,6 +414,12 @@ export async function mount(root, context) {
   expose.command("hwp.save", recorded("hwp.save", save));
   expose.command("hwp.reload", recorded("hwp.reload", reload));
   expose.command("hwp.request", recorded("hwp.request", ({ method, params } = {}) => request(method, params)));
+  let disposeDiagnostics = null;
+  if (context.diagnostics !== null) {
+    if (typeof context.diagnostics.attach !== "function") throw new TypeError("the HWP diagnostics declaration has no attach function");
+    disposeDiagnostics = await context.diagnostics.attach({ context, document: root.ownerDocument, documentRegion: region });
+    if (typeof disposeDiagnostics !== "function") throw new TypeError("the HWP diagnostics attach function must return its disposer");
+  }
   for (const element of root.querySelectorAll("[data-expose]")) expose.dom(element.dataset.expose, element);
 
   // save and reload show their failures as the tab error, so a control that runs them does not report them again.
@@ -429,6 +435,7 @@ export async function mount(root, context) {
   return {
     async dispose() {
       emitEvent("info", "plugin.hwp.close", { path });
+      await disposeDiagnostics?.();
       stopMessages();
       listeners.clear();
       files.dispose();

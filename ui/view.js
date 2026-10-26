@@ -9,6 +9,7 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { mount } from "./hwp.js";
+import { loadDiagnostics } from "./view-diagnostics.js";
 import { messageText } from "./events.js";
 
 /**
@@ -61,7 +62,7 @@ export function startValues(windowRef = window) {
  *
  * Returns {context}.
  */
-export function createViewContext({ bridge, start, report }) {
+export function createViewContext({ bridge, start, report, diagnostics = null }) {
   if (typeof report !== "function") throw new TypeError("createViewContext requires the report function");
   const { calls, commands, runtime } = bridge;
   // The fire-and-forget calls of the context: a refusal of the route is a record, not a lost report.
@@ -87,6 +88,7 @@ export function createViewContext({ bridge, start, report }) {
       surfaceId: start.surface,
       pluginId: window.location.host,
       project: start.project,
+      diagnostics,
       origin: start.origin,
       tab: {
         params: start.params ?? null,
@@ -178,7 +180,8 @@ const bridge = createViewBridge({
 installPageErrors(report);
 if (window.sokTheme) applyTheme(window.sokTheme);
 bridge.runtime.theme(applyTheme);
-context = createViewContext({ bridge, start, report }).context;
+const diagnostics = await loadDiagnostics();
+context = createViewContext({ bridge, start, report, diagnostics }).context;
 for (const text of pending.splice(0)) report(text);
 const host = document.body.appendChild(document.createElement("div"));
 host.style.cssText = "height:100%";

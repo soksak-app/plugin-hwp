@@ -4,6 +4,17 @@
 
 ## 미배포
 
+- H23.1: 제외되는 `diagnostics.json` 선언과 module로 opt-in HWP view root
+  frame 진단을 추가한다. 명령은 실제 view document root observer를 시작,
+  중지, 조회하며 각 resize를 다음 animation frame 뒤 trace record로 보낸다.
+  Read 명령은 view history와 live `studio` region history count를 모두
+  반환한다. 진단 paint는 stop, dispose, observer start 실패 때 기존 inline
+  background를 정확히 복원한다. Red: `createViewFrameDiagnostics`가 없어
+  소유 test가 실패했고, history follow-up도 staged reply에 studio count가 없어
+  실패했다. Green: live region-history update와 start 중 dispose를 포함한
+  소유 집중 test 4/4와 HWP test 43/43이 통과한다. Exposure와 engines 검사는 통과했다. 현재 SDK census와 catalog 검사는
+  source 7개, pending rule 0개, 선언 event 20개로 통과한다. 표시된 content 측정의 capture pixel 검증은 H23.2에 남아 있다.
+
 - F239-77-hwp: 일치하는 설치 diagnostic cohort로 로컬 schema-3 catalog acceptance를 완료한다. 현재 SDK가 source 5개와 pending rule 0개, event 19개를 검사하며 양쪽 host 설치본의 catalog가 source와 정확히 일치하고 application log audit을 통과한다. Public publication은 별도다.
 
 - F239-77-hwp: HWP event catalog를 schema 3 JSON Schema로 변환하고 event 계약을

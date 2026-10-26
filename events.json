@@ -104,6 +104,25 @@
       },
       "description": "The surface of the file path was disposed."
     },
+    "plugin.hwp.view.content_frame": {
+      "layer": "plugin",
+      "class": "frame",
+      "level": "trace",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 0 },
+          "resizeAtMs": { "type": "number", "minimum": 0 },
+          "width": { "type": "number", "minimum": 0 },
+          "height": { "type": "number", "minimum": 0 },
+          "documentTimeOriginMs": { "type": "number", "minimum": 0 },
+          "frameTimeMs": { "type": "number", "minimum": 0 }
+        },
+        "required": ["sequence", "resizeAtMs", "width", "height", "documentTimeOriginMs", "frameTimeMs"]
+      },
+      "description": "The HWP view document root dimensions after ResizeObserver and the next animation frame while the diagnostic observer is active."
+    },
     "plugin.hwp.phase": {
       "layer": "plugin",
       "class": "lifecycle",

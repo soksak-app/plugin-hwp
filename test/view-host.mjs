@@ -303,6 +303,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
 
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (input) => {
+    if (String(input).endsWith("/diagnostics.json")) return { status: 404, ok: false };
     throw new Error(`the page fetched ${String(input)}, which the test host serves no document for`);
   };
   t.after(() => { globalThis.fetch = realFetch; });

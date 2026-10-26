@@ -25,8 +25,10 @@ const walk = (directory) => fs.readdirSync(directory, { withFileTypes: true }).f
 });
 
 fs.rmSync(outputRoot, { recursive: true, force: true });
-// The editor build under ui/studio is served by the application and imports no module of the page, so the test tree omits it.
-fs.cpSync(sourceUI, outputUI, { recursive: true, filter: (source) => !source.startsWith(path.join(sourceUI, "studio") + path.sep) });
+// The editor build under ui/studio and the diagnostic-only SDK module are not part of the consumer test tree.
+const diagnosticModule = path.join(sourceUI, "hwp-diagnostics.js");
+fs.cpSync(sourceUI, outputUI, { recursive: true, filter: (source) =>
+  !source.startsWith(path.join(sourceUI, "studio") + path.sep) && source !== diagnosticModule });
 fs.cpSync(sourceModels, outputModels, { recursive: true });
 
 let rewritten = 0;

@@ -16,7 +16,13 @@
   "files": [
     "plugin.json",
     "events.json",
-    "ui"
+    "ui/index.html",
+    "ui/view.js",
+    "ui/view-diagnostics.js",
+    "ui/hwp.js",
+    "ui/events.js",
+    "ui/requests.js",
+    "ui/studio"
   ],
   "scripts": {
     "build": "node scripts/build-studio.mjs",

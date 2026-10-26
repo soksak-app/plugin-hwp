@@ -9,6 +9,7 @@ import test from "node:test";
 import { createViewPage } from "./view-host.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
+const diagnostics = JSON.parse(readFileSync(new URL("../diagnostics.json", import.meta.url), "utf8"));
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
 const catalog = JSON.parse(readFileSync(new URL("../events.json", import.meta.url), "utf8"));
@@ -69,6 +70,17 @@ test("plugin.json is a valid manifest that opens hwp and hwpx files in the docum
 
 test("the plugin requires the files sidecar display identity release", () => {
   assert.equal(manifest.dependencies["@soksak/sidecar-files"], ">=0.0.8");
+});
+
+test("view-frame commands exist only in the diagnostic declaration and module", () => {
+  const names = ["hwp.diagnostics.frames.start", "hwp.diagnostics.frames.stop", "hwp.diagnostics.frames.read"];
+  assert.equal(diagnostics.module, "ui/hwp-diagnostics.js");
+  assert.deepEqual(diagnostics.exposes.commands.map((entry) => entry.name), names);
+  assert.equal(names.some((name) => manifest.exposes.commands.some((entry) => entry.name === name)), false);
+  const files = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).files;
+  assert.equal(files.includes("diagnostics.json"), false);
+  assert.equal(files.includes(diagnostics.module), false);
+  assert.ok(files.includes("ui/view-diagnostics.js"), "the release package keeps the declaration loader");
 });
 
 test("the view page refuses to mount without the start values of the surface", async (t) => {
