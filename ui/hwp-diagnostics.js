@@ -330,6 +330,8 @@ export async function attachStudio({ document, window: studioWindow }) {
     const request = event.data;
     if (disposed || event.source !== studioWindow || event.origin !== studioWindow.location.origin
         || request?.type !== markerType || typeof request.id !== "string") return;
+    const fields = Object.keys(request).sort().join(",");
+    if (fields === "id,result,type" || (fields === "error,id,type" && typeof request.error === "string")) return;
     let result;
     let error;
     try {

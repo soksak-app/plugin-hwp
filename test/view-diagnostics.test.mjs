@@ -581,3 +581,48 @@ test("document-frame observation does not repaint the view root", async () => {
   await diagnostics.stop();
   assert.equal(root.style.getPropertyValue("background-color"), "");
 });
+
+test("a native window message reply does not re-enter the studio marker handler", { timeout: 1000 }, async () => {
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const listeners = new Map();
+  const posted = [];
+  const queued = [];
+  const root = {
+    clientWidth: 320,
+    clientHeight: 240,
+    append() {},
+  };
+  const style = { transform: "none", perspective: "none", filter: "none", contain: "none", willChange: "auto", containerType: "normal" };
+  const window = {
+    innerWidth: 320,
+    innerHeight: 240,
+    visualViewport: { width: 320, height: 240, offsetLeft: 0, offsetTop: 0, scale: 1 },
+    location: { origin: "soksak://hwp" },
+    getComputedStyle: () => style,
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    removeEventListener(type, listener) { if (listeners.get(type) === listener) listeners.delete(type); },
+    postMessage(data, origin) {
+      posted.push(data);
+      queued.push({ source: window, origin, data });
+    },
+  };
+  const document = {
+    documentElement: root,
+    createElement: () => ({ style: {}, setAttribute() {}, getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 240 }), remove() {} }),
+  };
+  const dispose = await attachStudio({ document, window });
+  const deliverNativePost = async (message) => {
+    await listeners.get("message")({ source: window, origin: window.location.origin, data: message });
+    let delivered = 0;
+    while (queued.length && delivered < 4) {
+      delivered += 1;
+      await listeners.get("message")(queued.shift());
+    }
+  };
+
+  await deliverNativePost({ type: "soksak-hwp-viewport-marker", id: "native-start-1", operation: "start" });
+  assert.equal(posted.length, 1, "the companion reply must not be handled as a new native command");
+  assert.equal(posted[0].id, "native-start-1");
+  assert.ok(posted[0].result, "the native request must receive viewport evidence");
+  dispose();
+});

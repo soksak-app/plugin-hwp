@@ -12,6 +12,13 @@
   보고한다. Green: 현재 core 문서 검사와 current SDK를 사용한 HWP `make check`가
   통과한다.
 
+- H23.8: same-window message event가 companion listener에 도달하면 studio marker의
+  정확한 reply 형태를 무시한다. Native document post와 companion reply는 같은 studio
+  window를 사용한다. Red: tracked native-envelope test는 응답 하나 대신 다섯 개를 만들었고,
+  보존된 Wails와 Tauri trace는 `operation: start` 뒤 `unknown HWP studio viewport marker
+  operation undefined`를 기록했다. Green: 추적 test가 1/1 통과하고 diagnostic
+  specification에 request/reply 처리를 기록한다.
+
 - H23.7: 전체 `diagnostics.json` 선언을 public plugin API로 검증한다.
   `make check`에서 이를 검사한다. 지원하지 않는 array length keyword를 제거하고 diagnostic producer와
   consumer의 정확한 3-channel marker color 검증은 유지한다. Red: SDK가

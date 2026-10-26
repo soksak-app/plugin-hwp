@@ -21,6 +21,11 @@ marker. Start and active read return `studioViewport` with the exact marker colo
 inner and client dimensions, visual viewport values, and containing-block values. Inactive read and a successful stop return
 `studioViewport: null`; stop, disposal, and pagehide remove the exact marker element.
 
+The view sends marker requests as document-region messages with `type`, `id`, and `operation`. The studio companion replies to
+the same document window with `type`, `id`, and either `result` or `error`; it ignores that exact reply shape when the resulting
+same-window message event reaches its listener, so the reply is not handled as another request. An unsupported request still receives
+an explicit error reply.
+
 The `rgb(255, 0, 255)` edge pixels identify the studio viewport rectangle only. They do not establish the displayed editor
 content or its cadence; OCR-confirmed natural content and recorded frame timestamps remain separate evidence.
 

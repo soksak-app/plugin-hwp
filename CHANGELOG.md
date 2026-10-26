@@ -13,6 +13,14 @@
   specifications and four changelog translation mismatches. Green: current
   core documentation checks and HWP `make check` pass with the current SDK.
 
+- H23.8: Ignore the exact studio marker reply shape when its same-window
+  message event reaches the companion listener. Native document posts and
+  companion replies use the same studio window. Red: a tracked native-envelope
+  test produced five replies instead of one; retained Wails and Tauri traces
+  show `operation: start` followed by `unknown HWP studio viewport marker
+  operation undefined`. Green: the tracked test passes 1/1, and the diagnostic
+  specification records request and reply handling.
+
 - H23.7: Validate the complete `diagnostics.json` declaration with the public
   plugin API in `make check`. Remove unsupported array length keywords while
   retaining the exact three-channel marker color checks in the diagnostic
