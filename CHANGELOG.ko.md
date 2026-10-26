@@ -4,6 +4,14 @@
 
 ## 미배포
 
+- H34: 현재 source 상태에 맞게 영어/한국어 HWP 기록을 정합한다.
+  Specification은 checklist ID 대신 canonical feature status에 연결한다. H7은
+  원인과 재시도 조건을 명시하며, feature 문서는 구현, 검증, 배포 상태 열을
+  함께 제공한다. Red: 현재 core 문서 검사가 status table 누락, H7 원인/재시도
+  필드 미기재, specification 내 checklist ID, changelog 번역 불일치 네 건을
+  보고한다. Green: 현재 core 문서 검사와 current SDK를 사용한 HWP `make check`가
+  통과한다.
+
 - H23.5: HWP release에 `ui/studio-host.js`를 포함한다. 빌드된 editor page는
   `../studio-host.js`에서 이 파일을 불러온다. 파일 누락으로 두 host가 plugin
   파일 없음 오류를 기록한 뒤 도착할 수 없는 editor message를 기다렸다. Red:
@@ -12,15 +20,15 @@
   `files`에 추가한 뒤 같은 test가 통과한다. `make pack`은 표준 plugin pack 명령
   전에 release graph 검사를 실행한다. Source bridge는 수정하지 않았다.
 
-- H23.4: 공유 diagnostic frame observer에 view document의 바인딩된
-  `performance.now` clock을 전달한다. Observer는 ResizeObserver 전달 시각을
+- H23.4: 공유 diagnostic frame observer에 view document의 바인딩된 `performance.now`
+  clock을 전달한다. Observer는 ResizeObserver 전달 시각을
   기록할 때 이 clock을 요구한다. Red: HWP adapter test가 observer 경계에서
   `now` 함수를 받지 못했다. Green: 같은 test가 함수의 `this`가 view performance
   object이고 해당 clock 값을 반환하는지 확인한다. Graph 및 diagnostic adapter
   test 5/5와 current-core `make check`가 통과한다.
 
-- H23.3: browser에서 로드되는 HWP diagnostic view module에서 Node 전용
-  `node:assert/strict` import를 제거한다. Core browser graph checker가 이 import를
+- H23.3: browser에서 로드되는 HWP diagnostic view module에서 Node 전용 `node:assert/strict`
+  import를 제거한다. Core browser graph checker가 이 import를
   거부해 두 host의 diagnostic view가 로드되지 않았다. 명시적 경계 검사는 Node
   runtime dependency 없이 진단 오류를 유지한다. Red: 추적된 graph test가
   `ui/view-diagnostics.js: import node:assert/strict is not in the view import map`을

@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- H34: Reconcile the English and Korean HWP records with the current source
+  state. Specifications link to the canonical feature status instead of
+  citing checklist IDs. H7 states its cause and retry condition, and the
+  feature documents include matching implementation, validation and release
+  status columns. Red: the current core documentation check reports missing
+  status tables, incomplete H7 cause/retry fields, checklist IDs in
+  specifications and four changelog translation mismatches. Green: current
+  core documentation checks and HWP `make check` pass with the current SDK.
+
 - H23.5: Include `ui/studio-host.js` in the HWP release. The built editor page
   loads it from `../studio-host.js`; omitting the file caused both hosts to
   report a missing plugin file and wait for an editor message that could not
@@ -29,8 +38,8 @@
   map`. Green: the same check passes with the current core SDK, and the graph
   and diagnostic adapter tests pass 5/5.
 
-- H23.1: Add opt-in HWP view-root frame diagnostics through the excluded
-  `diagnostics.json` declaration and module. Commands start, stop and read an
+- H23.1: Add opt-in HWP view-root frame diagnostics through the excluded `diagnostics.json`
+  declaration and module. Commands start, stop and read an
   observer of the actual view document root; each resize emits a trace record
   after the next animation frame. The read command reports both the view
   history count and the live `studio` region history count. The diagnostic
@@ -68,7 +77,7 @@
 
 - H28: The view page begins with its doctype and holds no import map. The host inserts the view import map after the doctype, for the core checklist item F212.12-1-10-6, so the copy in the page is removed. Red: the view test failed on the page with the map. Green: `make test` passes 70 of 70, and the core `checkViewPage` accepts the page.
 - H27: The start values of a view require the project id: the validator refuses a project without `id`, because core gives `{id, root}`. The view test refuses a project that has only a root. Red: the refusal test failed against the validator of the previous version. Green: the test passes with the validator that requires the id.
-- H26: The view page map holds the screen-hash entry of core's view import map, which `checkViewPage` requires. The view test's copy of the map holds the five entries of `VIEW_IMPORTS`. Red: `test/hwp.test.mjs` failed with a deep-equal difference, because the page map lacked the screen-hash entry. Green: `make test` passes 69 of 69, and `make check` passes with CORE_PLUGIN_API_DIR.
+- H26: The view page map holds the screen-hash entry of core's view import map, which `checkViewPage` requires. The view test's copy of the map holds the five entries of `VIEW_IMPORTS`. Red: `test/hwp.test.mjs` failed with a deep-equal difference, because the page map lacked the screen-hash entry. Green: `make test` passes 69 of 69, and `make check` passes with `CORE_PLUGIN_API_DIR`.
 - H24: The pre-push hook runs `make push-check`, which runs `make test`, `make check` and the commit message check of the pushed range, as the ci workflow does. Red: `.githooks/pre-push` did not exist and `git push --dry-run` ran no check. Green: the hook runs the checks; `make test` passes 69 of 69, and `make check` fails at the pinned SDK, which H25 records.
 - F238-c-23-1: `make check` validates `plugin.json` with `validateManifest` of the plugin API (`scripts/check-manifest.mjs`), and reads that API and runs the SDK tools from `CORE_PLUGIN_API_DIR` when it is set. `test/check-manifest.test.mjs` checks that a fixture API's rejection message fails the check. Red: the check file did not exist. Green: `make test` passes 69 of 69, and `make check` exits 0 against the extract of core origin/main.
 - F238-c-14: No line of `test/` names the SDK package. `test/sdk-boundary.test.mjs` fails on any line of `test/` that contains the needle, which the test builds from parts. The model comments name the plugin API, and `test/hwp.test.mjs` builds its import-map names from parts. Red: the guard listed five lines. Green: `make test` passes 68 tests.

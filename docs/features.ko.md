@@ -2,6 +2,12 @@
 
 [English](features.md)
 
+| 기능 | 구현 | 검증 | 배포 |
+| --- | --- | --- | --- |
+| H23.2 HWP view 측정 | H23.1 구현 완료; H23.6 viewport 증거 작업 중 | H23.2 측정 대기 | 미배포 |
+
+- [o] H34 — P2: 현재 source 및 validation 상태에 맞게 HWP 기능 기록을 정합한다. Specification의 checklist ID를 제거하고, 영어/한국어 changelog code span을 맞추며, H7의 원인과 재시도 조건을 명확히 하고, 필수 status table을 복구한다. Red: 현재 core 문서 검사가 specification ID 두 건, changelog 번역 불일치 네 건, H7 원인/재시도 필드 누락, feature status table 누락을 보고했다. Green: 현재 core 문서 검사가 12개 파일에서 통과하고, `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check`가 manifest, graph, exposure, engines, events, records와 복사 계약 사례 9개를 통과한다.
+
 - [o] F239-77-hwp — P1, core F239-77 연결: Event 이름, class, level 및 required/optional field 의미를 보존하며 event catalog를 schema 3 JSON Schema로 전환한다. 현재 공개 SDK census 및 catalog 명령이 implementation source 5개, pending rule 0개, 선언 event 19개로 통과한다. Source catalog는 새로 설치한 양쪽 diagnostic host configuration과 byte 단위로 일치한다. 일반 CLI 설치와 application log audit이 일치하는 core/plugin/sidecar cohort를 받아들인다. Catalog migration 단위만 완료하며 public publication과 관련 없는 과거 동작 추적은 별도다. 예전 설치 SDK 명령은 schema 3을 거절하며 통과로 기록하지 않는다.
 
 - [o] H33 — P0, H29-1의 후속 항목: HWP `0.0.5`은 공개 core `v0.0.20`을 포함하는 `engines.soksak: ">=0.0.18"`을 선언한다. Manifest는 해당 reader가 요구하는 `surface.module` 없는 view composition을 사용하므로, 이 범위는 실패하는 설치까지 지원한다고 주장한다. 기대 동작: 이 manifest를 받는 core candidate만 선언하는 `^0.0.21`을 사용하고, 일치하는 core release가 게시될 때까지 public release H29-1을 대기 상태로 둔다. Red: 변경 전 `test/core-version.test.mjs`가 `">=0.0.18" !== "^0.0.21"`로 실패했다. Green: 같은 test가 1/1 통과하고 candidate `make check`에서 manifest, exposure, engines, events, records와 copied contract cases가 통과한다. 일치하는 core release가 게시될 때까지 package release는 gate에 둔다. 이 항목은 SDK pin, plugin version, archive 또는 registry를 바꾸지 않는다.
@@ -25,7 +31,7 @@
 - [o] H4 — P1: page가 읽은 version으로 `writeBytes`를 써서 파일 자신의 형식으로 저장하고, rhwp가 내용을 잃는다고 보고한 저장은 거절하며, 디스크의 변경을 따르고, 실패는 `tab.error`로 보인다. 2026-10-08에 완료했다. 저장과 충돌 테스트가 통과하고, core 창 검사에서 Command-S가 파일을 쓰며 다시 읽어도 편집이 남는 것을 두 host에서 확인했다.
 - [o] H5 — P1: CI와 release workflow를 더한다. `ci.yml`은 macOS runner에서 `make test`를 실행하고, tag `v*`는 `release.yml`을 실행하며, 이는 선언한 core release의 `sok`으로 plugin을 pack한다. 2026-10-22 완료: main의 `ci` workflow가 2026-10-21에 macos-15에서 `make test`를 통과했고, tag `v0.0.2`의 `release` workflow가 2026-10-18에 `CORE_RELEASE: v0.0.18`로 통과했다.
 - [o] H6 — P1: 버전 0.0.1을 릴리스하고 registry에 올린다. 영역의 plugin 문서를 내보내는 core 릴리스(core F111)와 files sidecar 0.0.5 이상을 요구한다. 2026-10-14 완료: 릴리스는 core 0.0.12(`@soksak/plugin-api`와 `CORE_RELEASE: v0.0.12`)를 요구하며, 그 체크리스트 항목 F111은 완료되었다. `plugin.json`은 `@soksak/sidecar-files` `>=0.0.5`를 요구하고, files sidecar 0.0.5(S22)가 이를 만족한다. 요구 조건이 충족되었으므로 이 release의 재시도 조건이 성립한다. tag `v0.0.1`이 `release.yml`을 실행해 core 0.0.12에서 build한 `sok`로 plugin을 pack하며, release 전에 `make test`가 39개 test와 exposure, engines, event, record 검사를 통과했다.
-- [!] H7 — P2: 쪽을 카드 폭에 맞춘다. 카드보다 넓은 쪽은 그 폭으로 줄이고, 클릭과 커서도 같은 배율을 쓴다. 대기: 측정이 먼저다. 넓은 쪽이 이미 줄어드는지, 클릭과 커서가 같은 배율을 쓰는지는 window에서만 보이는 사실이다. 맞춤 규칙은 그 측정 뒤에 구현하며, 그 전에는 zoom 명령을 실행하지 않는다. 재시도 조건: core window 단계 F212.12가 두 host에서 카드보다 넓은 hwp 쪽을 측정하고, 쪽이 줄어드는지와 클릭과 커서가 같은 배율을 쓰는지를 기록한다.
+- [!] H7 — P2: 쪽을 카드 폭에 맞춘다. 카드보다 넓은 쪽은 그 폭으로 줄이고, 클릭과 커서도 같은 배율을 쓴다. 원인: 현재 window 증거는 넓은 쪽이 줄어드는지, 클릭과 커서 좌표가 같은 배율을 쓰는지 확인하지 못했다. 이는 window에서 렌더링된 쪽을 관찰해야 확인할 수 있다. 맞춤 규칙은 그 측정 뒤에 구현하며, 그 전에는 zoom 명령을 실행하지 않는다. 재시도 조건: core window 단계 F212.12가 두 host에서 카드보다 넓은 HWP 쪽을 측정하고, 쪽이 줄어드는지와 클릭과 커서가 같은 배율을 쓰는지를 기록한다.
 - [ ] H8 — P1: 사용자 승인을 받아 activation tier 검사로 커서의 한글 입력기 조합을 같은 창의 AppKit text view와 비교해 확인한다.
 - [ ] H9 — P1: H2, H3, H4의 표면 대신 rhwp의 편집기로 편집한다. plugin은 rhwp tag `v0.8.7`에서 고치지 않고 빌드한 `rhwp-studio`를 담고, 페이지는 그것을 문서 영역(core F111)에 보이며, embed protocol의 `loadFile` 요청으로 파일을 보내고 `exportHwp` 또는 `exportHwpx`의 bytes를 저장한다. 선택, clipboard, 되돌리기, 입력기, 서식, 표는 편집기의 것이다. H2, H3, H4가 그린 페이지와 그 test는 지운다.
   - [o] H9.1 — P1: `rhwp-studio`를 `ui/studio`로 빌드한다. `scripts/build-studio.mjs`는 빌드에 필요한 rhwp `v0.8.7`의 파일을 checkout하고, 다른 commit을 거부하고, `@rhwp/core` 0.8.7의 WebAssembly package를 두고, `rhwp-studio`의 빌드 script를 고치지 않고 실행한다. `make studio`가 그것을 실행하고, `make pack`과 release workflow는 pack 전에 빌드한다. `docs/studio.md`는 빌드와 이후 rhwp tag로의 갱신을 설명한다. 2026-10-08 완료: `make studio`가 `COMMIT`이 정한 commit의 rhwp `v0.8.7` checkout에서 편집기를 `ui/studio/`(54 MB)에 쓴다.
