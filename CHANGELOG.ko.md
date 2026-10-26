@@ -4,6 +4,14 @@
 
 ## 미배포
 
+- H35: 전체 view-sharing process group을 회수하고 다시 연 뒤에도 HWP 본문이
+  표시되는지 확인한다. group을 닫기 전에 측정이 view를 `760 × 286.5`에서
+  `785.5 × 286.5`로 바꿨다. 넓어진 viewport에서 responsive toolbar가 펼쳐져 첫
+  문단이 캡처된 document 영역 아래로 이동한다. Core F212.14-5-32는 다시 열기 전에
+  초기 geometry를 복원한다. 이후 Wails와 Tauri acceptance에서 본문 OCR, 세 번의
+  반복 모두 10초 내 90% 이상 회수, engine-cached process가 남지 않음을 확인했다.
+  HWP source 변경은 필요하지 않았다.
+
 - H34: 현재 source 상태에 맞게 영어/한국어 HWP 기록을 정합한다.
   Specification은 checklist ID 대신 canonical feature status에 연결한다. H7은
   원인과 재시도 조건을 명시하며, feature 문서는 구현, 검증, 배포 상태 열을

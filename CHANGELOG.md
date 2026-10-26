@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- H35: Confirm that the HWP body remains visible after reclaiming and reopening
+  the complete view-sharing process group. The measurement changed the view
+  from `760 × 286.5` to `785.5 × 286.5` before closing the group; the wider
+  viewport expands the responsive toolbar and moves the first paragraph below
+  the captured document area. Core F212.14-5-32 restores the initial geometry
+  before reopening. Wails and Tauri acceptance then confirmed body OCR,
+  at least 90% reclamation within 10 seconds across all three repetitions,
+  and no remaining engine-cached process. No HWP source change was required.
+
 - H34: Reconcile the English and Korean HWP records with the current source
   state. Specifications link to the canonical feature status instead of
   citing checklist IDs. H7 states its cause and retry condition, and the

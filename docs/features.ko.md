@@ -7,6 +7,8 @@
 | H23.2 HWP view 측정 | H23.1 및 H23.6 진단 구현 완료 | Owner test 통과; runtime window 측정 대기 | 미배포 |
 | H23.10 ResizeObserver 전달 병합 | Core helper와 HWP event 계약 구현 | Core 소유 test 6/6, HWP 소유 test 21/21, current-source `make check` 통과 | 미배포 |
 
+- [o] H35 — P0, core F212.14-5-5 및 F212.14-5-32 연결: 전체 view-sharing process group을 회수하고 다시 연 뒤 HWP 문서 본문을 검증한다. 초기 view는 `760 × 286.5`였고 측정 과정에서 group을 닫기 전에 `785.5 × 286.5`로 바뀌었다. 이 폭에서 HWP responsive stylesheet가 메뉴·스타일·상태 표시줄을 펼쳐 문서 viewport를 줄이고 첫 문단을 캡처 영역 아래에 배치한다. 이는 provider 렌더링 결함이 아니라 측정 fixture의 geometry 변경이었다. Core F212.14-5-32가 다시 열기 전에 초기 geometry를 복원한다. 이후 Wails와 Tauri acceptance가 통과했다. 본문 OCR이 확인됐고, 전체 process group이 10초 이내에 90% 이상 회수됐으며 세 번의 반복이 모두 통과했고 engine-cached process는 남지 않았다. HWP source 변경은 필요하지 않았다.
+
 - [o] H34 — P2: 현재 source 및 validation 상태에 맞게 HWP 기능 기록을 정합한다. Specification의 checklist ID를 제거하고, 영어/한국어 changelog code span을 맞추며, H7의 원인과 재시도 조건을 명확히 하고, 필수 status table을 복구한다. Red: 현재 core 문서 검사가 specification ID 두 건, changelog 번역 불일치 네 건, H7 원인/재시도 필드 누락, feature status table 누락을 보고했다. Green: 현재 core 문서 검사가 12개 파일에서 통과하고, `CORE_PLUGIN_API_DIR=<core>/packages/plugin-api make check`가 manifest, graph, exposure, engines, events, records와 복사 계약 사례 9개를 통과한다.
 
 - [o] F239-77-hwp — P1, core F239-77 연결: Event 이름, class, level 및 required/optional field 의미를 보존하며 event catalog를 schema 3 JSON Schema로 전환한다. 현재 공개 SDK census 및 catalog 명령이 implementation source 5개, pending rule 0개, 선언 event 19개로 통과한다. Source catalog는 새로 설치한 양쪽 diagnostic host configuration과 byte 단위로 일치한다. 일반 CLI 설치와 application log audit이 일치하는 core/plugin/sidecar cohort를 받아들인다. Catalog migration 단위만 완료하며 public publication과 관련 없는 과거 동작 추적은 별도다. 예전 설치 SDK 명령은 schema 3을 거절하며 통과로 기록하지 않는다.
