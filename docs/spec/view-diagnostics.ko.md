@@ -13,14 +13,15 @@ sourceResolutionMs}`도 반환한다. `sourceResolutionMs`는 측정한 runtime 
 응답을 정확한 native exposure request/reply 구간에 연결하며 모든 source frame이 같은 document time origin을 유지해야 한다.
 
 Start는 document region을 통해 실제 `studio` document에 투명 marker도 요청한다. Diagnostic-only studio companion은 해당
-document의 `document.documentElement`에 `position: fixed`, `inset: 0`, `box-sizing: border-box`, 2 px
+document의 `document.documentElement`에 `position: fixed`, `inset: 4px`, `box-sizing: border-box`, 2 px
 `rgb(255, 0, 255)` border, `pointer-events: none`, 가능한 가장 높은 stacking order를 가진 element 하나를 추가한다.
+4 CSS px inset은 HTML paint marker를 native viewport boundary와 분리한다.
 기존 layout style은 바꾸지 않으며 명시적 start 전에는 marker가 없다. Companion은 삽입 전에 visual viewport scale이 1,
 offset이 0, 크기가 `innerWidth`와 `innerHeight`와 같은지 검증하고 document root client dimension도 inner dimension과
-같아야 한다. 이어 fixed marker의 실제 rectangle이 viewport와 정확히 같고 root가 별도의 fixed-position containing block을
+같아야 한다. 이어 fixed marker의 실제 rectangle이 viewport 안쪽 4 CSS px와 정확히 맞고 root가 별도의 fixed-position containing block을
 만들지 않는지 확인한다 (`transform`, `perspective`, `filter`, `contain`은 `none`, `will-change`는 `auto`, `container-type`은
 `normal`). 검증이 실패하면 start를 거부하고 삽입한 marker를 제거한다. Start와 active read는 정확한 marker color와 border 폭,
-실제 marker rectangle, inner/client dimension, visual viewport 값과 containing-block 값을 담은 `studioViewport`를 반환한다.
+실제 inset marker rectangle, inner/client dimension, visual viewport 값과 containing-block 값을 담은 `studioViewport`를 반환한다.
 Inactive read와 성공한 stop은 `studioViewport: null`을 반환한다. Stop, dispose, pagehide는 삽입한 동일한 marker element를 제거한다.
 
 View는 `type`, `id`, `operation`을 가진 document-region message로 marker request를 보낸다. Native document-message bridge는

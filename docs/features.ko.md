@@ -7,6 +7,9 @@
 | H23.2 HWP view 측정 | H23.1 및 H23.6 진단 구현 완료 | Owner test 통과; runtime window 측정 대기 | 미배포 |
 | H23.10 ResizeObserver 전달 병합 | Core helper와 HWP event 계약 구현 | Core 소유 test 6/6, HWP 소유 test 21/21, current-source `make check` 통과 | 미배포 |
 | H36 source-clock anchor | HWP frame-start 응답이 view document source clock과 고정된 WebKit 정밀도 상한을 반환 | Owner test 1/1, current-SDK `make check`, authoritative diagnostic pack 통과 | 미배포 |
+| H37 viewport paint marker separation | HTML viewport marker가 변경되지 않은 native viewport bounds에서 4 CSS px 안쪽에 위치 | Owner case 21/21과 current-SDK 검사 통과; runtime pixel acceptance 대기 | 미배포 |
+
+- [o] H37 — P1, core F239-233 연결: diagnostic HTML viewport paint marker를 native cyan bounds marker와 분리한다. Studio companion은 magenta 2 px border를 viewport에서 4 CSS px 안쪽에 그리고 layout, native bounds와 pointer 처리를 바꾸지 않고 inset rect를 보고한다. Red: 변경 전 DOM owner가 현재 inset rectangle을 거부한다. Green: marker preflight를 갱신하고 폐기된 zero-origin clock fixture를 수정한 뒤 같은 case와 view-diagnostics owner case 21개가 모두 통과한다. Current-SDK 검사와 diagnostic packaging이 통과한다. Runtime captured-pixel acceptance는 core F239-233에 남는다. 이 marker는 studio viewport paint를 나타내며 natural content extent나 normal-paint cadence를 입증하지 않는다.
 
 - [o] H36 — P1, core F239-221 연결: 성공한 frame-observation 시작 응답에 view document source-clock anchor를 반환한다. Red: 변경 전 owner가 시작 응답에서 sourceClock을 찾지 못한다. Green: 같은 owner가 현재 document time origin, 현재 performance time, 고정된 1 ms 정밀도 상한으로 1/1 통과하고 current-SDK 검사, 진단 선언 검증, diagnostic packaging이 통과한다. 앱 통합은 core F239-221에 남는다.
 

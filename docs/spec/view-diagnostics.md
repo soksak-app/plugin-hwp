@@ -14,14 +14,14 @@ value. Core joins that reply to the exact native exposure request/reply interval
 same document time origin.
 
 Start also requests a transparent marker in the actual `studio` document through the document region. The diagnostic-only
-studio companion appends one fixed element to that document's `document.documentElement`, with `inset: 0`, `box-sizing:
-border-box`, a 2 px `rgb(255, 0, 255)` border, `pointer-events: none`, and the highest supported stacking order. The marker changes
+studio companion appends one fixed element to that document's `document.documentElement`, with `inset: 4px`, `box-sizing:
+border-box`, a 2 px `rgb(255, 0, 255)` border, `pointer-events: none`, and the highest supported stacking order. The 4 CSS px inset separates this HTML paint marker from the native viewport boundary. The marker changes
 no existing layout style and is not present before an explicit start. Before inserting it, the companion requires a visual
 viewport at scale 1, zero offsets, and dimensions equal to `innerWidth` and `innerHeight`; the document root's client dimensions
-must also equal the inner dimensions. It then checks that the fixed marker's measured rectangle is exactly the viewport and
+must also equal the inner dimensions. It then checks that the fixed marker's measured rectangle is exactly 4 CSS px inside the viewport and
 that the root does not establish another fixed-position containing block (`transform`, `perspective`, `filter`, and `contain`
 are `none`, `will-change` is `auto`, and `container-type` is `normal`). A failed check refuses start and removes any inserted
-marker. Start and active read return `studioViewport` with the exact marker color and border width, measured marker rectangle,
+marker. Start and active read return `studioViewport` with the exact marker color and border width, measured inset marker rectangle,
 inner and client dimensions, visual viewport values, and containing-block values. Inactive read and a successful stop return
 `studioViewport: null`; stop, disposal, and pagehide remove the exact marker element.
 

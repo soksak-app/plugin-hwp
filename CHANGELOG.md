@@ -4,12 +4,9 @@
 
 ## Unreleased
 
-- H36: Return the HWP view document's `performance.timeOrigin` and an
-  immediate `performance.now()` reading with the fixed 1 ms resolution bound
-  from a successful frame-observation start. Red: the owner test found no
-  `sourceClock` in the unchanged reply. Green: the owner test passes 1/1,
-  current-SDK `make check` passes, and the authoritative diagnostic pack
-  succeeds. Application integration remains pending in core F239-221.
+- H37: Inset the existing studio HTML viewport marker by 4 CSS px so its paint remains distinct from the native cyan border. Preserve layout, pointer behavior, preflight and cleanup. The unchanged DOM owner Red becomes Green; all 21 owner cases, current-SDK checks and diagnostic packaging pass. Pixel acceptance remains with core F239-233.
+
+- H36: Return the HWP view document's `performance.timeOrigin` and an immediate `performance.now()` reading with the fixed 1 ms resolution bound from a successful frame-observation start. Red: the owner test found no `sourceClock` in the unchanged reply. Green: the owner test passes 1/1, current-SDK `make check` passes, and the authoritative diagnostic pack succeeds. Application integration remains pending in core F239-221.
 
 - H35: Confirm that the HWP body remains visible after reclaiming and reopening
   the complete view-sharing process group. The measurement changed the view

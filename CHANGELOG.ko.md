@@ -4,11 +4,9 @@
 
 ## 미배포
 
-- H36: 성공한 frame-observation 시작 응답에 HWP view document의
-  `performance.timeOrigin`, 즉시 읽은 `performance.now()`와 고정된 1 ms 정밀도
-  상한을 반환한다. Red: 기존 응답에 `sourceClock`이 없음을 owner test가 확인했다.
-  Green: owner test 1/1, current-SDK `make check`, authoritative diagnostic pack이
-  통과했다. Application 통합은 core F239-221에서 계속한다.
+- H37: 기존 studio HTML viewport marker를 4 CSS px 안쪽에 그려 native cyan border와 paint를 구분한다. Layout, pointer 동작, preflight와 cleanup을 유지한다. 변경 전 DOM owner Red가 Green으로 바뀌며 owner case 21개, current-SDK 검사와 diagnostic packaging이 통과한다. Pixel acceptance는 core F239-233에 남는다.
+
+- H36: 성공한 frame-observation 시작 응답에 HWP view document의 `performance.timeOrigin`, 즉시 읽은 `performance.now()`와 고정된 1 ms 정밀도 상한을 반환한다. Red: 기존 응답에 `sourceClock`이 없음을 owner test가 확인했다. Green: owner test 1/1, current-SDK `make check`, authoritative diagnostic pack이 통과했다. Application 통합은 core F239-221에서 계속한다.
 
 - H35: 전체 view-sharing process group을 회수하고 다시 연 뒤에도 HWP 본문이
   표시되는지 확인한다. group을 닫기 전에 측정이 view를 `760 × 286.5`에서

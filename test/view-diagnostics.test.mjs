@@ -3,7 +3,7 @@ import test from "node:test";
 
 const source = await import("../build/test/ui/view-diagnostics.js").catch((error) => ({ importError: error }));
 const viewportEvidence = {
-  markerColor: [255, 0, 255], borderWidth: 2, rect: { left: 0, top: 0, right: 1024, bottom: 768 },
+  markerColor: [255, 0, 255], borderWidth: 2, rect: { left: 4, top: 4, right: 1020, bottom: 764 },
   innerWidth: 1024, innerHeight: 768, clientWidth: 1024, clientHeight: 768,
   visualViewport: { width: 1024, height: 768, offsetLeft: 0, offsetTop: 0, scale: 1 },
   fixedContainingBlock: { transform: "none", perspective: "none", filter: "none", contain: "none", willChange: "auto", containerType: "normal" },
@@ -20,7 +20,7 @@ test("the studio viewport marker measures the document viewport and removes its 
   const listeners = new Map();
   const children = [];
   const parent = {};
-  let markerRect = { left: 0, top: 0, right: 1024, bottom: 768 };
+  let markerRect = { left: 4, top: 4, right: 1020, bottom: 764 };
   const root = {
     clientWidth: 1024,
     clientHeight: 768,
@@ -58,7 +58,7 @@ test("the studio viewport marker measures the document viewport and removes its 
   assert.equal(started.origin, "soksak://hwp");
   assert.deepEqual(started.message.result, {
     markerColor: [255, 0, 255], borderWidth: 2,
-    rect: { left: 0, top: 0, right: 1024, bottom: 768 },
+    rect: { left: 4, top: 4, right: 1020, bottom: 764 },
     innerWidth: 1024, innerHeight: 768, clientWidth: 1024, clientHeight: 768,
     visualViewport: { width: 1024, height: 768, offsetLeft: 0, offsetTop: 0, scale: 1 },
     fixedContainingBlock: style,
@@ -66,12 +66,12 @@ test("the studio viewport marker measures the document viewport and removes its 
   assert.equal(children.length, 1);
   assert.equal(children[0].attribute[0], "data-soksak-hwp-viewport-marker");
   assert.deepEqual(children[0].style, {
-    position: "fixed", inset: "0", boxSizing: "border-box", border: "2px solid rgb(255, 0, 255)",
+    position: "fixed", inset: "4px", boxSizing: "border-box", border: "2px solid rgb(255, 0, 255)",
     pointerEvents: "none", backgroundColor: "transparent", opacity: "1", filter: "none", mixBlendMode: "normal",
     transform: "none", boxShadow: "none", zIndex: "2147483647",
   });
-  markerRect = { left: 0, top: 0, right: 1024, bottom: 768 };
-  assert.equal((await deliver("read-1", "read")).message.result.rect.right, 1024);
+  markerRect = { left: 4, top: 4, right: 1020, bottom: 764 };
+  assert.equal((await deliver("read-1", "read")).message.result.rect.right, 1020);
   assert.equal((await deliver("stop-1", "stop")).message.result, null);
   assert.equal(children.length, 0, "stop must remove the exact marker element");
 
@@ -571,7 +571,7 @@ test("document-frame observation does not repaint the view root", async () => {
       removeProperty: (name) => styles.delete(name),
     },
   };
-  const window = { history: { length: 1 }, performance: { timeOrigin: 0, now: () => 0 }, ResizeObserver: class {},
+  const window = { history: { length: 1 }, performance: { timeOrigin: 1, now: () => 0 }, ResizeObserver: class {},
     requestAnimationFrame: () => 1, cancelAnimationFrame() {} };
   const document = { documentElement: root, defaultView: window };
   const diagnostics = source.createViewFrameDiagnostics({ document,
@@ -610,7 +610,7 @@ test("a native window message reply does not re-enter the studio marker handler"
   };
   const document = {
     documentElement: root,
-    createElement: () => ({ style: {}, setAttribute() {}, getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 240 }), remove() {} }),
+    createElement: () => ({ style: {}, setAttribute() {}, getBoundingClientRect: () => ({ left: 4, top: 4, right: 316, bottom: 236 }), remove() {} }),
   };
   const dispose = await attachStudio({ document, window });
   const deliverNativePost = async (message) => {
@@ -658,7 +658,7 @@ test("native document-post echoes do not resolve a marker request before the stu
   };
   const document = {
     documentElement: root,
-    createElement: () => ({ style: {}, setAttribute() {}, getBoundingClientRect: () => ({ left: 0, top: 0, right: 320, bottom: 240 }), remove() {
+    createElement: () => ({ style: {}, setAttribute() {}, getBoundingClientRect: () => ({ left: 4, top: 4, right: 316, bottom: 236 }), remove() {
       const index = markers.indexOf(this);
       if (index >= 0) markers.splice(index, 1);
     } }),

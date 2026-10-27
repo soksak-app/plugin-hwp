@@ -3,6 +3,7 @@ import { createViewDiagnosticDisposer, createViewFrameDiagnostics } from "./view
 const markerType = "soksak-hwp-viewport-marker";
 const markerColor = [255, 0, 255];
 const markerColorCss = "rgb(255, 0, 255)";
+const markerInsetCssPx = 4;
 const viewportFields = ["borderWidth", "clientHeight", "clientWidth", "fixedContainingBlock", "innerHeight", "innerWidth",
   "markerColor", "rect", "visualViewport"];
 const rectFields = ["bottom", "left", "right", "top"];
@@ -24,8 +25,10 @@ function requireStudioViewport(value) {
     value.clientWidth, value.clientHeight, value.visualViewport.width, value.visualViewport.height,
     value.visualViewport.offsetLeft, value.visualViewport.offsetTop, value.visualViewport.scale];
   if (!numbers.every(Number.isFinite) || value.innerWidth <= 0 || value.innerHeight <= 0
-      || value.rect.left !== 0 || value.rect.top !== 0 || value.rect.right !== value.innerWidth
-      || value.rect.bottom !== value.innerHeight || value.clientWidth !== value.innerWidth
+      || value.innerWidth <= markerInsetCssPx * 2 || value.innerHeight <= markerInsetCssPx * 2
+      || value.rect.left !== markerInsetCssPx || value.rect.top !== markerInsetCssPx
+      || value.rect.right !== value.innerWidth - markerInsetCssPx
+      || value.rect.bottom !== value.innerHeight - markerInsetCssPx || value.clientWidth !== value.innerWidth
       || value.clientHeight !== value.innerHeight || value.visualViewport.width !== value.innerWidth
       || value.visualViewport.height !== value.innerHeight || value.visualViewport.offsetLeft !== 0
       || value.visualViewport.offsetTop !== 0 || value.visualViewport.scale !== 1) {
@@ -297,8 +300,10 @@ export async function attachStudio({ document, window: studioWindow }) {
     if (marker !== null) {
       const rect = marker.getBoundingClientRect();
       values.rect = { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-      if (rect.left !== 0 || rect.top !== 0 || rect.right !== values.innerWidth || rect.bottom !== values.innerHeight) {
-        throw new Error("HWP studio viewport marker does not match the full viewport rectangle");
+      if (rect.left !== markerInsetCssPx || rect.top !== markerInsetCssPx
+          || rect.right !== values.innerWidth - markerInsetCssPx
+          || rect.bottom !== values.innerHeight - markerInsetCssPx) {
+        throw new Error("HWP studio viewport marker does not match the 4 CSS px inset rectangle");
       }
     }
     return values;
@@ -311,7 +316,7 @@ export async function attachStudio({ document, window: studioWindow }) {
     element.setAttribute("data-soksak-hwp-viewport-marker", "");
     Object.assign(element.style, {
       position: "fixed",
-      inset: "0",
+      inset: `${markerInsetCssPx}px`,
       boxSizing: "border-box",
       border: `2px solid ${markerColorCss}`,
       pointerEvents: "none",
