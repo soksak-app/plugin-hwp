@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- H40: Keep updating Studio's load-progress message but skip the paint wait
+  when CSS does not render it. Preserve the existing double-animation-frame
+  wait and 50 ms fallback while the message is visible. The HWP embedded
+  760 × 286 CSS px viewport hides `#status-bar` by its responsive rule. The
+  source owner test passes 4/4, the helper TypeScript check passes, and HWP
+  `make check` plus core `make docs-check` pass. Full Studio typecheck is
+  blocked by missing `@wasm/rhwp.js` declarations in the sparse checkout; the
+  source change remains outside the pinned Studio release.
+
 - H39: Route view records through the bridge's bounded `runtime.log` writer
   and use its `runtime.error` route. The consumer fake rejects legacy
   per-record writer requests. Red: the unchanged HWP open/save test lost its

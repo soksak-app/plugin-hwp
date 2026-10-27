@@ -4,6 +4,8 @@
 
 hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. HWP Studio source release [`soksak-studio-v0.8.7-1`](https://github.com/min-0-max/rhwp/tree/soksak-studio-v0.8.7-1)을 빌드하며, commit은 build script의 `COMMIT` 값으로 고정한다. 이 source는 동기 font 감지와 `@font-face` 등록을 유지하고 critical web-font 로딩과 WebAssembly 초기화를 함께 시작한 뒤 두 작업이 모두 끝날 때까지 renderer setup과 ready barrier를 기다린다. Upstream font loader의 face별 fallback 동작을 유지한다. 두 startup 작업이 함께 실패하면 aggregate error message에 두 원인을 모두 포함하고 `errors` 배열에는 원래 오류값을 보존한다.
 
+H40 source candidate는 Studio progress message를 항상 갱신한다. Message가 렌더링될 때만 기존의 double animation frame paint 기회와 50 ms fallback을 기다린다. CSS가 message를 숨긴 상태에서는 paint 대기 없이 다음 단계로 진행한다. HWP startup 비교에 사용한 760 × 286 CSS px embedded viewport는 responsive small-viewport 규칙에 따라 `#status-bar`를 숨기므로, 해당 progress 대기는 message를 화면에 표시할 수 없다. 고정된 `soksak-studio-v0.8.7-1` source에는 아직 이 변경이 포함되지 않았다.
+
 ## 빌드
 
 `make studio`는 `scripts/build-studio.mjs`를 실행하고, 이 script는 빌드한 편집기를 `ui/studio/`에 쓴다. Git은 그 폴더를 무시하고, `make pack`과 release workflow는 plugin을 pack하기 전에 그것을 빌드한다.

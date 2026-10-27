@@ -4,6 +4,14 @@
 
 ## 미배포
 
+- H40: Studio load-progress message는 계속 갱신하되 CSS가 표시하지 않을 때
+  paint 대기를 생략한다. Message가 보이면 기존 double-animation-frame 대기와
+  50 ms fallback을 유지한다. HWP embedded 760 × 286 CSS px viewport는
+  responsive rule로 `#status-bar`를 숨긴다. Source owner test 4/4가 통과했으며
+  helper TypeScript 검사, HWP `make check`, core `make docs-check`도 통과한다.
+  전체 Studio typecheck는 sparse checkout의 `@wasm/rhwp.js` declaration 누락으로
+  막혔으며 source 변경은 고정된 Studio release에 아직 들어가지 않았다.
+
 - H39: View record는 bridge의 bounded `runtime.log` writer로 보내고
   `runtime.error` route를 사용한다. Consumer fake는 이전 record별 writer
   요청을 거부한다. Red: 변경 전 HWP open/save test는 fake가 `{level, event,

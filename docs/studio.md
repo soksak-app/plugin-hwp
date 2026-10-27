@@ -4,6 +4,8 @@
 
 The hwp plugin edits documents with `rhwp-studio`, the editor of [rhwp](https://github.com/edwardkim/rhwp). It builds the HWP Studio source release [`soksak-studio-v0.8.7-1`](https://github.com/min-0-max/rhwp/tree/soksak-studio-v0.8.7-1), pinned to the commit named by `COMMIT` in the build script. That source preserves synchronous font detection and `@font-face` registration, starts critical web-font loading and WebAssembly initialization concurrently, and waits for both operations before renderer setup or the ready barrier. It retains the upstream font loader's per-face fallback behavior. If both startup operations fail, the aggregate error message includes both causes and its `errors` array retains both original values.
 
+The H40 source candidate always sets the Studio progress message. It waits for the existing double-animation-frame paint opportunity with its 50 ms fallback only while the message is rendered. When CSS hides the message, the update continues without a paint wait. The embedded 760 × 286 CSS px viewport used by the HWP startup comparison hides `#status-bar` under the responsive small-viewport rule, so those progress waits cannot display their messages. The pinned `soksak-studio-v0.8.7-1` source does not yet include this change.
+
 ## Build
 
 `make studio` runs `scripts/build-studio.mjs`, which writes the built editor to `ui/studio/`. Git ignores that folder, and `make pack` and the release workflow build it before they pack the plugin.
