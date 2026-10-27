@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+- H39: Route view records through the bridge's bounded `runtime.log` writer
+  and use its `runtime.error` route. The consumer fake rejects legacy
+  per-record writer requests. Red: the unchanged HWP open/save test lost its
+  operation records when the fake rejected `{level, event, fields}`. Green:
+  the targeted HWP consumer tests pass 2/2, bridge-model conformance passes
+  10/10, the copied view-bridge case matches the current API, and source-SDK
+  `make check` passes all nine copied contract cases.
+
 - H38: Pin Studio to the published `soksak-studio-v0.8.7-1` source and remove
   the local startup patch step. The four source owner cases, HWP checks, and
   Studio build pass. Four paired comparisons observed 11–37 ms improvement in

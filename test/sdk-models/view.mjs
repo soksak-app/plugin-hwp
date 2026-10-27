@@ -23,6 +23,7 @@ export function createViewBridge({ handler, report }) {
   const sidecarListeners = [];
   const nativeListeners = new Map();
   const plugin = () => globalThis.window?.location?.host;
+  const page = () => String(globalThis.window?.performance?.timeOrigin);
 
   const post = (message) => handler.postMessage(message);
   const openCalls = () => {
@@ -132,6 +133,21 @@ export function createViewBridge({ handler, report }) {
     return subscribed;
   }
 
+  let clock = null;
+  const runtimeError = (where, text) => request("runtime.error", { where, text });
+  const writeLog = (level, event, fields = {}, options = undefined) => {
+    const record = { level, event: `plugin.${plugin()}.${event}`, fields: typeof fields === "function" ? fields() : fields,
+      page: page(), ...(options?.cids === undefined ? {} : { cids: options.cids }) };
+    const send = async () => {
+      clock ??= await request("runtime.log", { action: "clock" });
+      return request("runtime.log", { action: "batch", events: [{ ...record, ts_us: clock.ts_us, mono_ns: clock.mono_ns }] });
+    };
+    void send().catch(async (error) => {
+      const text = `page event batch failed: ${error?.message ?? error}`;
+      try { await runtimeError("log batch", text); }
+      catch (failure) { report({ where: "log batch", text, error: failure }); }
+    });
+  };
   const runtime = {
     native: {
       on(name, listener) {
@@ -144,8 +160,12 @@ export function createViewBridge({ handler, report }) {
     // beginOperation returns, and the identifiers are the cids of every later call of the operation.
     beginOperation(event, fields) {
       const cids = [`p${globalThis.performance.timeOrigin}.${++operationSequence}`];
-      return request("runtime.log", { level: "info", event, fields, cids }).then(() => cids);
+      writeLog("info", event, fields, { cids });
+      return cids;
     },
+    log: Object.fromEntries(["error", "warn", "info", "debug", "trace"].map((level) => [level,
+      (event, fields, options) => writeLog(level, event, fields, options)])),
+    error: runtimeError,
     // A command of the host with cids: the request carries them, and its answer is the answer of the command.
     command(name, params, options = {}) {
       return request(name, params, DEFAULT_LIMIT, options.cids);

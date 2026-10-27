@@ -4,6 +4,13 @@
 
 ## 미배포
 
+- H39: View record는 bridge의 bounded `runtime.log` writer로 보내고
+  `runtime.error` route를 사용한다. Consumer fake는 이전 record별 writer
+  요청을 거부한다. Red: 변경 전 HWP open/save test는 fake가 `{level, event,
+  fields}`를 거부해 operation record를 잃었다. Green: 대상 HWP consumer test
+  2/2, bridge-model conformance 10/10, 현재 API와 일치하는 view-bridge 사본,
+  source-SDK `make check`의 계약 사례 9개가 통과한다.
+
 - H38: Studio를 공개된 `soksak-studio-v0.8.7-1` source로 고정하고 local startup
   patch 적용 절차를 제거한다. source owner case 네 개, HWP check와 Studio build가
   통과한다. 네 쌍의 비교에서 font 응답 완료부터 reading phase까지의 구간이 11–37 ms 개선됐다.

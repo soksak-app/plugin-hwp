@@ -10,20 +10,6 @@ import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { mount } from "./hwp.js";
 import { loadDiagnostics } from "./view-diagnostics.js";
-import { messageText } from "./events.js";
-
-/**
- * A refused record is an error of the view: it is shown as the error line of the view (runtime.error), and the console of the
- * page keeps the line too. A refusal of the error line itself has no other route left, so the console takes it.
- */
-function refusedLog(calls, event, error) {
-  const text = `${event}: ${messageText(error)}`;
-  console.error(`runtime.log ${text}`);
-  calls.request("runtime.error", { where: "log", text })
-    .then(undefined, (refusal) => console.error(`runtime.error log: ${messageText(refusal)}`));
-}
-
-const LOG_LEVELS = ["error", "warn", "info", "debug", "trace"];
 
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const isText = (value) => typeof value === "string" && value !== "";
@@ -109,12 +95,9 @@ export function createViewContext({ bridge, start, report, diagnostics = null })
         command: (name, params, options) => runtime.command(name, params, options),
         // beginOperation writes the first event of an operation and returns the identifiers that its later calls carry.
         beginOperation: runtime.beginOperation,
-        // The fields are built before the send, because a call carries values and not builders. Core applies the level
-        // gate at the delivery and gives the view no level query, so the fields are built while the level is off too.
-        // A refused runtime.log call is reported as the error line of the view (refusedLog).
-        log: Object.fromEntries(LOG_LEVELS.map((level) => [level,
-          (event, fields, options) => calls.request("runtime.log", { level, event, fields: typeof fields === "function" ? fields() : fields, ...(options?.cids === undefined ? {} : { cids: options.cids }) })
-            .then(undefined, (error) => refusedLog(calls, event, error))])),
+        // The bridge sends records through the shared bounded writer and reports failed delivery through its error route.
+        log: runtime.log,
+        error: runtime.error,
         theme: runtime.theme,
       },
       // The composition of the declared regions and overlays of the view, whose operations reach the main page as

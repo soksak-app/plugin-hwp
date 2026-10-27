@@ -216,12 +216,27 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
         case "runtime.error": reports.errorLines.push(params); return null;
         case "tab.footer": case "tab.notify": case "tab.keep": case "tab.directory": return null;
         case "runtime.log":
-          if (params === null || typeof params !== "object" || Array.isArray(params)) throw new Error("runtime.log requires {level, event, fields}");
-          if (!LEVELS.includes(params.level)) throw new Error(`runtime.log level ${params.level} is not a log level`);
-          // refuseLog makes the host refuse every record, as the application log route of a host can.
+          if (params === null || typeof params !== "object" || Array.isArray(params)) throw new Error("runtime.log requires a writer request");
+          if (params.action === "clock") {
+            if (Object.keys(params).length !== 1) throw new Error("runtime.log clock accepts only action");
+            return { ts_us: 1_791_000_000_000_000, mono_ns: 5_000_000_000 };
+          }
+          if (params.action !== "batch") throw new Error(`runtime.log action must be clock or batch, not ${String(params.action)}`);
+          if (Object.keys(params).some((key) => key !== "action" && key !== "events") || !Array.isArray(params.events)) {
+            throw new Error("runtime.log batch requires only events");
+          }
+          // refuseLog makes the host refuse an event batch while the separate view error route remains available.
           if (refuseLog !== null) throw new Error(refuseLog);
-          // The runtime adds the prefix plugin.<plugin>. to the event name of a view call (core packages/plugin-api/plugin-runtime.js).
-          logs.push({ ...params, event: `plugin.${window.location.host}.${params.event}` });
+          for (const event of params.events) {
+            if (event === null || typeof event !== "object" || !LEVELS.includes(event.level)
+              || typeof event.event !== "string" || !event.event.startsWith(`plugin.${window.location.host}.`)
+              || typeof event.page !== "string" || !Number.isSafeInteger(event.ts_us) || !Number.isSafeInteger(event.mono_ns)
+              || event.fields === null || typeof event.fields !== "object" || Array.isArray(event.fields)
+              || Object.hasOwn(event.fields, "surface")) {
+              throw new Error(`runtime.log batch has an invalid plugin event ${JSON.stringify(event)}`);
+            }
+            logs.push(event);
+          }
           return null;
         case "runtime.textSize.read": return 1;
         case "runtime.textSize.on": case "runtime.settings.read": case "runtime.settings.on": return null;

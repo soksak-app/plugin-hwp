@@ -21,7 +21,8 @@ const EXCLUDED_CASES = {
   "binder.run.runs-and-refuses": "the page does not call the binder run",
   "view.bridge.refuses-malformed-host-message": "the view channel refuses messages without the marker before the bridge receives them",
   "view.bridge.refuses-unsupported-page": "the page is always soksak://hwp/, so the bridge creation check is not reached",
-  "view.bridge.runtime-log-without-level-query": "the page writes runtime.log without a level query, and the view bridge model has no runtime.log, so its log steps are not replayed",
+  "view.operation.begin-logs-first-event-and-carries-cids": "the copied fixture expects beginOperation to send a legacy per-record writer request; HWP verifies operation identifiers through the current page-boundary writer fake",
+  "view.operation.each-begin-takes-the-next-identifier": "the copied fixture expects beginOperation to send a legacy per-record writer request; HWP verifies operation identifiers through the current page-boundary writer fake",
   "view.bridge.sidecar-subscriptions": "the page subscribes to sidecar messages only, not to runtime.sidecar.onFailure",
   "view.native.exposure-calls-and-refusals": "the page registers exposure entries through calls.request, not exposureRegister or exposureReply",
   // The steps of these cases call zoom, go, entry or stop, which the page does not call. The bridge call ids that the
@@ -50,7 +51,7 @@ function viewWindow() {
 }
 
 test("the excluded cases and steps are present in the copied fixtures", () => {
-  const ids = new Set(["view-bridge", "view-native", "view-composition", "create-binder", "expose", "calls", "view-commands"].flatMap((name) => fixture(name)).map((entry) => entry.id));
+  const ids = new Set(["view-bridge", "view-native", "view-composition", "view-operations", "create-binder", "expose", "calls", "view-commands"].flatMap((name) => fixture(name)).map((entry) => entry.id));
   for (const id of [...Object.keys(EXCLUDED_CASES), ...Object.keys(EXCLUDED_STEPS)]) assert.ok(ids.has(id), `excluded case ${id} is not in the fixtures`);
 });
 
@@ -218,7 +219,7 @@ test("view operation cases replay against the bridge model", async () => {
   // The identifiers of a case are p<time origin of the page>.<n>; the case writes the origin as $ORIGIN.
   const origin = globalThis.performance.timeOrigin;
   const expected = (value) => JSON.parse(JSON.stringify(value).replaceAll("p$ORIGIN.", `p${origin}.`));
-  for (const testCase of fixture("view-operations")) {
+  for (const testCase of replayable("view-operations")) {
     const sokView = viewWindow();
     const posted = [];
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });

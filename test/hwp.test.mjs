@@ -521,14 +521,12 @@ test("an error message of the editor page without text shows the whole event", a
   assert.equal(host.reports.error.at(-1), '편집기 · {"type":"soksak-hwp","event":"error"}');
 });
 
-test("a refused runtime.log is shown as an error line of the view and written to the console", async (t) => {
-  const consoleError = t.mock.method(console, "error", () => {});
+test("a refused view event batch uses the bridge error route", async (t) => {
   const host = await setup(t, { refuseLog: "log route refused" });
   host.window.dispatchEvent(new host.window.ErrorEvent("error", { error: new Error("failed"), message: "failed" }));
   await host.settle();
-  assert.ok(consoleError.mock.callCount() > 0, "the refused record reached no console line");
-  assert.deepEqual(host.reports.errorLines.find((line) => line.text.startsWith("report:")),
-    { where: "log", text: "report: log route refused" });
+  assert.ok(host.reports.errorLines.some((line) => line.where === "log batch" && line.text.includes("log route refused")),
+    "the bridge did not report the refused batch through runtime.error");
 });
 
 test("the open and the save of a file carry the cids of their operations on the sidecar sends and the records", async (t) => {
