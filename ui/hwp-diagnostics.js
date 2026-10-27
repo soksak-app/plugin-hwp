@@ -4,6 +4,10 @@ const markerType = "soksak-hwp-viewport-marker";
 const markerColor = [255, 0, 255];
 const markerColorCss = "rgb(255, 0, 255)";
 const markerInsetCssPx = 4;
+const resourceTimingFields = ["decodedBodySize", "duration", "encodedBodySize", "fetchStart", "initiatorType", "name",
+  "requestStart", "responseEnd", "responseStart", "startTime", "transferSize"];
+const studioClockFields = ["documentTimeOriginMs", "snapshotAtMs"];
+const studioSnapshotFields = ["resourceTimings", "studioClock", "studioViewport"];
 const viewportFields = ["borderWidth", "clientHeight", "clientWidth", "fixedContainingBlock", "innerHeight", "innerWidth",
   "markerColor", "rect", "visualViewport"];
 const rectFields = ["bottom", "left", "right", "top"];
@@ -38,6 +42,27 @@ function requireStudioViewport(value) {
   for (const [property, required] of Object.entries(expected)) {
     if (value.fixedContainingBlock[property] !== required) {
       throw new TypeError(`HWP studio viewport marker returned unsupported fixed-position containing-block value ${property}`);
+    }
+  }
+  return value;
+}
+
+function requireStudioResourceSnapshot(value) {
+  if (!exactKeys(value, studioSnapshotFields) || !exactKeys(value.studioClock, studioClockFields)
+      || !Array.isArray(value.resourceTimings)) {
+    throw new TypeError("HWP studio resource timing snapshot returned an invalid evidence shape");
+  }
+  const { documentTimeOriginMs, snapshotAtMs } = value.studioClock;
+  if (!Number.isFinite(documentTimeOriginMs) || documentTimeOriginMs <= 0
+      || !Number.isFinite(snapshotAtMs) || snapshotAtMs < 0) {
+    throw new TypeError("HWP studio resource timing snapshot returned an invalid clock");
+  }
+  for (const entry of value.resourceTimings) {
+    if (!exactKeys(entry, resourceTimingFields) || typeof entry.name !== "string" || entry.name.length === 0
+        || typeof entry.initiatorType !== "string"
+        || !resourceTimingFields.filter((field) => field !== "name" && field !== "initiatorType")
+          .every((field) => Number.isFinite(entry[field]) && entry[field] >= 0)) {
+      throw new TypeError("HWP studio resource timing snapshot contains an invalid entry");
     }
   }
   return value;
@@ -168,10 +193,12 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
     if (failure) throw failure;
     return { ...result, studioViewport: null };
   };
-  const read = async () => ({
-    ...diagnostics.read(),
-    studioViewport: markerActive ? requireStudioViewport(await markerRequest("read")) : null,
-  });
+  const read = async () => {
+    const result = diagnostics.read();
+    if (!markerActive) return { ...result, studioViewport: null, studioClock: null, resourceTimings: null };
+    const snapshot = requireStudioResourceSnapshot(await markerRequest("read"));
+    return { ...result, ...snapshot };
+  };
   const dispose = () => {
     if (disposal) return disposal;
     disposed = true;
@@ -308,6 +335,38 @@ export async function attachStudio({ document, window: studioWindow }) {
     }
     return values;
   };
+  const resourceTimingSnapshot = () => {
+    const performance = studioWindow.performance;
+    if (!performance || typeof performance.getEntriesByType !== "function"
+        || typeof performance.now !== "function" || !Number.isFinite(performance.timeOrigin)) {
+      throw new Error("HWP studio resource timing requires the document performance clock and resource entries");
+    }
+    const documentTimeOriginMs = performance.timeOrigin;
+    const entries = performance.getEntriesByType("resource");
+    if (!Array.isArray(entries)) throw new TypeError("HWP studio resource timing entries must be an array");
+    const snapshotAtMs = performance.now();
+    const resourceTimings = entries.map((entry) => ({
+      name: entry.name,
+      initiatorType: entry.initiatorType,
+      startTime: entry.startTime,
+      duration: entry.duration,
+      fetchStart: entry.fetchStart,
+      requestStart: entry.requestStart,
+      responseStart: entry.responseStart,
+      responseEnd: entry.responseEnd,
+      transferSize: entry.transferSize,
+      encodedBodySize: entry.encodedBodySize,
+      decodedBodySize: entry.decodedBodySize,
+    }));
+    return {
+      studioViewport: viewport(),
+      studioClock: {
+        documentTimeOriginMs,
+        snapshotAtMs,
+      },
+      resourceTimings,
+    };
+  };
   const startMarker = () => {
     if (marker !== null) throw new Error("HWP studio viewport marker is already active");
     viewport();
@@ -350,7 +409,7 @@ export async function attachStudio({ document, window: studioWindow }) {
         throw new TypeError(`unknown HWP studio viewport marker operation ${JSON.stringify(request.operation)}`);
       }
       if (request.operation === "start") result = startMarker();
-      else if (request.operation === "read") result = marker === null ? null : viewport();
+      else if (request.operation === "read") result = marker === null ? null : resourceTimingSnapshot();
       else {
         removeMarker();
         result = null;

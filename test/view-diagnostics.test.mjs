@@ -29,6 +29,7 @@ test("the studio viewport marker measures the document viewport and removes its 
   const style = { transform: "none", perspective: "none", filter: "none", contain: "none", willChange: "auto", containerType: "normal" };
   const window = {
     parent,
+    performance: { timeOrigin: 1_234_567, now: () => 150, getEntriesByType: () => [] },
     innerWidth: 1024,
     innerHeight: 768,
     visualViewport: { width: 1024, height: 768, offsetLeft: 0, offsetTop: 0, scale: 1 },
@@ -71,7 +72,7 @@ test("the studio viewport marker measures the document viewport and removes its 
     transform: "none", boxShadow: "none", zIndex: "2147483647",
   });
   markerRect = { left: 4, top: 4, right: 1020, bottom: 764 };
-  assert.equal((await deliver("read-1", "read")).message.result.rect.right, 1020);
+  assert.equal((await deliver("read-1", "read")).message.result.studioViewport.rect.right, 1020);
   assert.equal((await deliver("stop-1", "stop")).message.result, null);
   assert.equal(children.length, 0, "stop must remove the exact marker element");
 
@@ -84,6 +85,199 @@ test("the studio viewport marker measures the document viewport and removes its 
   dispose();
   assert.equal(children.length, 0, "disposal must remove the exact marker element");
   assert.equal(listeners.has("message"), false, "disposal must remove the message listener");
+});
+
+test("an active studio diagnostic read returns available resource timings on the studio clock", { timeout: 5_000 }, async () => {
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const listeners = new Map();
+  const children = [];
+  const replies = [];
+  const parentListeners = new Set();
+  const entries = [{
+    name: "https://cdn.example.test/HANBatang.woff",
+    initiatorType: "css",
+    startTime: 12,
+    duration: 24,
+    fetchStart: 12,
+    requestStart: 13,
+    responseStart: 20,
+    responseEnd: 36,
+    transferSize: 0,
+    encodedBodySize: 0,
+    decodedBodySize: 0,
+  }, {
+    name: "soksak://hwp/ui/studio/rhwp_bg.wasm",
+    initiatorType: "fetch",
+    startTime: 40,
+    duration: 90,
+    fetchStart: 40,
+    requestStart: 41,
+    responseStart: 50,
+    responseEnd: 130,
+    transferSize: 2048,
+    encodedBodySize: 2000,
+    decodedBodySize: 2000,
+  }];
+  let resourceReads = 0;
+  const performance = {
+    timeOrigin: 1_234_567,
+    now: () => 150,
+    getEntriesByType(type) {
+      assert.equal(type, "resource");
+      resourceReads++;
+      return entries;
+    },
+  };
+  const parent = {};
+  const root = {
+    clientWidth: 1024,
+    clientHeight: 768,
+    append(element) { children.push(element); },
+  };
+  const style = { transform: "none", perspective: "none", filter: "none", contain: "none", willChange: "auto", containerType: "normal" };
+  const window = {
+    parent,
+    performance,
+    innerWidth: 1024,
+    innerHeight: 768,
+    visualViewport: { width: 1024, height: 768, offsetLeft: 0, offsetTop: 0, scale: 1 },
+    location: { origin: "soksak://hwp" },
+    getComputedStyle: () => style,
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    removeEventListener(type, listener) { if (listeners.get(type) === listener) listeners.delete(type); },
+    postMessage(message, origin) {
+      replies.push({ message, origin });
+      queueMicrotask(() => {
+        listeners.get("message")({ source: window, origin, data: message });
+        for (const listener of parentListeners) listener(message);
+      });
+    },
+  };
+  const document = {
+    documentElement: root,
+    createElement: () => ({
+      style: {},
+      setAttribute() {},
+      getBoundingClientRect: () => ({ left: 4, top: 4, right: 1020, bottom: 764 }),
+      remove() { const index = children.indexOf(this); if (index >= 0) children.splice(index, 1); },
+    }),
+  };
+  const dispose = await attachStudio({ document, window });
+  const region = {
+    onMessage(listener) {
+      parentListeners.add(listener);
+      return () => parentListeners.delete(listener);
+    },
+    post(message) {
+      queueMicrotask(() => listeners.get("message")({
+        source: window,
+        origin: "soksak://hwp",
+        data: message,
+      }));
+      return Promise.resolve();
+    },
+  };
+  let enabled = false;
+  const diagnostics = {
+    read: () => ({ enabled, sequence: 0, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }),
+    async start() { enabled = true; return { enabled: true, sequence: 1, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }; },
+    async stop() { enabled = false; return { enabled: false, sequence: 1, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }; },
+    async dispose() {},
+  };
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const commands = createStudioViewportDiagnostics({ diagnostics, documentRegion: region });
+  await commands.start();
+  assert.equal(resourceReads, 0, "resource timing is read only at an explicit snapshot");
+  const read = await commands.read();
+  assert.deepEqual(read.studioViewport, {
+    markerColor: [255, 0, 255], borderWidth: 2,
+    rect: { left: 4, top: 4, right: 1020, bottom: 764 },
+    innerWidth: 1024, innerHeight: 768, clientWidth: 1024, clientHeight: 768,
+    visualViewport: { width: 1024, height: 768, offsetLeft: 0, offsetTop: 0, scale: 1 },
+    fixedContainingBlock: style,
+  });
+  assert.deepEqual(read.studioClock, {
+    documentTimeOriginMs: 1_234_567,
+    snapshotAtMs: 150,
+  });
+  assert.deepEqual(read.resourceTimings, entries);
+  assert.equal(resourceReads, 1);
+  await commands.stop();
+  assert.equal(resourceReads, 1, "stop does not query resource timing");
+  await commands.dispose();
+  dispose();
+});
+
+test("inactive diagnostic reads return no studio resource snapshot", { timeout: 5_000 }, async () => {
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  let requests = 0;
+  const diagnostics = {
+    read: () => ({ enabled: false, sequence: 0, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }),
+    async start() { throw new Error("inactive read must not start observation"); },
+    async stop() { throw new Error("inactive read must not stop observation"); },
+    async dispose() {},
+  };
+  const commands = createStudioViewportDiagnostics({
+    diagnostics,
+    documentRegion: {
+      onMessage() { throw new Error("inactive read must not subscribe to the studio"); },
+      post() { requests++; throw new Error("inactive read must not query the studio"); },
+    },
+  });
+  const read = await commands.read();
+  assert.equal(read.studioClock, null);
+  assert.equal(read.resourceTimings, null);
+  assert.equal(read.studioViewport, null);
+  assert.equal(requests, 0);
+  await commands.dispose();
+});
+
+test("an active studio read reports an unsupported Resource Timing API", { timeout: 5_000 }, async () => {
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const listeners = new Map();
+  const replies = [];
+  const children = [];
+  const root = {
+    clientWidth: 1024,
+    clientHeight: 768,
+    append(element) { children.push(element); },
+  };
+  const style = { transform: "none", perspective: "none", filter: "none", contain: "none", willChange: "auto", containerType: "normal" };
+  const window = {
+    performance: { timeOrigin: 1_234_567, now: () => 150 },
+    innerWidth: 1024,
+    innerHeight: 768,
+    visualViewport: { width: 1024, height: 768, offsetLeft: 0, offsetTop: 0, scale: 1 },
+    location: { origin: "soksak://hwp" },
+    getComputedStyle: () => style,
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    removeEventListener(type, listener) { if (listeners.get(type) === listener) listeners.delete(type); },
+    postMessage(message) { replies.push(message); },
+  };
+  const document = {
+    documentElement: root,
+    createElement: () => ({
+      style: {},
+      setAttribute() {},
+      getBoundingClientRect: () => ({ left: 4, top: 4, right: 1020, bottom: 764 }),
+      remove() { const index = children.indexOf(this); if (index >= 0) children.splice(index, 1); },
+    }),
+  };
+  const dispose = await attachStudio({ document, window });
+  const deliver = async (id, operation) => {
+    await listeners.get("message")({
+      source: window,
+      origin: "soksak://hwp",
+      data: { type: "soksak-hwp-viewport-marker", id, operation },
+    });
+    return replies.at(-1);
+  };
+  await deliver("start-no-resource-api", "start");
+  const read = await deliver("read-no-resource-api", "read");
+  assert.equal(read.id, "read-no-resource-api");
+  assert.equal(read.type, "soksak-hwp-viewport-marker");
+  assert.match(read.error, /resource timing requires the document performance clock and resource entries/);
+  dispose();
 });
 
 test("view diagnostics serialize marker start and clean it up when disposal overlaps start", async () => {

@@ -13,6 +13,17 @@ the view document's `performance` clock; `sourceResolutionMs` is the declared fi
 value. Core joins that reply to the exact native exposure request/reply interval and requires every source frame to retain the
 same document time origin.
 
+While frame diagnostics are active, `read` also queries the studio document for a snapshot of the `PerformanceResourceTiming`
+entries still available from `performance.getEntriesByType("resource")`. It returns `studioClock` with that document's
+`performance.timeOrigin` and the `performance.now()` value sampled for the snapshot, and `resourceTimings` with each entry's
+`name`, `initiatorType`, `startTime`, `duration`, `fetchStart`, `requestStart`, `responseStart`, `responseEnd`, `transferSize`,
+`encodedBodySize`, and `decodedBodySize`. Entry times use the studio document's performance clock; they do not use the view
+document's `sourceClock`. The snapshot contains only entries still present when `read` runs; it is not a complete resource
+history. Browser-reported zero timing or size fields are returned unchanged, including fields restricted for cross-origin
+resources. The snapshot does not infer a Timing-Allow-Origin result. Resource timings describe resource fetches; they do not
+measure WebAssembly compilation or instantiation. An inactive read returns `studioClock: null` and `resourceTimings: null` and
+does not query the studio.
+
 Start also requests a transparent marker in the actual `studio` document through the document region. The diagnostic-only
 studio companion appends one fixed element to that document's `document.documentElement`, with `inset: 4px`, `box-sizing:
 border-box`, a 2 px `rgb(255, 0, 255)` border, `pointer-events: none`, and the highest supported stacking order. The 4 CSS px inset separates this HTML paint marker from the native viewport boundary. The marker changes

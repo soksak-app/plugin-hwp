@@ -12,6 +12,16 @@ HWP view는 성능 검사를 위한 opt-in 문서 프레임 observation과 studi
 sourceResolutionMs}`도 반환한다. `sourceResolutionMs`는 측정한 runtime 값이 아니라 고정된 1 ms WebKit 상한이다. Core는 이
 응답을 정확한 native exposure request/reply 구간에 연결하며 모든 source frame이 같은 document time origin을 유지해야 한다.
 
+Frame diagnostics가 활성화된 동안 `read`는 studio document에서 `performance.getEntriesByType("resource")`로 아직 확인할 수 있는
+`PerformanceResourceTiming` 항목의 snapshot도 요청한다. 응답은 해당 document의 `performance.timeOrigin`과 snapshot 시점의
+`performance.now()`를 담은 `studioClock`, 그리고 각 항목의 `name`, `initiatorType`, `startTime`, `duration`, `fetchStart`,
+`requestStart`, `responseStart`, `responseEnd`, `transferSize`, `encodedBodySize`, `decodedBodySize`를 담은 `resourceTimings`를
+포함한다. 항목 시간은 studio document performance clock을 사용하며 view document의 `sourceClock`과는 다르다. Snapshot에는
+`read` 시점에 남아 있는 항목만 포함하며 완전한 resource history가 아니다. Cross-origin 제한을 포함해 browser가 반환한 0인
+timing 또는 size 값은 그대로 반환한다. Timing-Allow-Origin 결과를 추정하지 않는다. Resource timing은 자원 fetch만 설명하며
+WebAssembly compile 또는 instantiate 시간을 측정하지 않는다. Inactive read는 `studioClock: null`과 `resourceTimings: null`을
+반환하고 studio에 query를 보내지 않는다.
+
 Start는 document region을 통해 실제 `studio` document에 투명 marker도 요청한다. Diagnostic-only studio companion은 해당
 document의 `document.documentElement`에 `position: fixed`, `inset: 4px`, `box-sizing: border-box`, 2 px
 `rgb(255, 0, 255)` border, `pointer-events: none`, 가능한 가장 높은 stacking order를 가진 element 하나를 추가한다.

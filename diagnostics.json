@@ -87,7 +87,7 @@
       },
       {
         "name": "hwp.diagnostics.frames.read",
-        "description": "Reads HWP view document-frame observer state without starting observation.",
+        "description": "Reads HWP view document-frame state and, while active, a studio resource timing snapshot without starting observation.",
         "params": {
           "type": "object",
           "properties": {}
@@ -101,6 +101,23 @@
             "regionHistoryEntries": { "type": "integer" },
             "width": { "type": "number" },
             "height": { "type": "number" },
+            "studioClock": { "type": ["object", "null"], "properties": {
+              "documentTimeOriginMs": { "type": "number" },
+              "snapshotAtMs": { "type": "number" }
+            } },
+            "resourceTimings": { "type": ["array", "null"], "items": { "type": "object", "properties": {
+              "name": { "type": "string" },
+              "initiatorType": { "type": "string" },
+              "startTime": { "type": "number" },
+              "duration": { "type": "number" },
+              "fetchStart": { "type": "number" },
+              "requestStart": { "type": "number" },
+              "responseStart": { "type": "number" },
+              "responseEnd": { "type": "number" },
+              "transferSize": { "type": "number" },
+              "encodedBodySize": { "type": "number" },
+              "decodedBodySize": { "type": "number" }
+            } } },
             "studioViewport": { "type": ["object", "null"], "properties": {
               "markerColor": { "type": "array", "items": { "type": "integer" } },
               "borderWidth": { "type": "number" },

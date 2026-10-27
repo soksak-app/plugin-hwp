@@ -77,8 +77,10 @@ test("view-frame commands exist only in the diagnostic declaration and module", 
   assert.equal(diagnostics.module, "ui/hwp-diagnostics.js");
   assert.deepEqual(diagnostics.exposes.commands.map((entry) => entry.name), names);
   for (const command of diagnostics.exposes.commands) {
-    assert.deepEqual(Object.keys(command.result.properties).sort(),
-      ["enabled", "height", "historyEntries", "regionHistoryEntries", "sequence", "studioViewport", "width"].sort(),
+    const resultFields = ["enabled", "height", "historyEntries", "regionHistoryEntries", "sequence", "studioViewport", "width"];
+    if (command.name === "hwp.diagnostics.frames.start") resultFields.push("sourceClock");
+    if (command.name === "hwp.diagnostics.frames.read") resultFields.push("resourceTimings", "studioClock");
+    assert.deepEqual(Object.keys(command.result.properties).sort(), resultFields.sort(),
       `${command.name} must declare both history counts and studio viewport evidence`);
     const viewport = command.result.properties.studioViewport;
     assert.deepEqual(viewport.type, ["object", "null"]);
@@ -91,6 +93,14 @@ test("view-frame commands exist only in the diagnostic declaration and module", 
     assert.deepEqual(Object.keys(viewport.properties.fixedContainingBlock.properties).sort(),
       ["contain", "containerType", "filter", "perspective", "transform", "willChange"].sort());
   }
+  const read = diagnostics.exposes.commands.find((entry) => entry.name === "hwp.diagnostics.frames.read");
+  assert.deepEqual(Object.keys(read.result.properties.studioClock.properties).sort(), ["documentTimeOriginMs", "snapshotAtMs"]);
+  assert.deepEqual(Object.keys(read.result.properties.resourceTimings.items.properties).sort(), [
+    "decodedBodySize", "duration", "encodedBodySize", "fetchStart", "initiatorType", "name", "requestStart",
+    "responseEnd", "responseStart", "startTime", "transferSize",
+  ]);
+  assert.deepEqual(read.result.properties.studioClock.type, ["object", "null"]);
+  assert.deepEqual(read.result.properties.resourceTimings.type, ["array", "null"]);
   assert.equal(names.some((name) => manifest.exposes.commands.some((entry) => entry.name === name)), false);
   const files = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).files;
   assert.equal(files.includes("diagnostics.json"), false);
