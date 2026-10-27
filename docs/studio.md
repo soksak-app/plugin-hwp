@@ -2,7 +2,7 @@
 
 [한국어](studio.ko.md)
 
-The hwp plugin edits documents with `rhwp-studio`, the editor of [rhwp](https://github.com/edwardkim/rhwp). The plugin holds the editor as `rhwp-studio` builds it and does not change its sources.
+The hwp plugin edits documents with `rhwp-studio`, the editor of [rhwp](https://github.com/edwardkim/rhwp). It builds the HWP Studio source release [`soksak-studio-v0.8.7-1`](https://github.com/min-0-max/rhwp/tree/soksak-studio-v0.8.7-1), pinned to the commit named by `COMMIT` in the build script. That source preserves synchronous font detection and `@font-face` registration, starts critical web-font loading and WebAssembly initialization concurrently, and waits for both operations before renderer setup or the ready barrier. It retains the upstream font loader's per-face fallback behavior. If both startup operations fail, the aggregate error message includes both causes and its `errors` array retains both original values.
 
 ## Build
 
@@ -10,14 +10,17 @@ The hwp plugin edits documents with `rhwp-studio`, the editor of [rhwp](https://
 
 The script:
 
-1. checks out `rhwp-studio` without its `e2e` and `tests` folders, `assets/fonts`, `LICENSE` and `THIRD_PARTY_LICENSES.md` of the rhwp tag `TAG` into `node_modules/.cache/rhwp-<tag>`, and refuses a checkout whose commit differs from `COMMIT`;
-2. copies the WebAssembly package of the devDependency `@rhwp/core`, whose version must equal the tag, to the `pkg` folder that the `rhwp-studio` build imports;
-3. installs the dependencies of `rhwp-studio` from its lockfile with `npm ci`;
-4. runs `npm run build:no-hwpctrl -- --base ./`, the build script of `rhwp-studio` without the HWP control plugin, with relative asset paths, into `ui/studio/`;
-5. adds `ui/studio-host.js` as a module script at the end of the head of `ui/studio/index.html`;
-6. copies `LICENSE` and `THIRD_PARTY_LICENSES.md` of rhwp into `ui/studio/`.
+1. sparsely checks out `rhwp-studio` without its `e2e` folders and other tests, plus the tracked startup owner test, `assets/fonts`, `LICENSE` and `THIRD_PARTY_LICENSES.md` from `https://github.com/min-0-max/rhwp.git`, tag `soksak-studio-v0.8.7-1`, into `node_modules/.cache/rhwp-soksak-studio-v0.8.7-1`;
+2. requires the checkout commit to equal `COMMIT` and rejects any tracked or untracked source changes;
+3. copies the WebAssembly package of the devDependency `@rhwp/core`, whose version must equal the separate `CORE_VERSION` pin `0.8.7`, to the `pkg` folder that `rhwp-studio` imports;
+4. installs the dependencies of `rhwp-studio` from its lockfile with `npm ci`;
+5. runs `npm run build:no-hwpctrl -- --base ./`, the published `rhwp-studio` build script without the HWP control plugin and with relative asset paths, into `ui/studio/`;
+6. adds `ui/studio-host.js` as a module script at the end of the head of `ui/studio/index.html`;
+7. copies `LICENSE` and `THIRD_PARTY_LICENSES.md` from rhwp into `ui/studio/`.
 
-A later build reuses the checkout and its dependencies.
+A later build reuses the checkout and its dependencies after rechecking the exact commit and clean source state. It does not rewrite or repair a changed checkout; source drift fails the build and requires a fresh checkout of the pinned tag.
+
+The pinned source includes the upstream-owned startup test. Run `npm run test:startup` from the cached `rhwp-studio` directory. The target compiles only the startup helper into `dist/startup-tests` and runs it through Node's test runner. The four cases verify concurrent startup behind the complete barrier, font and WebAssembly rejection behavior, and preservation of both failure causes. All four pass on the pinned source. Four paired startup comparisons observed 11–37 ms improvement in the interval from font response completion to the reading phase. This result covers that interval only; it does not establish acceptance of the complete startup or first-content target.
 
 ## Host script
 
@@ -31,6 +34,6 @@ A later build reuses the checkout and its dependencies.
 
 ## Update to a later rhwp tag
 
-1. Set `TAG` and `COMMIT` in `scripts/build-studio.mjs` to the new tag and the commit it names, and the exact version of `@rhwp/core` in `package.json` to the same version.
-2. Run `pnpm install` and `make studio`, then `make test`.
-3. Read the embed protocol of the new tag (`rhwp-studio/src/embed/`) and the context of `window.rhwpStudio.automation` for changes to the requests and fields that the files of `ui/` use.
+1. Set `REPOSITORY`, `TAG` and `COMMIT` in `scripts/build-studio.mjs` to the reviewed HWP Studio source release. Keep `CORE_VERSION` and the `@rhwp/core` package version as a separate pin; update them only when the WebAssembly package used by that Studio source changes.
+2. Run the startup owner test from the pinned source, then `make studio` and `make check`.
+3. Read the embed protocol of the new source (`rhwp-studio/src/embed/`) and the context of `window.rhwpStudio.automation` for changes to requests and fields used by the files of `ui/`.

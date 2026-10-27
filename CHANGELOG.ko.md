@@ -4,6 +4,11 @@
 
 ## 미배포
 
+- H38: Studio를 공개된 `soksak-studio-v0.8.7-1` source로 고정하고 local startup
+  patch 적용 절차를 제거한다. source owner case 네 개, HWP check와 Studio build가
+  통과한다. 네 쌍의 비교에서 font 응답 완료부터 reading phase까지의 구간이 11–37 ms 개선됐다.
+  전체 startup acceptance는 확인되지 않았다.
+
 - H23.11: 활성 diagnostic read에 현재 studio `PerformanceResourceTiming` 항목과 document clock을 추가한다. Browser가 제한한 0을 그대로 보존하며 완전한 resource history나 WebAssembly compilation 시간을 주장하지 않는다. 변경 전 read owner는 timing field 누락으로 실패했고, view diagnostics 24/24, declaration owner 각각 1/1, current-SDK 구조 검사가 통과한다.
 
 - H37: 기존 studio HTML viewport marker를 4 CSS px 안쪽에 그려 native cyan border와 paint를 구분한다. Layout, pointer 동작, preflight와 cleanup을 유지한다. 변경 전 DOM owner Red가 Green으로 바뀌며 owner case 21개, current-SDK 검사와 diagnostic packaging이 통과한다. Pixel acceptance는 core F239-233에 남는다.

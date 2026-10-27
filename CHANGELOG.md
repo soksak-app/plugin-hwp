@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- H38: Pin Studio to the published `soksak-studio-v0.8.7-1` source and remove
+  the local startup patch step. The four source owner cases, HWP checks, and
+  Studio build pass. Four paired comparisons observed 11–37 ms improvement in
+  the interval from font response completion to the reading phase; complete startup acceptance remains
+  unestablished.
+
 - H23.11: Add current studio `PerformanceResourceTiming` entries and their
   document clock to the active diagnostic read. Preserve browser-reported
   restricted zeros; make no claim of complete resource history or WebAssembly
