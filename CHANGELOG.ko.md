@@ -4,6 +4,12 @@
 
 ## 미배포
 
+- H36: 성공한 frame-observation 시작 응답에 HWP view document의
+  `performance.timeOrigin`, 즉시 읽은 `performance.now()`와 고정된 1 ms 정밀도
+  상한을 반환한다. Red: 기존 응답에 `sourceClock`이 없음을 owner test가 확인했다.
+  Green: owner test 1/1, current-SDK `make check`, authoritative diagnostic pack이
+  통과했다. Application 통합은 core F239-221에서 계속한다.
+
 - H35: 전체 view-sharing process group을 회수하고 다시 연 뒤에도 HWP 본문이
   표시되는지 확인한다. group을 닫기 전에 측정이 view를 `760 × 286.5`에서
   `785.5 × 286.5`로 바꿨다. 넓어진 viewport에서 responsive toolbar가 펼쳐져 첫

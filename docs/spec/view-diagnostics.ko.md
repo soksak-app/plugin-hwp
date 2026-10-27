@@ -8,6 +8,9 @@ HWP view는 성능 검사를 위한 opt-in 문서 프레임 observation과 studi
 `region.state.history.entries.length`에서 `regionHistoryEntries`를 반환한다. 두 값은 entry count이며, 복원 여부만 나타내는
 `region.history` boolean을 count로 사용하지 않는다. Start는 두 count와 root의 현재 width, height를 읽은 뒤 해당 root를
 `ResizeObserver`로 관찰한다. 관찰은 root style을 바꾸지 않는다.
+성공한 start 응답은 view document의 `performance` clock에서 읽은 `sourceClock: {documentTimeOriginMs, sourceNowMs,
+sourceResolutionMs}`도 반환한다. `sourceResolutionMs`는 측정한 runtime 값이 아니라 고정된 1 ms WebKit 상한이다. Core는 이
+응답을 정확한 native exposure request/reply 구간에 연결하며 모든 source frame이 같은 document time origin을 유지해야 한다.
 
 Start는 document region을 통해 실제 `studio` document에 투명 marker도 요청한다. Diagnostic-only studio companion은 해당
 document의 `document.documentElement`에 `position: fixed`, `inset: 0`, `box-sizing: border-box`, 2 px

@@ -6,6 +6,9 @@
 | --- | --- | --- | --- |
 | H23.2 HWP view measurements | H23.1 and H23.6 diagnostics implemented | Owner tests passed; runtime window measurement pending | Unreleased |
 | H23.10 ResizeObserver delivery coalescing | Core helper and HWP event contract implemented | Core owner test 6/6; HWP owner test 21/21; current-source `make check` passed | Unreleased |
+| H36 source-clock anchor | HWP frame-start reply returns the view document source clock and fixed WebKit resolution bound | The owner test passes 1/1; current-SDK `make check` passes; authoritative diagnostic pack succeeds | Unreleased |
+
+- [o] H36 — P1, linked to core F239-221: Return the view document source-clock anchor from successful frame-observation startup. Red: the unchanged owner finds no sourceClock in the start reply. Green: the same owner passes 1/1 with the current document time origin, current performance time and fixed 1 ms resolution bound; current-SDK checks, diagnostic declaration validation and diagnostic packaging pass. Application integration remains under core F239-221.
 
 - [o] H35 — P0, linked to core F212.14-5-5 and F212.14-5-32: Verify HWP document content after reclaiming and reopening the complete view-sharing process group. The initial views used a `760 × 286.5` view; the measurement changed it to `785.5 × 286.5` before closing the group. At that width the HWP responsive stylesheet expands its menu, style and status bars, reducing the document viewport and placing the first paragraph below the captured area. This was a measurement-fixture geometry change, not a provider rendering defect. Core F212.14-5-32 restores the initial geometry before reopening. Wails and Tauri acceptance then passed: body OCR was present, the complete process group reclaimed at least 90% within 10 seconds, all three repetitions passed, and no engine-cached process remained. No HWP source change was needed.
 

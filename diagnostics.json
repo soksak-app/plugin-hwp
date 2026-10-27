@@ -18,6 +18,11 @@
             "regionHistoryEntries": { "type": "integer" },
             "width": { "type": "number" },
             "height": { "type": "number" },
+            "sourceClock": { "type": "object", "properties": {
+              "documentTimeOriginMs": { "type": "number" },
+              "sourceNowMs": { "type": "number" },
+              "sourceResolutionMs": { "type": "number", "enum": [1] }
+            } },
             "studioViewport": { "type": ["object", "null"], "properties": {
               "markerColor": { "type": "array", "items": { "type": "integer" } },
               "borderWidth": { "type": "number" },

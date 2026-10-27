@@ -8,6 +8,10 @@ The diagnostic commands are `hwp.diagnostics.frames.start`, `hwp.diagnostics.fra
 `regionHistoryEntries` from the live `studio` document-region state at `region.state.history.entries.length`. Both values are
 entry counts; `region.history` is only the restored-history flag and is not used as a count. Start reads both counts and the
 root's current width and height, then observes that root with `ResizeObserver`. Observation does not change the root's style.
+The successful start reply also returns `sourceClock: {documentTimeOriginMs, sourceNowMs, sourceResolutionMs}` sampled from
+the view document's `performance` clock; `sourceResolutionMs` is the declared fixed 1 ms WebKit bound, not a measured runtime
+value. Core joins that reply to the exact native exposure request/reply interval and requires every source frame to retain the
+same document time origin.
 
 Start also requests a transparent marker in the actual `studio` document through the document region. The diagnostic-only
 studio companion appends one fixed element to that document's `document.documentElement`, with `inset: 0`, `box-sizing:

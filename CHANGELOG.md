@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- H36: Return the HWP view document's `performance.timeOrigin` and an
+  immediate `performance.now()` reading with the fixed 1 ms resolution bound
+  from a successful frame-observation start. Red: the owner test found no
+  `sourceClock` in the unchanged reply. Green: the owner test passes 1/1,
+  current-SDK `make check` passes, and the authoritative diagnostic pack
+  succeeds. Application integration remains pending in core F239-221.
+
 - H35: Confirm that the HWP body remains visible after reclaiming and reopening
   the complete view-sharing process group. The measurement changed the view
   from `760 × 286.5` to `785.5 × 286.5` before closing the group; the wider

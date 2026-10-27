@@ -182,7 +182,28 @@ export function createViewFrameDiagnostics({ document, documentRegion, observe, 
         if (typeof stop !== "function") throw new TypeError("HWP view frame observer did not return a stop function");
         stopObserver = stop;
         active = true;
-        return read();
+        try {
+          const sourceClock = {
+            documentTimeOriginMs: viewWindow.performance.timeOrigin,
+            sourceNowMs: viewWindow.performance.now(),
+            sourceResolutionMs: 1,
+          };
+          if (!Number.isFinite(sourceClock.documentTimeOriginMs) || sourceClock.documentTimeOriginMs <= 0
+            || !Number.isFinite(sourceClock.sourceNowMs) || sourceClock.sourceNowMs < 0) {
+            throw new TypeError("HWP view performance clock returned an invalid source-clock anchor");
+          }
+          return { ...read(), sourceClock };
+        } catch (error) {
+          const stopObserverNow = stopObserver;
+          stopObserver = null;
+          active = false;
+          try {
+            await stopObserverNow();
+          } catch (stopError) {
+            throw new AggregateError([error, stopError], "HWP source-clock anchor failed and its observer did not stop cleanly");
+          }
+          throw error;
+        }
       } finally {
         starting = false;
         pendingStart = null;

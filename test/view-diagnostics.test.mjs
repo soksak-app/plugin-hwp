@@ -519,7 +519,8 @@ test("HWP document frame diagnostics stay idle until an explicit start and stop 
   assert.equal(diagnostic.read().regionHistoryEntries, 2,
     "the read command must report the current native document-region history, not a cached count");
   documentRegion.state.history.entries.pop();
-  assert.deepEqual(await diagnostic.start(), { enabled: true, sequence: 1, historyEntries: 3, regionHistoryEntries: 1, width: 720, height: 540 });
+  assert.deepEqual(await diagnostic.start(), { enabled: true, sequence: 1, historyEntries: 3, regionHistoryEntries: 1,
+    width: 720, height: 540, sourceClock: { documentTimeOriginMs: 1000, sourceNowMs: 27.5, sourceResolutionMs: 1 } });
   assert.equal(started, 1);
   assert.deepEqual(diagnostic.read(), { enabled: true, sequence: 1, historyEntries: 3, regionHistoryEntries: 1, width: 720, height: 540 });
   await assert.rejects(diagnostic.start(), /already active/);

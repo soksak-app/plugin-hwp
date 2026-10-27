@@ -6,6 +6,9 @@
 | --- | --- | --- | --- |
 | H23.2 HWP view 측정 | H23.1 및 H23.6 진단 구현 완료 | Owner test 통과; runtime window 측정 대기 | 미배포 |
 | H23.10 ResizeObserver 전달 병합 | Core helper와 HWP event 계약 구현 | Core 소유 test 6/6, HWP 소유 test 21/21, current-source `make check` 통과 | 미배포 |
+| H36 source-clock anchor | HWP frame-start 응답이 view document source clock과 고정된 WebKit 정밀도 상한을 반환 | Owner test 1/1, current-SDK `make check`, authoritative diagnostic pack 통과 | 미배포 |
+
+- [o] H36 — P1, core F239-221 연결: 성공한 frame-observation 시작 응답에 view document source-clock anchor를 반환한다. Red: 변경 전 owner가 시작 응답에서 sourceClock을 찾지 못한다. Green: 같은 owner가 현재 document time origin, 현재 performance time, 고정된 1 ms 정밀도 상한으로 1/1 통과하고 current-SDK 검사, 진단 선언 검증, diagnostic packaging이 통과한다. 앱 통합은 core F239-221에 남는다.
 
 - [o] H35 — P0, core F212.14-5-5 및 F212.14-5-32 연결: 전체 view-sharing process group을 회수하고 다시 연 뒤 HWP 문서 본문을 검증한다. 초기 view는 `760 × 286.5`였고 측정 과정에서 group을 닫기 전에 `785.5 × 286.5`로 바뀌었다. 이 폭에서 HWP responsive stylesheet가 메뉴·스타일·상태 표시줄을 펼쳐 문서 viewport를 줄이고 첫 문단을 캡처 영역 아래에 배치한다. 이는 provider 렌더링 결함이 아니라 측정 fixture의 geometry 변경이었다. Core F212.14-5-32가 다시 열기 전에 초기 geometry를 복원한다. 이후 Wails와 Tauri acceptance가 통과했다. 본문 OCR이 확인됐고, 전체 process group이 10초 이내에 90% 이상 회수됐으며 세 번의 반복이 모두 통과했고 engine-cached process는 남지 않았다. HWP source 변경은 필요하지 않았다.
 
