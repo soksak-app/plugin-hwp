@@ -29,8 +29,8 @@
 - H42: Studio build는 일반 directory 또는 개발 symlink 형태의 설치된
   source directory를 Git preparation과 source pin 검사 없이 사용한다.
   Release source 취득과 exact pin 검사는 별도 installer 단계로 옮기고,
-  release CI가 build 전에 이를 호출한다. 두 설치 경로, 누락 파일, pin 거부
-  owner case를 준비했다. 구현 준비가 되었으며 검증은 실행하지 않았다.
+  release CI가 build 전에 이를 호출한다. 일반 directory, dirty/retargeted
+  symlink 및 source 누락 owner case가 2/2 통과한다. Studio build는 실행하지 않았다.
 
 - H41: 기존 owner case로 source installer helper를 확인한다. Symlink 거부와
   commit 불일치 또는 dirty source 거부가 2/2 통과한다. 예정 source tag가

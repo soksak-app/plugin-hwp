@@ -32,8 +32,8 @@
   directory or a development symlink, without Git preparation or source pin
   checks. Move release source acquisition and exact pin checks to the explicit
   installer stage, which release CI runs before the build. Owner cases for
-  both installed path types, missing files and pin rejection are prepared.
-  Implementation is ready; verification has not run.
+  a plain directory, a dirty and retargeted symlink, and missing source files
+  pass 2/2. The Studio build was not run.
 
 - H41: Verify the source installer helpers with the existing owner cases.
   Symlink refusal and rejection of mismatched or dirty source pass 2/2. The
