@@ -35,9 +35,10 @@
   both installed path types, missing files and pin rejection are prepared.
   Implementation is ready; verification has not run.
 
-- H41: Prepare the release source installer pin for `soksak-studio-v0.8.7-2`
-  using the source commit recorded by its `COMMIT`. The planned source tag is
-  not published. Owner and HWP verification have not run for this pin.
+- H41: Verify the source installer helpers with the existing owner cases.
+  Symlink refusal and rejection of mismatched or dirty source pass 2/2. The
+  planned source tag is unpublished, so installer execution, upstream startup
+  tests and Studio/HWP builds against that tag remain unverified.
 
 - H40: Keep updating Studio's load-progress message but skip the paint wait
   when CSS does not render it. Preserve the existing double-animation-frame
