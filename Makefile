@@ -1,5 +1,5 @@
 # Tests, builds and packs the hwp plugin (docs/features.md). pack uses the sok of core.
-.PHONY: test check studio pack push-check hooks
+.PHONY: test check install-studio-source studio pack push-check hooks
 
 SOK ?= sok
 # DIAGNOSTICS=1 adds diagnostics.json to the plugin release.
@@ -33,7 +33,11 @@ check: node_modules
 	$(SDK_RECORDS)
 	node scripts/check-test-cases.mjs
 
-# studio builds rhwp-studio into ui/studio (docs/studio.md).
+# install-studio-source prepares the exact release source; local development can use an installed symlink directly.
+install-studio-source:
+	node scripts/install-studio-source.mjs
+
+# studio builds from the already installed rhwp-studio source into ui/studio (docs/studio.md).
 studio: node_modules
 	pnpm build
 

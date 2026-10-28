@@ -2,25 +2,34 @@
 
 [English](studio.md)
 
-hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. 일반 source cache는 build script의 `COMMIT` 값으로 고정된 예정 HWP Studio release `soksak-studio-v0.8.7-2`를 빌드한다. 이 source는 동기 font 감지와 `@font-face` 등록을 유지하고 critical web-font 로딩과 WebAssembly 초기화를 함께 시작한 뒤 두 작업이 모두 끝날 때까지 renderer setup과 ready barrier를 기다린다. Upstream font loader의 face별 fallback 동작을 유지한다. 두 startup 작업이 함께 실패하면 aggregate error message에 두 원인을 모두 포함하고 `errors` 배열에는 원래 오류값을 보존한다. Cache 경로가 symlink이면 그 대상을 linked-development source로 선택한다. 이 경로는 Git 작업과 source identity 및 clean 상태 검사를 하지 않으므로 source 수정과 symlink 대상 변경을 그대로 반영한다. 예정 release tag는 아직 공개되지 않았으며 아래에 delivery 상태를 기록한다.
+hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. Source installer는 예정된 HWP Studio release `soksak-studio-v0.8.7-2`를 installer script의 `COMMIT` 값으로 고정한다. Build는 Git 작업, source identity, clean 상태 검사 없이 설치된 source directory를 사용한다. 일반 설치 directory와 개발 checkout을 가리키는 symlink는 같은 build 계약을 따르므로 source 수정과 symlink 대상 변경을 그대로 사용할 수 있다. 이 source는 동기 font 감지와 `@font-face` 등록을 유지하고 critical web-font 로딩과 WebAssembly 초기화를 함께 시작한 뒤 두 작업이 모두 끝날 때까지 renderer setup과 ready barrier를 기다린다. Upstream font loader의 face별 fallback 동작을 유지한다. 두 startup 작업이 함께 실패하면 aggregate error message에 두 원인을 모두 포함하고 `errors` 배열에는 원래 오류값을 보존한다. 예정 release tag는 아직 공개되지 않았으며 아래에 delivery 상태를 기록한다.
 
-H40 source candidate는 Studio progress message를 항상 갱신한다. Message가 렌더링될 때만 기존의 double animation frame paint 기회와 50 ms fallback을 기다린다. CSS가 message를 숨긴 상태에서는 paint 대기 없이 다음 단계로 진행한다. HWP startup 비교에 사용한 760 × 286 CSS px embedded viewport는 responsive small-viewport 규칙에 따라 `#status-bar`를 숨기므로, 해당 progress 대기는 message를 화면에 표시할 수 없다. Builder는 `COMMIT`에 적힌 source commit을 가리키는 예정된 `soksak-studio-v0.8.7-2` tag를 사용하도록 준비됐다. Tag는 아직 존재하지 않으므로 이 source pin은 delivery 후보이며 공개 release가 아니다. 표준 DOM `checkVisibility()` API는 WebKit Safari 17.4부터 macOS Sonoma 14.4에서 지원되어 앱의 최소 macOS version과 일치한다([WebKit release notes](https://webkit.org/blog/15063/webkit-features-in-safari-17-4/)).
+H40 source candidate는 Studio progress message를 항상 갱신한다. Message가 렌더링될 때만 기존의 double animation frame paint 기회와 50 ms fallback을 기다린다. CSS가 message를 숨긴 상태에서는 paint 대기 없이 다음 단계로 진행한다. HWP startup 비교에 사용한 760 × 286 CSS px embedded viewport는 responsive small-viewport 규칙에 따라 `#status-bar`를 숨기므로, 해당 progress 대기는 message를 화면에 표시할 수 없다. 별도 installer는 예정된 `soksak-studio-v0.8.7-2` tag를 가져오고 installer의 `COMMIT`이 가리키는 source commit을 확인하도록 준비됐다. Tag는 아직 존재하지 않으므로 이 source pin은 delivery 후보이며 공개 release가 아니다. 표준 DOM `checkVisibility()` API는 WebKit Safari 17.4부터 macOS Sonoma 14.4에서 지원되어 앱의 최소 macOS version과 일치한다([WebKit release notes](https://webkit.org/blog/15063/webkit-features-in-safari-17-4/)).
 
 ## 빌드
 
 `make studio`는 `scripts/build-studio.mjs`를 실행하고, 이 script는 빌드한 편집기를 `ui/studio/`에 쓴다. Git은 그 폴더를 무시하고, `make pack`과 release workflow는 plugin을 pack하기 전에 그것을 빌드한다.
 
-Script는 cache 경로에 따라 source 처리를 선택한다.
+## 개발 빌드
 
-1. 일반 cache directory에서는 `https://github.com/min-0-max/rhwp.git`의 예정 tag `soksak-studio-v0.8.7-2`에서 `rhwp-studio`(`e2e`와 다른 tests 제외, 추적되는 startup owner test 포함), `assets/fonts`, `LICENSE`, `THIRD_PARTY_LICENSES.md`를 `node_modules/.cache`에 sparse checkout한다.
-2. 일반 cache directory에서는 checkout commit이 `COMMIT`과 같은지 확인하고 tracked 또는 untracked source 변경이 있으면 거부한다. Cache 경로가 symlink일 때는 clone, checkout, sparse-checkout, commit 및 clean 상태 검사를 실행하지 않는다.
-3. `@rhwp/core` devDependency의 WebAssembly package를 `rhwp-studio`가 import하는 `pkg` 폴더로 복사한다. 이 package version은 tag 문자열과 별개인 `CORE_VERSION` `0.8.7`과 일치해야 한다.
-4. `rhwp-studio`의 `node_modules`가 없으면 lockfile로 `npm ci` 설치한다.
-5. HWP control plugin 없이 빌드하는 Studio script `npm run build:no-hwpctrl -- --base ./`를 상대 asset 경로로 `ui/studio/`에 실행한다.
-6. `ui/studio-host.js`를 `ui/studio/index.html` head 끝에 module script로 더한다.
-7. rhwp의 `LICENSE`와 `THIRD_PARTY_LICENSES.md`를 `ui/studio/`에 복사한다.
+`make studio`는 `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`에 이미 설치된 source directory를 사용한다. Directory는 `.git`이 없는 일반 설치 경로이거나 개발 checkout을 가리키는 symlink일 수 있다. 두 경로는 같은 빌드 준비 계약을 따른다. Source에는 `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE`, `THIRD_PARTY_LICENSES.md`가 있어야 하며 누락된 파일을 이름으로 알리는 오류를 낸다. Build는 clone, checkout, sparse-checkout 설정 변경, commit 확인, Git dirty 상태 거부를 하지 않는다.
 
-일반 cache 빌드는 checkout과 의존성을 재사용하기 전에 정확한 commit과 clean source 상태를 다시 확인한다. Linked-development 빌드는 Git 상태나 sparse-checkout 설정을 변경하지 않고 매번 symlink 대상의 현재 파일을 읽는다.
+Build는 `@rhwp/core` devDependency의 WebAssembly package를 `rhwp-studio`가 import하는 source의 `pkg` 폴더로 복사한다. Package version은 별도 `CORE_VERSION` pin `0.8.7`과 같아야 한다. `rhwp-studio`의 `node_modules`가 없으면 lockfile로 `npm ci` 설치한다. 이어 상대 asset 경로로 HWP control plugin 없이 `npm run build:no-hwpctrl -- --base ./`를 실행해 `ui/studio/`를 빌드하고, `ui/studio-host.js`를 `ui/studio/index.html`의 마지막 module script로 추가하며, `LICENSE`와 `THIRD_PARTY_LICENSES.md`를 `ui/studio/`에 복사한다.
+
+Local development는 설치된 symlink를 직접 사용한다. Source installer를 자동 호출하지 않으므로 source 수정과 symlink 대상 변경이 다음 build에 반영된다.
+
+## Release source 설치
+
+Release source 설치는 별도 단계다. Release build 전에 실행한다:
+
+```sh
+make install-studio-source
+make studio
+```
+
+Installer는 예정된 `soksak-studio-v0.8.7-2` source tag를 가져오고, `rhwp-studio`의 `e2e`와 다른 tests를 제외하되 추적되는 startup owner test, `assets/fonts`, `LICENSE`, `THIRD_PARTY_LICENSES.md`를 sparse checkout한 뒤 `scripts/install-studio-source.mjs`의 `COMMIT`과 clean Git 상태를 확인한다. Symlink 또는 Git checkout이 없는 기존 directory는 source를 교체하거나 복구하지 않고 거부한다. Local development에서는 installer를 자동 실행하지 않는다. Release CI는 `make pack` 전에 `make install-studio-source`를 실행하고, `make pack`이 설치된 directory를 빌드한 뒤 pack한다.
+
+예정된 tag는 아직 공개되지 않았다. Tag가 공개되고 `COMMIT` 값의 commit을 가리키기 전에는 installer가 완료될 수 없다.
 
 예정 source에는 upstream 소유 startup test가 들어 있다. 예정 tag가 `COMMIT`에 적힌 commit을 가리키면 Cache된 `rhwp-studio`에서 `npm run test:startup`을 실행한다. 이 target은 startup helper만 `dist/startup-tests`에 compile하고 Node test runner로 실행한다. 네 case는 전체 barrier를 지키면서 두 작업을 함께 시작하는지, font와 WebAssembly의 실패 동작, 두 실패 원인의 보존을 검사한다. 기존 네 case 결과는 이전 pin에만 해당하며 H40 후보의 검증 결과가 아니다.
 
@@ -36,6 +45,6 @@ Script는 cache 경로에 따라 source 처리를 선택한다.
 
 ## 이후 rhwp tag로 갱신
 
-1. `scripts/build-studio.mjs`의 `REPOSITORY`, `TAG`, `COMMIT`을 검토한 HWP Studio source release로 바꾼다. `CORE_VERSION`과 `@rhwp/core` version은 별도 pin으로 유지하고 해당 Studio source가 사용하는 WebAssembly package가 바뀔 때만 갱신한다.
+1. `scripts/install-studio-source.mjs`의 `REPOSITORY`, `TAG`, `COMMIT`을 검토한 HWP Studio source release로 바꾼다. `scripts/build-studio.mjs`의 `CORE_VERSION`과 `@rhwp/core` version은 별도 pin으로 유지하고 해당 Studio source가 사용하는 WebAssembly package가 바뀔 때만 갱신한다.
 2. 고정 source의 startup owner test, `make studio`, `make check`를 실행한다.
 3. 새 source의 embed protocol(`rhwp-studio/src/embed/`)과 `window.rhwpStudio.automation` context를 읽고 `ui/`에서 사용하는 요청과 필드의 변화를 확인한다.

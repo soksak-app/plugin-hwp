@@ -1,5 +1,4 @@
-// The workflows run make check after make test (F238-c-24): ci.yml runs make test, then make check; release.yml runs
-// make test, then make check, then make pack.
+// The workflows run make check after make test (F238-c-24); release installs pinned Studio source before packing.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -10,7 +9,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const WORKFLOWS = {
   "ci.yml": ["test", "check"],
-  "release.yml": ["test", "check", "pack"],
+  "release.yml": ["test", "check", "install-studio-source", "pack"],
 };
 
 /** The make targets that the run steps of a workflow file invoke, in order. */

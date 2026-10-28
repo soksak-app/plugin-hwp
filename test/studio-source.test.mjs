@@ -3,43 +3,74 @@ import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { prepareStudioSource, verifyPinnedSource } from "../scripts/studio-source.mjs";
+import {
+  assertStudioInstallerTarget,
+  requireInstalledStudioSource,
+  verifyPinnedSource,
+} from "../scripts/studio-source.mjs";
 
-test("linked development source skips pinned release preparation after edits and retargeting", () => {
+const installFixture = (root, name) => {
+  const source = join(root, name);
+  mkdirSync(join(source, "rhwp-studio"), { recursive: true });
+  for (const file of ["rhwp-studio/package.json", "rhwp-studio/package-lock.json", "LICENSE", "THIRD_PARTY_LICENSES.md"]) {
+    writeFileSync(join(source, file), "fixture");
+  }
+  return source;
+};
+
+test("installed source accepts a plain directory and a dirty retargeted symlink", () => {
   const root = mkdtempSync(join(tmpdir(), "hwp-studio-source-"));
   try {
+    const ordinary = installFixture(root, "ordinary-source");
+    assert.equal(requireInstalledStudioSource(ordinary), ordinary);
+    assert.equal(requireInstalledStudioSource(ordinary), ordinary);
+    assert.equal(requireInstalledStudioSource(ordinary), ordinary);
+
     const cache = join(root, "cache");
-    const first = join(root, "first-source");
-    const second = join(root, "second-source");
-    mkdirSync(first);
-    mkdirSync(second);
+    const first = installFixture(root, "first-source");
+    const second = installFixture(root, "second-source");
     writeFileSync(join(first, "uncommitted-change"), "first");
     writeFileSync(join(second, "uncommitted-change"), "second");
     symlinkSync(first, cache);
-
-    let gitOperations = 0;
-    const preparePinnedRelease = () => { gitOperations += 1; };
-    assert.equal(prepareStudioSource(cache, preparePinnedRelease), "linked-development");
+    assert.equal(requireInstalledStudioSource(cache), cache);
+    writeFileSync(join(first, "rhwp-studio/package.json"), "edited");
+    assert.equal(requireInstalledStudioSource(cache), cache);
     rmSync(cache);
     symlinkSync(second, cache);
-    assert.equal(prepareStudioSource(cache, preparePinnedRelease), "linked-development");
-    assert.equal(gitOperations, 0);
+    assert.equal(requireInstalledStudioSource(cache), cache);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("ordinary release source retains exact commit and clean checkout checks", () => {
+test("build source preparation rejects a missing installation explicitly", () => {
+  const root = mkdtempSync(join(tmpdir(), "hwp-studio-missing-"));
+  try {
+    assert.throws(() => requireInstalledStudioSource(join(root, "missing")), /source is not installed: missing/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("release installer refuses a development symlink without replacing its target", () => {
+  const root = mkdtempSync(join(tmpdir(), "hwp-studio-installer-"));
+  try {
+    const source = installFixture(root, "development-source");
+    const cache = join(root, "cache");
+    symlinkSync(source, cache);
+    assert.throws(() => assertStudioInstallerTarget(cache), /refusing to install the pinned Studio source through a symlink/);
+    assert.equal(requireInstalledStudioSource(cache), cache);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("release installer pin checks reject mismatched and dirty checkouts", () => {
   const root = mkdtempSync(join(tmpdir(), "hwp-studio-release-"));
   try {
     const cache = join(root, "cache");
     mkdirSync(cache);
-    let prepared = false;
-    assert.throws(() => prepareStudioSource(cache, () => {
-      prepared = true;
-      verifyPinnedSource("different-commit", "", "pinned-commit");
-    }), /does not match pinned-commit/);
-    assert.equal(prepared, true);
+    assert.throws(() => verifyPinnedSource("different-commit", "", "pinned-commit"), /does not match pinned-commit/);
     assert.throws(() => verifyPinnedSource("pinned-commit", "modified file", "pinned-commit"), /is dirty/);
   } finally {
     rmSync(root, { recursive: true, force: true });
