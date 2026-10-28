@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- H43: Accept JSON Schema's `integer` type in the catalog owner. Remove the
+  duplicate diagnostics declaration SDK test because `make check` validates
+  `diagnostics.json`; load the diagnostic-only module from `build/test/ui`
+  through a consumer fake for its observer API. Red: the integrated suite
+  rejected `plugin.hwp.view.content_frame.sequence` and reported three SDK/UI
+  boundary failures. Green: focused owners pass 33/33, and `make check` passes
+  manifest, diagnostics, exposure, engines, events, records and nine copied
+  API cases. The full suite was not rerun.
+
 - H42: Make Studio build consume an installed source directory, either a plain
   directory or a development symlink, without Git preparation or source pin
   checks. Move release source acquisition and exact pin checks to the explicit

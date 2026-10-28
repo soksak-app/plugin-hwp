@@ -4,6 +4,15 @@
 
 ## 미배포
 
+- H43: Catalog owner가 JSON Schema `integer` type을 허용한다. `make check`가
+  `diagnostics.json`을 검증하므로 중복된 diagnostics declaration SDK test를
+  제거한다. Diagnostic 전용 module은 observer API consumer fake를 거쳐
+  `build/test/ui`에서 불러온다. Red: 통합 suite가
+  `plugin.hwp.view.content_frame.sequence`를 거부하고 SDK/UI boundary 실패
+  세 개를 보고했다. Green: 집중 owner test 33/33과 HWP `make check`의
+  manifest, diagnostics, exposure, engines, events, records 및 API 사본
+  9개가 통과한다. 전체 suite는 재실행하지 않았다.
+
 - H42: Studio build는 일반 directory 또는 개발 symlink 형태의 설치된
   source directory를 Git preparation과 source pin 검사 없이 사용한다.
   Release source 취득과 exact pin 검사는 별도 installer 단계로 옮기고,

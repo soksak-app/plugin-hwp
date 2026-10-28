@@ -10,13 +10,13 @@ const viewportEvidence = {
 };
 
 test("the diagnostic module exposes a studio viewport marker companion", async () => {
-  const studioDiagnostics = await import("../ui/hwp-diagnostics.js");
+  const studioDiagnostics = await import("../build/test/ui/hwp-diagnostics.js");
   assert.equal(typeof studioDiagnostics.attachStudio, "function",
     "the HWP diagnostic module cannot attach the studio viewport marker companion");
 });
 
 test("the studio viewport marker measures the document viewport and removes its exact node", async () => {
-  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const children = [];
   const parent = {};
@@ -88,7 +88,7 @@ test("the studio viewport marker measures the document viewport and removes its 
 });
 
 test("an active studio diagnostic read returns available resource timings on the studio clock", { timeout: 5_000 }, async () => {
-  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const children = [];
   const replies = [];
@@ -184,7 +184,7 @@ test("an active studio diagnostic read returns available resource timings on the
     async stop() { enabled = false; return { enabled: false, sequence: 1, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }; },
     async dispose() {},
   };
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const commands = createStudioViewportDiagnostics({ diagnostics, documentRegion: region });
   await commands.start();
   assert.equal(resourceReads, 0, "resource timing is read only at an explicit snapshot");
@@ -209,7 +209,7 @@ test("an active studio diagnostic read returns available resource timings on the
 });
 
 test("inactive diagnostic reads return no studio resource snapshot", { timeout: 5_000 }, async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   let requests = 0;
   const diagnostics = {
     read: () => ({ enabled: false, sequence: 0, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }),
@@ -233,7 +233,7 @@ test("inactive diagnostic reads return no studio resource snapshot", { timeout: 
 });
 
 test("an active studio read reports an unsupported Resource Timing API", { timeout: 5_000 }, async () => {
-  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const replies = [];
   const children = [];
@@ -281,7 +281,7 @@ test("an active studio read reports an unsupported Resource Timing API", { timeo
 });
 
 test("view diagnostics serialize marker start and clean it up when disposal overlaps start", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -317,7 +317,7 @@ test("view diagnostics serialize marker start and clean it up when disposal over
 });
 
 test("view diagnostic start removes the viewport marker when observer startup fails", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -346,7 +346,7 @@ test("view diagnostic start removes the viewport marker when observer startup fa
 });
 
 test("view diagnostic start rejects inconsistent marker evidence and requests cleanup", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -373,7 +373,7 @@ test("view diagnostic start rejects inconsistent marker evidence and requests cl
 });
 
 test("disposal cancels pending viewport reads and removes the marker", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -408,7 +408,7 @@ test("disposal cancels pending viewport reads and removes the marker", async () 
 });
 
 test("stopping during marker startup waits for the start and then removes the marker", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -447,7 +447,7 @@ test("stopping during marker startup waits for the start and then removes the ma
 });
 
 test("failed marker stop remains tracked so disposal retries removal", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   let stopCount = 0;
@@ -481,7 +481,7 @@ test("failed marker stop remains tracked so disposal retries removal", async () 
 });
 
 test("concurrent disposal callers both wait for marker cleanup", async () => {
-  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   let markStopPosted;
@@ -779,7 +779,7 @@ test("document-frame observation does not repaint the view root", async () => {
 });
 
 test("a native window message reply does not re-enter the studio marker handler", { timeout: 1000 }, async () => {
-  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const posted = [];
   const queued = [];
@@ -824,7 +824,7 @@ test("a native window message reply does not re-enter the studio marker handler"
 });
 
 test("native document-post echoes do not resolve a marker request before the studio reply", { timeout: 1000 }, async () => {
-  const { attachStudio, createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const { attachStudio, createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const studioListeners = new Map();
   const regionListeners = new Set();
   const sentToStudio = [];
