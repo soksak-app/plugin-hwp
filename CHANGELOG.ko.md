@@ -4,6 +4,10 @@
 
 ## 미배포
 
+- H41: `COMMIT`에 기록된 source commit을 사용해 `soksak-studio-v0.8.7-2`를
+  대상으로 하는 Studio builder pin을 준비한다. 예정된 source tag는 공개되지
+  않았다. 이 pin에 대한 owner 검사와 HWP 검사는 실행하지 않았다.
+
 - H40: Studio load-progress message는 계속 갱신하되 CSS가 표시하지 않을 때
   paint 대기를 생략한다. Message가 보이면 기존 double-animation-frame 대기와
   50 ms fallback을 유지한다. HWP embedded 760 × 286 CSS px viewport는

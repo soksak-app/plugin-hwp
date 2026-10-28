@@ -2,9 +2,9 @@
 
 [English](studio.md)
 
-hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. HWP Studio source release [`soksak-studio-v0.8.7-1`](https://github.com/min-0-max/rhwp/tree/soksak-studio-v0.8.7-1)을 빌드하며, commit은 build script의 `COMMIT` 값으로 고정한다. 이 source는 동기 font 감지와 `@font-face` 등록을 유지하고 critical web-font 로딩과 WebAssembly 초기화를 함께 시작한 뒤 두 작업이 모두 끝날 때까지 renderer setup과 ready barrier를 기다린다. Upstream font loader의 face별 fallback 동작을 유지한다. 두 startup 작업이 함께 실패하면 aggregate error message에 두 원인을 모두 포함하고 `errors` 배열에는 원래 오류값을 보존한다.
+hwp plugin은 [rhwp](https://github.com/edwardkim/rhwp)의 편집기 `rhwp-studio`로 문서를 편집한다. Builder는 예정된 HWP Studio source release `soksak-studio-v0.8.7-2`를 대상으로 하며, commit은 build script의 `COMMIT` 값으로 고정한다. 이 source는 동기 font 감지와 `@font-face` 등록을 유지하고 critical web-font 로딩과 WebAssembly 초기화를 함께 시작한 뒤 두 작업이 모두 끝날 때까지 renderer setup과 ready barrier를 기다린다. Upstream font loader의 face별 fallback 동작을 유지한다. 두 startup 작업이 함께 실패하면 aggregate error message에 두 원인을 모두 포함하고 `errors` 배열에는 원래 오류값을 보존한다. 예정된 source release는 아직 공개되지 않았으며 아래에 delivery 상태를 기록한다.
 
-H40 source candidate는 Studio progress message를 항상 갱신한다. Message가 렌더링될 때만 기존의 double animation frame paint 기회와 50 ms fallback을 기다린다. CSS가 message를 숨긴 상태에서는 paint 대기 없이 다음 단계로 진행한다. HWP startup 비교에 사용한 760 × 286 CSS px embedded viewport는 responsive small-viewport 규칙에 따라 `#status-bar`를 숨기므로, 해당 progress 대기는 message를 화면에 표시할 수 없다. 고정된 `soksak-studio-v0.8.7-1` source에는 아직 이 변경이 포함되지 않았다.
+H40 source candidate는 Studio progress message를 항상 갱신한다. Message가 렌더링될 때만 기존의 double animation frame paint 기회와 50 ms fallback을 기다린다. CSS가 message를 숨긴 상태에서는 paint 대기 없이 다음 단계로 진행한다. HWP startup 비교에 사용한 760 × 286 CSS px embedded viewport는 responsive small-viewport 규칙에 따라 `#status-bar`를 숨기므로, 해당 progress 대기는 message를 화면에 표시할 수 없다. Builder는 `COMMIT`에 적힌 source commit을 가리키는 예정된 `soksak-studio-v0.8.7-2` tag를 사용하도록 준비됐다. Tag는 아직 존재하지 않으므로 이 source pin은 delivery 후보이며 공개 release가 아니다. 표준 DOM `checkVisibility()` API는 WebKit Safari 17.4부터 macOS Sonoma 14.4에서 지원되어 앱의 최소 macOS version과 일치한다([WebKit release notes](https://webkit.org/blog/15063/webkit-features-in-safari-17-4/)).
 
 ## 빌드
 
@@ -12,7 +12,7 @@ H40 source candidate는 Studio progress message를 항상 갱신한다. Message�
 
 Script는:
 
-1. `https://github.com/min-0-max/rhwp.git`의 tag `soksak-studio-v0.8.7-1`에서 `rhwp-studio`(`e2e`와 다른 tests 제외, 추적되는 startup owner test 포함), `assets/fonts`, `LICENSE`, `THIRD_PARTY_LICENSES.md`를 `node_modules/.cache/rhwp-soksak-studio-v0.8.7-1`에 sparse checkout한다.
+1. `https://github.com/min-0-max/rhwp.git`의 예정 tag `soksak-studio-v0.8.7-2`에서 `rhwp-studio`(`e2e`와 다른 tests 제외, 추적되는 startup owner test 포함), `assets/fonts`, `LICENSE`, `THIRD_PARTY_LICENSES.md`를 대응하는 `node_modules/.cache` 경로에 sparse checkout한다.
 2. checkout commit이 `COMMIT`과 같은지 확인하고, tracked 또는 untracked source 변경이 있으면 거부한다.
 3. `@rhwp/core` devDependency의 WebAssembly package를 `rhwp-studio`가 import하는 `pkg` 폴더로 복사한다. 이 package version은 tag 문자열과 별개인 `CORE_VERSION` `0.8.7`과 일치해야 한다.
 4. `rhwp-studio`의 의존성을 lockfile로 `npm ci` 설치한다.
@@ -22,7 +22,7 @@ Script는:
 
 이후 빌드는 checkout과 그 의존성을 재사용하기 전에 정확한 commit과 clean source 상태를 다시 확인한다. 변경된 checkout을 복구하거나 다시 patch하지 않는다. source가 바뀌면 빌드를 실패시키고 고정 tag를 새로 checkout한다.
 
-고정 source에는 upstream 소유 startup test가 들어 있다. Cache된 `rhwp-studio`에서 `npm run test:startup`을 실행한다. 이 target은 startup helper만 `dist/startup-tests`에 compile하고 Node test runner로 실행한다. 네 case는 전체 barrier를 지키면서 두 작업을 함께 시작하는지, font와 WebAssembly의 실패 동작, 두 실패 원인의 보존을 검사한다. 고정 source의 네 case가 모두 통과한다. 네 쌍의 startup 비교에서 font 응답 완료부터 reading phase까지의 구간에 11–37 ms 개선을 관측했다. 이 결과는 해당 구간만 확인하며 전체 startup 또는 first-content 기준의 acceptance를 증명하지 않는다.
+예정 source에는 upstream 소유 startup test가 들어 있다. 예정 tag가 `COMMIT`에 적힌 commit을 가리키면 Cache된 `rhwp-studio`에서 `npm run test:startup`을 실행한다. 이 target은 startup helper만 `dist/startup-tests`에 compile하고 Node test runner로 실행한다. 네 case는 전체 barrier를 지키면서 두 작업을 함께 시작하는지, font와 WebAssembly의 실패 동작, 두 실패 원인의 보존을 검사한다. 기존 네 case 결과는 이전 pin에만 해당하며 H40 후보의 검증 결과가 아니다.
 
 ## Host script
 

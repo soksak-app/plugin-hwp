@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- H41: Prepare the Studio builder pin for `soksak-studio-v0.8.7-2` using the
+  source commit recorded by `COMMIT`. The planned source tag is not published.
+  Owner and HWP verification have not run for this pin.
+
 - H40: Keep updating Studio's load-progress message but skip the paint wait
   when CSS does not render it. Preserve the existing double-animation-frame
   wait and 50 ms fallback while the message is visible. The HWP embedded

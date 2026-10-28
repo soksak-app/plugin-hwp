@@ -8,8 +8,8 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join } from "node:path";
 
 const REPOSITORY = "https://github.com/min-0-max/rhwp.git";
-const TAG = "soksak-studio-v0.8.7-1";
-const COMMIT = "b33d92a9f6b2035a43163634e24bc66ede8d204e";
+const TAG = "soksak-studio-v0.8.7-2";
+const COMMIT = "b30ff23366433e3dc451f452a9843d133eff8c1f";
 const CORE_VERSION = "0.8.7";
 const ROOT = new URL("../", import.meta.url).pathname;
 const CACHE = join(ROOT, "node_modules/.cache", `rhwp-${TAG}`);
