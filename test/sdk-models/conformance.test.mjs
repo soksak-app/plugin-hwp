@@ -21,8 +21,6 @@ const EXCLUDED_CASES = {
   "binder.run.runs-and-refuses": "the page does not call the binder run",
   "view.bridge.refuses-malformed-host-message": "the view channel refuses messages without the marker before the bridge receives them",
   "view.bridge.refuses-unsupported-page": "the page is always soksak://hwp/, so the bridge creation check is not reached",
-  "view.operation.begin-logs-first-event-and-carries-cids": "the copied fixture expects beginOperation to send a legacy per-record writer request; HWP verifies operation identifiers through the current page-boundary writer fake",
-  "view.operation.each-begin-takes-the-next-identifier": "the copied fixture expects beginOperation to send a legacy per-record writer request; HWP verifies operation identifiers through the current page-boundary writer fake",
   "view.bridge.sidecar-subscriptions": "the page subscribes to sidecar messages only, not to runtime.sidecar.onFailure",
   "view.native.exposure-calls-and-refusals": "the page registers exposure entries through calls.request, not exposureRegister or exposureReply",
   // The steps of these cases call zoom, go, entry or stop, which the page does not call. The bridge call ids that the
@@ -215,40 +213,64 @@ test("view command cases replay against the bridge model", async () => {
   }
 });
 
-test("view operation cases replay against the bridge model", async () => {
+test("view operation cases replay against the bridge model", async (t) => {
   // The identifiers of a case are p<time origin of the page>.<n>; the case writes the origin as $ORIGIN.
   const origin = globalThis.performance.timeOrigin;
   const expected = (value) => JSON.parse(JSON.stringify(value).replaceAll("p$ORIGIN.", `p${origin}.`));
   for (const testCase of replayable("view-operations")) {
-    const sokView = viewWindow();
-    const posted = [];
-    const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
-    const stored = new Map();
-    for (const [index, step] of testCase.steps.entries()) {
-      const label = `${testCase.id}#${index}`;
-      const before = posted.length;
-      let result = null;
-      let throws = null;
-      try {
-        let promise;
-        if (step.operation) {
-          promise = bridge.runtime.beginOperation(step.operation.event, step.operation.fields);
-        } else if (step.sidecar) {
-          promise = bridge.runtime.sidecar(step.sidecar.name).send(step.sidecar.id, step.sidecar.body, stored.get(step.sidecar.cids));
-        } else if (step.command) {
-          promise = bridge.runtime.command(step.command.name, step.command.params, { cids: stored.get(step.command.cids) });
-        } else throw new Error(`unknown operation step in ${label}`);
-        await settle();
-        if (step.answer) sokView.listener({ sok: 1, id: posted.at(-1).id, ...step.answer });
-        result = await promise;
-        if (step.operation) stored.set(step.operation.as, result);
-        result = result === undefined ? null : result;
-      } catch (failure) {
-        throws = errorText(failure);
+    await t.test(testCase.id, { timeout: 5000 }, async () => {
+      const sokView = viewWindow();
+      globalThis.window.location = { host: "probe" };
+      let observe;
+      const nextObservation = () => {
+        return new Promise((resolve) => { observe = resolve; });
+      };
+      const publish = (value) => {
+        if (observe === undefined) throw new Error("operation observation has no waiting consumer");
+        const resolve = observe;
+        observe = undefined;
+        resolve(value);
+      };
+      const bridge = createViewBridge({ handler: { postMessage: (message) => {
+        if (message.command === "runtime.log" && message.params.action === "clock") {
+          sokView.listener({ sok: 1, id: message.id, result: { ts_us: 1, mono_ns: 1 } });
+          return;
+        }
+        if (message.command === "runtime.log" && message.params.action === "batch") {
+          const [record] = message.params.events;
+          publish({ log: pick(record, ["level", "event", "fields", "cids"]) });
+          sokView.listener({ sok: 1, id: message.id, result: null });
+          return;
+        }
+        publish({ request: pick(message, ["command", "params", "cids"]) });
+        sokView.listener({ sok: 1, id: message.id, result: null });
+      } }, report: () => {} });
+      const stored = new Map();
+      for (const [index, step] of testCase.steps.entries()) {
+        const label = `${testCase.id}#${index}`;
+        const observation = nextObservation();
+        let result = null;
+        let throws = null;
+        let actual = {};
+        try {
+          let promise;
+          if (step.operation) {
+            promise = bridge.runtime.beginOperation(step.operation.event, step.operation.fields);
+          } else if (step.sidecar) {
+            promise = bridge.runtime.sidecar(step.sidecar.name).send(step.sidecar.id, step.sidecar.body, stored.get(step.sidecar.cids));
+          } else if (step.command) {
+            promise = bridge.runtime.command(step.command.name, step.command.params, { cids: stored.get(step.command.cids) });
+          } else throw new Error(`unknown operation step in ${label}`);
+          actual = await observation;
+          if (step.operation) stored.set(step.operation.as, promise);
+          result = await promise;
+          result = result === undefined ? null : result;
+        } catch (failure) {
+          throws = errorText(failure);
+        }
+        assert.deepEqual({ ...actual, result, throws }, expected(pick(step.output, ["log", "request", "result", "throws"])), label);
       }
-      await settle();
-      assert.deepEqual({ posted: posted.slice(before), result, throws }, expected(pick(step.output, ["posted", "result", "throws"])), label);
-    }
+    });
   }
 });
 

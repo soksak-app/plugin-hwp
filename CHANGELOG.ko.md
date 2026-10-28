@@ -4,6 +4,12 @@
 
 ## 미배포
 
+- H44: 복사한 operation contract와 bridge-model replay를 현재 SDK 관측 형식에
+  맞춘다. 첫 operation log와 이후 API request를 transport ID 없이 관측하고
+  fixture handler는 clock, batch, 일반 request에 응답한다. Red: 변경 전 두
+  operation case가 새 관측 형식 대신 transport clock request를 비교해 실패한다.
+  Green: operation ID 증가와 cids 전달을 유지하면서 두 case가 통과한다.
+
 - H43: Catalog owner가 JSON Schema `integer` type을 허용한다. `make check`가
   `diagnostics.json`을 검증하므로 중복된 diagnostics declaration SDK test를
   제거한다. Diagnostic 전용 module은 observer API consumer fake를 거쳐

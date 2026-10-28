@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- H44: Align the copied operation contract and bridge-model replay with the
+  current SDK observations. Observe the first operation log and later API
+  requests without transport IDs; acknowledge clock, batch and normal requests
+  in the fixture handler. Red: both unchanged operation cases compared the
+  transport-level clock request with the new observation shape. Green: the two
+  operation cases pass, preserving sequential IDs and cids propagation.
+
 - H43: Accept JSON Schema's `integer` type in the catalog owner. Remove the
   duplicate diagnostics declaration SDK test because `make check` validates
   `diagnostics.json`; load the diagnostic-only module from `build/test/ui`
