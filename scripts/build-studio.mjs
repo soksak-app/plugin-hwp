@@ -1,11 +1,12 @@
-// Builds the editor of rhwp into ui/studio/ (docs/studio.md). The script checks out the pinned HWP Studio release source,
-// refuses a checkout whose commit differs from COMMIT or whose source tree is dirty, places the WebAssembly package of the
-// exact CORE_VERSION @rhwp/core devDependency where rhwp-studio expects ../pkg, installs dependencies from its lockfile,
-// and runs the published Studio build script unchanged with relative asset paths. It then adds ui/studio-host.js as a
-// module script after the scripts of the built page. The checkout and its dependencies stay in node_modules/.cache.
+// Builds the editor of rhwp into ui/studio/ (docs/studio.md). A symlink at the source cache path selects linked development
+// source without Git operations or source identity checks; an ordinary cache uses the pinned release and rejects a changed
+// commit or dirty checkout. The script places the exact CORE_VERSION @rhwp/core WebAssembly package where rhwp-studio
+// expects ../pkg, installs dependencies from its lockfile, and runs the Studio build script unchanged with relative asset
+// paths. It then adds ui/studio-host.js as a module script after the scripts of the built page.
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { prepareStudioSource, verifyPinnedSource } from "./studio-source.mjs";
 
 const REPOSITORY = "https://github.com/min-0-max/rhwp.git";
 const TAG = "soksak-studio-v0.8.7-2";
@@ -21,30 +22,30 @@ const run = (command, args, cwd) => {
   execFileSync(command, args, { cwd, stdio: "inherit" });
 };
 
-let cloned = false;
-if (!existsSync(join(CACHE, ".git"))) {
-  rmSync(CACHE, { recursive: true, force: true });
-  mkdirSync(dirname(CACHE), { recursive: true });
-  run("git", ["clone", "--quiet", "--filter=blob:none", "--no-checkout", "--depth", "1", "--branch", TAG,
-    REPOSITORY, CACHE], ROOT);
-  cloned = true;
-}
-const verifySource = () => {
-  const current = execFileSync("git", ["rev-parse", "HEAD"], { cwd: CACHE, encoding: "utf8" }).trim();
-  if (current !== COMMIT) throw new Error(`rhwp Studio source commit ${current} does not match ${COMMIT}`);
-  const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
-    cwd: CACHE,
-    encoding: "utf8",
-  }).trim();
-  if (status) throw new Error(`rhwp Studio source checkout is dirty:\n${status}`);
-};
-if (!cloned) verifySource();
-run("git", ["sparse-checkout", "set", "--no-cone", "/rhwp-studio/*", "!/rhwp-studio/e2e/", "!/rhwp-studio/tests/",
-  "/rhwp-studio/tests/studio-startup.test.mjs", "/assets/fonts/", "/LICENSE", "/THIRD_PARTY_LICENSES.md"], CACHE);
-if (cloned) {
-  run("git", ["checkout", "--quiet", TAG], CACHE);
-}
-verifySource();
+const sourceMode = prepareStudioSource(CACHE, () => {
+  let cloned = false;
+  if (!existsSync(join(CACHE, ".git"))) {
+    rmSync(CACHE, { recursive: true, force: true });
+    mkdirSync(dirname(CACHE), { recursive: true });
+    run("git", ["clone", "--quiet", "--filter=blob:none", "--no-checkout", "--depth", "1", "--branch", TAG,
+      REPOSITORY, CACHE], ROOT);
+    cloned = true;
+  }
+  const verifySource = () => {
+    const current = execFileSync("git", ["rev-parse", "HEAD"], { cwd: CACHE, encoding: "utf8" }).trim();
+    const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+      cwd: CACHE,
+      encoding: "utf8",
+    }).trim();
+    verifyPinnedSource(current, status, COMMIT);
+  };
+  if (!cloned) verifySource();
+  run("git", ["sparse-checkout", "set", "--no-cone", "/rhwp-studio/*", "!/rhwp-studio/e2e/", "!/rhwp-studio/tests/",
+    "/rhwp-studio/tests/studio-startup.test.mjs", "/assets/fonts/", "/LICENSE", "/THIRD_PARTY_LICENSES.md"], CACHE);
+  if (cloned) run("git", ["checkout", "--quiet", TAG], CACHE);
+  verifySource();
+});
+console.log(`build-studio: source mode ${sourceMode}`);
 
 const core = JSON.parse(readFileSync(join(ROOT, "node_modules/@rhwp/core/package.json"), "utf8"));
 if (core.version !== CORE_VERSION) throw new Error(`@rhwp/core ${core.version} does not match ${CORE_VERSION}`);

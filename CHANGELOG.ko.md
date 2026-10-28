@@ -4,6 +4,12 @@
 
 ## 미배포
 
+- H42: Studio source cache 경로의 symlink를 명시적인 linked-development
+  설치로 취급한다. 현재 symlink 대상에서 Git preparation과 source pin 검사
+  없이 빌드하고, 일반 release cache에는 정확한 commit과 clean checkout
+  검사를 유지한다. 변경되거나 대상을 바꾼 link 및 일반 release pin 거부
+  owner case를 준비했다. 구현 준비가 되었으며 검증은 실행하지 않았다.
+
 - H41: `COMMIT`에 기록된 source commit을 사용해 `soksak-studio-v0.8.7-2`를
   대상으로 하는 Studio builder pin을 준비한다. 예정된 source tag는 공개되지
   않았다. 이 pin에 대한 owner 검사와 HWP 검사는 실행하지 않았다.

@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+- H42: Use a symlink at the Studio source cache path as an explicit linked-
+  development installation. Build from its current target without Git
+  preparation or source pin checks; retain exact commit and clean checkout
+  checks for an ordinary release cache. Owner cases for dirty and retargeted
+  links and ordinary release pin rejection are prepared. Implementation is
+  ready; verification has not run.
+
 - H41: Prepare the Studio builder pin for `soksak-studio-v0.8.7-2` using the
   source commit recorded by `COMMIT`. The planned source tag is not published.
   Owner and HWP verification have not run for this pin.
