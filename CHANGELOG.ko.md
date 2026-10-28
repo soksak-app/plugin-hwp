@@ -4,6 +4,13 @@
 
 ## 미배포
 
+- H45: Plugin API Git 의존성과 release workflow checkout을 version 0.0.21을
+  선언하는 동일한 core commit으로 맞춘다.
+  Lockfile은 정확한 commit으로 resolve된다. 격리된 virtual store에 고정 package를
+  `pnpm fetch`했으며 version과 view-start SHA가 목표와 일치한다. SDK engine 검사와
+  계약 사본 9개가 통과한다. Dependency 설치, Studio build, HWP test suite는 실행하지
+  않았다. Publication은 대기 상태다.
+
 - H44: 복사한 operation contract와 bridge-model replay를 현재 SDK 관측 형식에
   맞춘다. 첫 operation log와 이후 API request를 transport ID 없이 관측하고
   fixture handler는 clock, batch, 일반 request에 응답한다. Red: 변경 전 두

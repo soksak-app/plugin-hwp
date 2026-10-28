@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+- H45: Align the plugin API Git dependency and release workflow checkout to
+  the same core commit, which declares version 0.0.21. The lockfile resolves
+  the exact commit. `pnpm fetch` materializes the
+  pinned package in an isolated virtual store; its version and view-start SHA
+  match the target. The SDK engine check and all nine copied contract cases
+  pass. No dependency installation, Studio build or HWP test suite ran.
+  Publication remains pending.
+
 - H44: Align the copied operation contract and bridge-model replay with the
   current SDK observations. Observe the first operation log and later API
   requests without transport IDs; acknowledge clock, batch and normal requests
