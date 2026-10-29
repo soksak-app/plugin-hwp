@@ -23,7 +23,8 @@ export function createViewBridge({ handler, report }) {
   const sidecarListeners = [];
   const nativeListeners = new Map();
   const plugin = () => globalThis.window?.location?.host;
-  const page = () => String(globalThis.window?.performance?.timeOrigin);
+  // The page identity that the view script of the host gives in window.sokView.page (view-wire.json).
+  const page = () => globalThis.window?.sokView?.page;
 
   const post = (message) => handler.postMessage(message);
   const openCalls = () => {
@@ -159,7 +160,7 @@ export function createViewBridge({ handler, report }) {
     // An operation starts with its first event: the event is written through runtime.log with the identifiers that
     // beginOperation returns, and the identifiers are the cids of every later call of the operation.
     beginOperation(event, fields) {
-      const cids = [`p${globalThis.performance.timeOrigin}.${++operationSequence}`];
+      const cids = [`p${page()}.${++operationSequence}`];
       writeLog("info", event, fields, { cids });
       return cids;
     },

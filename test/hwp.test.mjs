@@ -534,7 +534,7 @@ test("the open and the save of a file carry the cids of their operations on the 
   const operations = host.logs.filter((entry) => entry.event === "plugin.hwp.operation");
   const opened = operations.find((entry) => entry.fields.kind === "open");
   assert.ok(opened, "the open starts an operation");
-  assert.match(opened.cids[0], /^p\d+(?:\.\d+)?\.\d+$/, "the operation identifier has the form p<time origin>.<n>");
+  assert.match(opened.cids[0], new RegExp(`^p${host.window.sokView.page}\\.\\d+$`), "the operation identifier has the form p<page>.<n>");
   const reads = host.sidecarSends.filter((send) => send.body.operation === "readBytes");
   assert.deepEqual(reads.map((send) => send.cids), [opened.cids], "the read of the open carries the cids of the open");
   assert.ok(named(host.logs, "read").every((entry) => entry.cids === undefined || entry.cids.length === 1), "the records of the read keep the cids");

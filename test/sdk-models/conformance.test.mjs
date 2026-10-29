@@ -214,12 +214,13 @@ test("view command cases replay against the bridge model", async () => {
 });
 
 test("view operation cases replay against the bridge model", async (t) => {
-  // The identifiers of a case are p<time origin of the page>.<n>; the case writes the origin as $ORIGIN.
-  const origin = globalThis.performance.timeOrigin;
-  const expected = (value) => JSON.parse(JSON.stringify(value).replaceAll("p$ORIGIN.", `p${origin}.`));
+  // The identifiers of a case are p<page identity>.<n>; the case writes the page identity as $PAGE.
+  const page = "6f1d2a3e-1111-4a2b-8c3d-00000000000a";
+  const expected = (value) => JSON.parse(JSON.stringify(value).replaceAll("p$PAGE.", `p${page}.`));
   for (const testCase of replayable("view-operations")) {
     await t.test(testCase.id, { timeout: 5000 }, async () => {
       const sokView = viewWindow();
+      sokView.page = page;
       globalThis.window.location = { host: "probe" };
       let observe;
       const nextObservation = () => {

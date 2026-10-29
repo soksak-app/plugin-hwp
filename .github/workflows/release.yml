@@ -11,7 +11,7 @@ permissions:
 
 # The core release whose sok packs the plugin. It has no relation to the version that this repository releases.
 env:
-  CORE_RELEASE: 4f82fb9c3307e3f4e6e834c3d336629275e45cac
+  CORE_RELEASE: 22d7c2429556bb4af0f742e34fb1949a0c6ba265
 
 jobs:
   release:
