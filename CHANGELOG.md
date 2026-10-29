@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F274-hwp: The pre-push hook checks only the commit messages that a push publishes; CI runs the tests and checks.
 - H45: Align the plugin API Git dependency and release workflow checkout to
   the same core commit, which declares version 0.0.21. The lockfile resolves
   the exact commit. `pnpm fetch` materializes the

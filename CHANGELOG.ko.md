@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F274-hwp: pre-push hook은 push가 게시하는 commit message만 검사한다. 시험과 검사는 CI가 실행한다.
 - H45: Plugin API Git 의존성과 release workflow checkout을 version 0.0.21을
   선언하는 동일한 core commit으로 맞춘다.
   Lockfile은 정확한 commit으로 resolve된다. 격리된 virtual store에 고정 package를
