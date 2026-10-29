@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- H47: 고정한 rhwp Studio source tag `soksak-studio-v0.8.7-2`를 게시해서, 새 runner에서 `make install`이 Studio source를 설치한다.
 - F275-hwp: `make install`이 고정된 의존성을 설치한다. 시험, 검사, build는 더 이상 설치하지 않는다.
 - H46: `@soksak/plugin-api`와 `CORE_RELEASE`를 복사한 모든 계약 case를 공개하는 core commit에 pin하고, view 시험 model이 UUID page 식별자를 따른다.
 - F274-hwp: pre-push hook은 push가 게시하는 commit message만 검사한다. 시험과 검사는 CI가 실행한다.
