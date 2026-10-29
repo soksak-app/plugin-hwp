@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F275-hwp: `make install`이 고정된 의존성을 설치한다. 시험, 검사, build는 더 이상 설치하지 않는다.
 - H46: `@soksak/plugin-api`와 `CORE_RELEASE`를 복사한 모든 계약 case를 공개하는 core commit에 pin하고, view 시험 model이 UUID page 식별자를 따른다.
 - F274-hwp: pre-push hook은 push가 게시하는 commit message만 검사한다. 시험과 검사는 CI가 실행한다.
 - H45: Plugin API Git 의존성과 release workflow checkout을 version 0.0.21을

@@ -9,7 +9,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const WORKFLOWS = {
   "ci.yml": ["test", "check"],
-  "release.yml": ["test", "check", "install-studio-source", "pack"],
+  "release.yml": ["install", "test", "check", "pack"],
 };
 
 /** The make targets that the run steps of a workflow file invoke, in order. */

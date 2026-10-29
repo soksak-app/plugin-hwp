@@ -1,17 +1,19 @@
 # Tests, builds and packs the hwp plugin (docs/features.md). pack uses the sok of core.
-.PHONY: test check install-studio-source studio pack push-check hooks
+.PHONY: install test check studio pack push-check hooks
 
 SOK ?= sok
 # DIAGNOSTICS=1 adds diagnostics.json to the plugin release.
 PACK_FLAGS = $(if $(DIAGNOSTICS),--diagnostics,)
 
 # The tests use the @soksak/plugin-api of the core release that package.json names.
-node_modules: package.json
-	pnpm install
-	touch node_modules
+# The installation stage (core docs/spec/plugins.md#repositories): it installs the locked dependencies and the exact Studio release source
+# (docs/studio.md); the tests, checks and packs consume them without installing.
+install:
+	pnpm install --frozen-lockfile
+	node scripts/install-studio-source.mjs
 
 # test runs only the tests of this plugin, over fakes of the core side.
-test: node_modules
+test:
 	pnpm test
 
 # check runs the SDK validators of the pinned @soksak/plugin-api, or of the packages/plugin-api source of core when
@@ -24,7 +26,7 @@ SDK_EXPOSURE = $(if $(CORE_PLUGIN_API_DIR),node $(CORE_PLUGIN_API_DIR)/exposure-
 SDK_ENGINES = $(if $(CORE_PLUGIN_API_DIR),node $(CORE_PLUGIN_API_DIR)/engines-check.js,pnpm exec soksak-engines)
 SDK_EVENTS = $(if $(CORE_PLUGIN_API_DIR),node $(CORE_PLUGIN_API_DIR)/events-check.js,pnpm exec soksak-events)
 SDK_RECORDS = $(if $(CORE_PLUGIN_API_DIR),node $(CORE_PLUGIN_API_DIR)/records-check.js,pnpm exec soksak-records)
-check: node_modules
+check:
 	node scripts/check-manifest.mjs
 	$(if $(CORE_PLUGIN_API_DIR),node scripts/check-diagnostic-view-modules.mjs,true)
 	$(SDK_EXPOSURE)
@@ -33,12 +35,8 @@ check: node_modules
 	$(SDK_RECORDS)
 	node scripts/check-test-cases.mjs
 
-# install-studio-source prepares the exact release source; local development can use an installed symlink directly.
-install-studio-source:
-	node scripts/install-studio-source.mjs
-
 # studio builds from the already installed rhwp-studio source into ui/studio (docs/studio.md).
-studio: node_modules
+studio:
 	pnpm build
 
 pack: studio

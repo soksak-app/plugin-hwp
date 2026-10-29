@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F275-hwp: `make install` installs the locked dependencies; the tests, checks and builds no longer install.
 - H46: `@soksak/plugin-api` and `CORE_RELEASE` are pinned to the core commit that publishes every copied contract case, and the view test models follow the UUID page identity.
 - F274-hwp: The pre-push hook checks only the commit messages that a push publishes; CI runs the tests and checks.
 - H45: Align the plugin API Git dependency and release workflow checkout to

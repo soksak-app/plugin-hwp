@@ -7,7 +7,7 @@ HWP plugin은 프로젝트의 HWP와 HWPX 문서를 [rhwp](https://github.com/ed
 ```sh
 make test                                   # test
 make check                                  # 고정된 core release의 SDK 검사
-make install-studio-source                 # release 전용: build 전에 고정 source 설치
+make install                 # 설치 단계: 고정된 의존성과 정확한 Studio source
 make studio                                 # 설치된 source directory 또는 개발 symlink로 빌드
 make pack OUT=<folder> SOK=<core>/target/debug/sok   # plugin을 <folder>에 pack한다
 make hooks                                  # clone 후 한 번: commit 때 commit message와 record를 검사
