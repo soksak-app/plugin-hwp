@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F324-hwp: Version 0.0.6 requires core `^0.0.23`, uses the plugin API release file of core `v0.0.23`, and packs its release with the `sok` inside the core `v0.0.23` application zip of the Tauri host.
 - F272-hwp: A push to `main` releases the declared version through `soksak-release-gate` when its tag is absent, with the `sok` of the core release `v0.0.21`, and the dependency on `@soksak/plugin-api` is the packed release file of that release; no workflow checks out core.
 - H47: The pinned rhwp Studio source tag `soksak-studio-v0.8.7-2` is published, so `make install` installs the Studio source on a fresh runner.
 - F275-hwp: `make install` installs the locked dependencies; the tests, checks and builds no longer install.
