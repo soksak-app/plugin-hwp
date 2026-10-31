@@ -69,7 +69,7 @@ test("plugin.json is a valid manifest that opens hwp and hwpx files in the docum
 });
 
 test("the plugin requires the files sidecar display identity release", () => {
-  assert.equal(manifest.dependencies["@soksak/sidecar-files"], ">=0.0.8");
+  assert.equal(manifest.dependencies["@soksak/sidecar-files"], ">=0.0.9");
 });
 
 test("view-frame commands exist only in the diagnostic declaration and module", () => {

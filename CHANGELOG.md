@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F336-hwp: Version 0.0.8 requires core 0.0.25 and files sidecar 0.0.9.
 - F326-hwp: Version 0.0.7 requires core `^0.0.24` and uses the plugin API release file and the `sok` of core `v0.0.24`.
 - F324-hwp: Version 0.0.6 requires core `^0.0.23`, uses the plugin API release file of core `v0.0.23`, and packs its release with the `sok` inside the core `v0.0.23` application zip of the Tauri host.
 - F272-hwp: A push to `main` releases the declared version through `soksak-release-gate` when its tag is absent, with the `sok` of the core release `v0.0.21`, and the dependency on `@soksak/plugin-api` is the packed release file of that release; no workflow checks out core.
