@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F326-hwp: version 0.0.7은 core `^0.0.24`를 요구하고 core `v0.0.24`의 plugin API release file과 `sok`를 쓴다.
 - F324-hwp: version 0.0.6은 core `^0.0.23`을 요구하고, core `v0.0.23`의 plugin API release file을 쓰며, core `v0.0.23` Tauri host application zip 안의 `sok`로 release를 pack한다.
 - F272-hwp: `main`에 push하면 tag가 없을 때 `soksak-release-gate`로 선언된 version을 core release `v0.0.21`의 `sok`와 함께 release한다. `@soksak/plugin-api`에 대한 의존은 그 release의 pack 파일이다. 어떤 workflow도 core를 checkout하지 않는다.
 - H47: 고정한 rhwp Studio source tag `soksak-studio-v0.8.7-2`를 게시해서, 새 runner에서 `make install`이 Studio source를 설치한다.

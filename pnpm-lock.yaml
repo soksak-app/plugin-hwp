@@ -12,8 +12,8 @@ importers:
         specifier: 0.8.7
         version: 0.8.7
       '@soksak/plugin-api':
-        specifier: https://github.com/soksak-app/core/releases/download/v0.0.23/soksak-plugin-api-0.0.23.tgz
-        version: https://github.com/soksak-app/core/releases/download/v0.0.23/soksak-plugin-api-0.0.23.tgz
+        specifier: https://github.com/soksak-app/core/releases/download/v0.0.24/soksak-plugin-api-0.0.24.tgz
+        version: https://github.com/soksak-app/core/releases/download/v0.0.24/soksak-plugin-api-0.0.24.tgz
       jsdom:
         specifier: ^30.1.1
         version: 30.1.2
@@ -80,9 +80,9 @@ packages:
   '@rhwp/core@0.8.7':
     resolution: {integrity: sha512-qgNpY9aclCvy9D7cPnpuplu42kUFZCCPhdjAS5HBso4Z4XeHG3uchYdUleQBoas/zEuwfJ7H4/ulepqdL/LXDA==}
 
-  '@soksak/plugin-api@https://github.com/soksak-app/core/releases/download/v0.0.23/soksak-plugin-api-0.0.23.tgz':
-    resolution: {integrity: sha512-HTW6aD4HhURNGd9zDMgsNV4Bn89kcogx7E7UF+l2psKdSs2Q/tGq5/T4rbBqmkNdwo2j5zRmdRlMernE10doag==, tarball: https://github.com/soksak-app/core/releases/download/v0.0.23/soksak-plugin-api-0.0.23.tgz}
-    version: 0.0.23
+  '@soksak/plugin-api@https://github.com/soksak-app/core/releases/download/v0.0.24/soksak-plugin-api-0.0.24.tgz':
+    resolution: {integrity: sha512-xjNmBO+Ahjfj4XrwRUY4Fu80lMNYdS1aUNG5wia2OexZpiRpUnc7FMJ17GWhcCy7eoQYbQNWZNLIrVaKAlyqSw==, tarball: https://github.com/soksak-app/core/releases/download/v0.0.24/soksak-plugin-api-0.0.24.tgz}
+    version: 0.0.24
     hasBin: true
 
   ajv@8.20.0:
@@ -251,7 +251,7 @@ snapshots:
 
   '@rhwp/core@0.8.7': {}
 
-  '@soksak/plugin-api@https://github.com/soksak-app/core/releases/download/v0.0.23/soksak-plugin-api-0.0.23.tgz':
+  '@soksak/plugin-api@https://github.com/soksak-app/core/releases/download/v0.0.24/soksak-plugin-api-0.0.24.tgz':
     dependencies:
       ajv: 8.20.0
       es-module-lexer: 3.0.4
