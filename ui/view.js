@@ -28,7 +28,7 @@ const START_FORM = {
 export function startValues(windowRef = window) {
   const start = windowRef.sokSurface;
   if (start === null || typeof start !== "object" || !isText(start.surface)) {
-    throw new Error(`the view of ${windowRef.location.host} has no start values: the host provides window.sokSurface {surface, params, origin, project, declarations} before the page runs`);
+    throw new Error(`the view of ${windowRef.location.host} has no start values: the host provides window.sokSurface {surface, params, origin, project, declarations, diagnostics} before the page runs`);
   }
   for (const [name, valid] of Object.entries(START_FORM)) {
     if (!valid(start[name])) {
@@ -163,7 +163,7 @@ const bridge = createViewBridge({
 installPageErrors(report);
 if (window.sokTheme) applyTheme(window.sokTheme);
 bridge.runtime.theme(applyTheme);
-const diagnostics = await loadDiagnostics();
+const diagnostics = await loadDiagnostics(start);
 context = createViewContext({ bridge, start, report, diagnostics }).context;
 for (const text of pending.splice(0)) report(text);
 const host = document.body.appendChild(document.createElement("div"));

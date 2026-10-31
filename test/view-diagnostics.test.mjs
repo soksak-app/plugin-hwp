@@ -547,34 +547,29 @@ test("mount and pagehide share the in-flight view diagnostic disposer", async ()
   await mountDisposal;
 });
 
-test("the release view has no diagnostic commands when its declaration is absent", async (t) => {
+test("the release view has no diagnostic commands when its start values carry no declaration, and requests no file", async (t) => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => ({ status: 404, ok: false });
+  const requests = [];
+  globalThis.fetch = async (url) => { requests.push(String(url)); return { status: 404, ok: false }; };
   t.after(() => { globalThis.fetch = originalFetch; });
-  assert.equal(await source.loadDiagnostics("soksak://hwp/ui/index.html"), null);
+  assert.equal(await source.loadDiagnostics({ surface: "hwp-1", diagnostics: null }, "soksak://hwp/ui/index.html"), null);
+  assert.deepEqual(requests, []);
 });
 
-test("the diagnostic view loader reads its declaration and attaches the declared module", async (t) => {
-  const originalFetch = globalThis.fetch;
+test("the diagnostic view loader takes the declaration of its start values and attaches the declared module", async () => {
   const declaration = { module: "ui/hwp-diagnostics.js", exposes: { commands: [] } };
-  globalThis.fetch = async (url) => {
-    assert.equal(url, "soksak://hwp/diagnostics.json");
-    return { status: 200, ok: true, json: async () => declaration };
-  };
-  t.after(() => { globalThis.fetch = originalFetch; });
   const attach = () => {};
-  const loaded = await source.loadDiagnostics("soksak://hwp/ui/index.html", async (modulePath) => {
-    assert.equal(modulePath, declaration.module);
-    return { attach };
-  });
+  const loaded = await source.loadDiagnostics({ surface: "hwp-1", diagnostics: declaration }, "soksak://hwp/ui/index.html",
+    async (modulePath) => {
+      assert.equal(modulePath, declaration.module);
+      return { attach };
+    });
   assert.deepEqual(loaded, { declaration, attach });
 });
 
-test("the diagnostic view loader reports unreadable declarations", async (t) => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => ({ status: 503, ok: false });
-  t.after(() => { globalThis.fetch = originalFetch; });
-  await assert.rejects(source.loadDiagnostics("soksak://hwp/ui/index.html"), /answered 503/);
+test("start values without a diagnostic declaration are refused with an error that names them", async () => {
+  await assert.rejects(source.loadDiagnostics({ surface: "hwp-1" }, "soksak://hwp/ui/index.html"),
+    /^Error: the start values of the HWP view have no diagnostics: window\.sokSurface \{surface, params, origin, project, declarations, diagnostics\} carries it$/);
 });
 
 test("the studio diagnostic loader imports only the declared marker in diagnostic builds", async (t) => {

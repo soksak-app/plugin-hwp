@@ -1,15 +1,14 @@
-/** Loads the opt-in module declared by the installed diagnostic build, or returns null for a release plugin. */
-export async function loadDiagnostics(pageHref = window.location.href,
+/**
+ * Loads the opt-in module that the diagnostic declaration of the start values names, or returns null for a release plugin,
+ * whose start values carry null (core docs/spec/plugins.md#diagnostic-declarations). The view requests no file.
+ */
+export async function loadDiagnostics(start, pageHref = window.location.href,
   loadModule = (modulePath) => import(new URL(`../${modulePath}`, pageHref).href)) {
-  let response;
-  try {
-    response = await fetch(new URL("../diagnostics.json", pageHref).href);
-  } catch (error) {
-    throw new Error(`the HWP diagnostics declaration cannot be read: ${error?.message ?? error}`);
+  if (!Object.hasOwn(start, "diagnostics")) {
+    throw new Error("the start values of the HWP view have no diagnostics: window.sokSurface {surface, params, origin, project, declarations, diagnostics} carries it");
   }
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`the HWP diagnostics declaration answered ${response.status}`);
-  const declaration = await response.json();
+  const declaration = start.diagnostics;
+  if (declaration === null) return null;
   if (!declaration || typeof declaration !== "object" || Array.isArray(declaration)) {
     throw new TypeError("the HWP diagnostics declaration must be an object");
   }
