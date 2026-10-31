@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- F272-hwp: A push to `main` releases the declared version through `soksak-release-gate` when its tag is absent, with the `sok` of the core release `v0.0.21`, and the dependency on `@soksak/plugin-api` is the packed release file of that release; no workflow checks out core.
 - H47: The pinned rhwp Studio source tag `soksak-studio-v0.8.7-2` is published, so `make install` installs the Studio source on a fresh runner.
 - F275-hwp: `make install` installs the locked dependencies; the tests, checks and builds no longer install.
 - H46: `@soksak/plugin-api` and `CORE_RELEASE` are pinned to the core commit that publishes every copied contract case, and the view test models follow the UUID page identity.
