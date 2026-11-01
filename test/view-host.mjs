@@ -305,6 +305,11 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
             reports.native.push(["registered", payload]);
             return null;
           }
+          if (name === "changed") {
+            if (!declared("status", payload.name)) throw new Error(`status ${payload.name} is not declared`);
+            reports.native.push(["changed", payload]);
+            return null;
+          }
           if (name === "exposureReply") {
             const request = exposurePending.get(payload.id);
             if (!request) throw new Error(`the page replied to unknown exposure request ${payload.id}`);

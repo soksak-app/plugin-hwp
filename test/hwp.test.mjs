@@ -135,6 +135,22 @@ test("the view page mounts the surface over the view channel and registers every
   assert.deepEqual(host.reports.native.filter(([, payload]) => payload.kind === "status").map(([, payload]) => payload.name), ["hwp.document"]);
 });
 
+test("a status watch of the view sends each changed value as a changed call with its version until the unwatch", async (t) => {
+  const host = await setup(t);
+  const changes = () => host.reports.native.filter(([name]) => name === "changed").map(([, payload]) => payload);
+  assert.deepEqual(await host.expose("status.watch", { name: "hwp.document" }), { result: null });
+  await host.settle();
+  assert.deepEqual(changes(), [{ name: "hwp.document", value: await host.status(), version: 1 }]);
+  host.studio.edit("!");
+  await host.settle();
+  assert.deepEqual(changes().at(-1), { name: "hwp.document", value: await host.status(), version: 2 });
+  assert.equal(changes().at(-1).value.modified, true);
+  assert.deepEqual(await host.expose("status.unwatch", { name: "hwp.document" }), { result: null });
+  host.studio.edit("?");
+  await host.settle();
+  assert.equal(changes().length, 2, "no change is sent after the unwatch");
+});
+
 test("the view attaches the document region studio, places it, and loads the editor page in it", { timeout: 5000 }, async (t) => {
   const host = await setup(t);
   assert.deepEqual(host.calls.find(([name]) => name === "document.attach")?.[1], { name: "studio" });

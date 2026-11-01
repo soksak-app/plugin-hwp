@@ -4,6 +4,7 @@
 
 ## 미배포
 
+- F342-hwp: view page가 core F342-1의 `createExpose`가 요구하는 `changed` port를 넘기므로 view가 다시 연다. 등록된 status의 현재 값과 그 뒤 달라진 값은 view call `changed {name, value, version}`으로 보내며, `status.next` 요청은 page와 그 model에서 제거된다.
 - F336-hwp: 0.0.8판은 core 0.0.25와 files sidecar 0.0.9가 필요하다.
 - F326-hwp: version 0.0.7은 core `^0.0.24`를 요구하고 core `v0.0.24`의 plugin API release file과 `sok`를 쓴다.
 - F324-hwp: version 0.0.6은 core `^0.0.23`을 요구하고, core `v0.0.23`의 plugin API release file을 쓰며, core `v0.0.23` Tauri host application zip 안의 `sok`로 release를 pack한다.

@@ -57,6 +57,7 @@ test("expose cases replay against the exposure model", async () => {
   for (const testCase of fixture("expose")) {
     const registered = [];
     const replies = [];
+    const changed = [];
     const effects = [];
     const subscribers = new Set();
     const elements = new Map();
@@ -68,6 +69,7 @@ test("expose cases replay against the exposure model", async () => {
       unregister: async () => { registered.push({ kind: "unregister" }); },
       onRequest: (answer) => { handle = answer; },
       reply: (id, payload) => { replies.push({ id, payload }); },
+      changed: (name, value, version) => { changed.push({ name, value, version }); },
     }, testCase.declarations);
     // The fake element of a selector: its click runs the listeners of the page and records the click.
     const elementOf = (selector) => {
@@ -101,7 +103,7 @@ test("expose cases replay against the exposure model", async () => {
     };
     for (const [index, step] of testCase.steps.entries()) {
       const label = `${testCase.id}#${index}`;
-      const before = { registered: registered.length, replies: replies.length, effects: effects.length };
+      const before = { registered: registered.length, replies: replies.length, changed: changed.length, effects: effects.length };
       let throws = null;
       try {
         if (step.status) await expose.status(step.status.name, () => value, (fn) => { subscribers.add(fn); return () => subscribers.delete(fn); });
@@ -139,6 +141,7 @@ test("expose cases replay against the exposure model", async () => {
       const output = {
         registered: registered.slice(before.registered),
         replies: replies.slice(before.replies),
+        changed: changed.slice(before.changed),
         effects: effects.slice(before.effects),
         result: null,
         throws,
@@ -289,6 +292,7 @@ test("command registration cases replay against the exposure model", async () =>
       register: async (kind, name) => { registered.push({ kind, name }); },
       onRequest: (answer) => { handle = answer; },
       reply: (id, payload) => { replies.push({ id, payload }); },
+      changed: () => {},
     }, testCase.declarations);
     const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined, context: (params, context) => context };
     for (const [index, step] of testCase.steps.entries()) {
@@ -468,7 +472,7 @@ test("view composition cases replay against the composition model", async () => 
 
 test("binder cases replay against the bind of the exposure model", async () => {
   for (const testCase of replayable("create-binder")) {
-    const expose = createExpose({ register: async () => {}, onRequest: () => {}, reply: () => {} }, {
+    const expose = createExpose({ register: async () => {}, onRequest: () => {}, reply: () => {}, changed: () => {} }, {
       // The commands of the binder cases are fixtures of the case file: fixture.save fails with its params.fail, and fixture.set returns.
       commands: [{ name: "fixture.save" }, { name: "fixture.set" }],
     });
