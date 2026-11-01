@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- F355-4-hwp: `make pack OUT=<folder>`는 `pnpm pack`으로 release를 쓰고, release.yml은 더 이상 core release를 내려받지 않는다. core 0.0.25는 plugin의 `pnpm pack` 파일을 설치하고 `sok plugin pack`이 없기 때문이다. release는 진단 build만 읽는 `diagnostics.json`과 그 module을 담고, `@soksak/plugin-api`는 core release `v0.0.25`에 pin된다.
 ## 미배포
 
 - F342-hwp: view page가 core F342-1의 `createExpose`가 요구하는 `changed` port를 넘기므로 view가 다시 연다. 등록된 status의 현재 값과 그 뒤 달라진 값은 view call `changed {name, value, version}`으로 보내며, `status.next` 요청은 page와 그 model에서 제거된다.

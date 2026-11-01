@@ -1,9 +1,5 @@
-# Tests, builds and packs the hwp plugin (docs/features.md). pack uses the sok of core.
+# Tests, builds and packs the hwp plugin (docs/features.md). pack writes the release with pnpm pack.
 .PHONY: install test check studio pack push-check hooks
-
-SOK ?= sok
-# DIAGNOSTICS=1 adds diagnostics.json to the plugin release.
-PACK_FLAGS = $(if $(DIAGNOSTICS),--diagnostics,)
 
 # The tests use the @soksak/plugin-api of the core release that package.json names.
 # The installation stage (core docs/spec/plugins.md#repositories): it installs the locked dependencies and the exact Studio release source
@@ -42,7 +38,7 @@ studio:
 pack: studio
 	@test -n "$(OUT)" || { echo "make pack OUT=<folder>" >&2; exit 2; }
 	node --test test/studio-package-graph.test.mjs
-	$(SOK) plugin pack . $(OUT) $(PACK_FLAGS)
+	pnpm pack --pack-destination $(OUT)
 
 # The check that a push needs: the commit messages of the pushed range, because a published commit message is kept; CI runs
 # the tests and checks on the pushed commits.

@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- F355-4-hwp: `make pack OUT=<folder>` writes the release with `pnpm pack`, and release.yml no longer downloads a core release, because core 0.0.25 installs the `pnpm pack` file of a plugin and has no `sok plugin pack`. The release holds `diagnostics.json` and its module, which only a diagnostic build reads, and `@soksak/plugin-api` is pinned to the core release `v0.0.25`.
 ## Unreleased
 
 - F342-hwp: The view page passes the `changed` port that `createExpose` of core F342-1 requires, so the views open again. A watched status sends its current value and each later different value as the view call `changed {name, value, version}`, and the `status.next` request is removed from the page and its models.

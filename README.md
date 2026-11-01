@@ -9,7 +9,7 @@ make test                                   # tests
 make check                                  # SDK checks of the pinned core release
 make install                 # installation stage: locked dependencies and the exact Studio source
 make studio                                 # build from the installed source directory or development symlink
-make pack OUT=<folder> SOK=<core>/target/debug/sok   # packs the plugin into <folder>
+make pack OUT=<folder> # packs the plugin into <folder>
 make hooks                                  # once after cloning: check commit messages and records at commit time
 ```
 

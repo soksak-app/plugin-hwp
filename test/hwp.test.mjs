@@ -103,8 +103,9 @@ test("view-frame commands exist only in the diagnostic declaration and module", 
   assert.deepEqual(read.result.properties.resourceTimings.type, ["array", "null"]);
   assert.equal(names.some((name) => manifest.exposes.commands.some((entry) => entry.name === name)), false);
   const files = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).files;
-  assert.equal(files.includes("diagnostics.json"), false);
-  assert.equal(files.includes(diagnostics.module), false);
+  // Every release holds the diagnostic declaration and its module, and only a diagnostic build reads them (core docs/spec/plugins.md).
+  assert.equal(files.includes("diagnostics.json"), true);
+  assert.equal(files.includes(diagnostics.module), true);
   assert.ok(files.includes("ui/view-diagnostics.js"), "the release package keeps the declaration loader");
 });
 
