@@ -6,6 +6,7 @@
 - F355-4-hwp: `make pack OUT=<folder>` writes the release with `pnpm pack`, and release.yml no longer downloads a core release, because core 0.0.25 installs the `pnpm pack` file of a plugin and has no `sok plugin pack`. The release holds `diagnostics.json` and its module, which only a diagnostic build reads, and `@soksak/plugin-api` is pinned to the core release `v0.0.25`.
 ## Unreleased
 
+- F355-3-4-hwp: The checks come from the records kit and events kit releases instead of the plugin API of core; the manifest, exposure, engines, case copy and diagnostic module graph checks and `CORE_PLUGIN_API_DIR` are removed, because the application validates the manifest at installation and the registry check compares the exposed names with each listed core. Red: `the checks come from the kit releases, and no check reads the plugin API of core` failed. Green: it passes, and `make test` and `make check` pass.
 - F342-hwp: The view page passes the `changed` port that `createExpose` of core F342-1 requires, so the views open again. A watched status sends its current value and each later different value as the view call `changed {name, value, version}`, and the `status.next` request is removed from the page and its models.
 - F336-hwp: Version 0.0.8 requires core 0.0.25 and files sidecar 0.0.9.
 - F326-hwp: Version 0.0.7 requires core `^0.0.24` and uses the plugin API release file and the `sok` of core `v0.0.24`.
