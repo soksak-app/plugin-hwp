@@ -6,6 +6,7 @@
 - F355-4-hwp: `make pack OUT=<folder>`는 `pnpm pack`으로 release를 쓰고, release.yml은 더 이상 core release를 내려받지 않는다. core 0.0.25는 plugin의 `pnpm pack` 파일을 설치하고 `sok plugin pack`이 없기 때문이다. release는 진단 build만 읽는 `diagnostics.json`과 그 module을 담고, `@soksak/plugin-api`는 core release `v0.0.25`에 pin된다.
 ## 미배포
 
+- F367-hwp: `engines.soksak`은 `^0.0.29`이고, version은 0.0.12다. Red: core version test가 `^0.0.28`에서 실패했다. Green: 통과한다.
 - F364-hwp: `engines.soksak`은 `^0.0.28`이고, version은 0.0.11다. Red: core version test가 `^0.0.27`에서 실패했다. Green: 통과한다.
 - F360-hwp: `engines.soksak`는 `^0.0.27`이므로 core 0.0.27이 plugin을 설치하며, version은 0.0.10다. Red: `the HWP package requires only core 0.0.27`가 `^0.0.26`에서 실패했다. Green: 통과한다.
 - F355-3-4-hwp: 검사는 core의 plugin API 대신 records kit과 events kit release에서 온다. application이 설치할 때 manifest를 검증하고 registry 검사가 exposed 이름을 각 listed core와 비교하므로, manifest, exposure, engines, case 복사본, 진단 module graph 검사와 `CORE_PLUGIN_API_DIR`는 지웠다. Red: `the checks come from the kit releases, and no check reads the plugin API of core`가 실패했다. Green: 통과하고, `make test`와 `make check`가 통과한다.
