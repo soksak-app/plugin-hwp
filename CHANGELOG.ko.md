@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- F389-hwp: `engines.soksak`은 `^0.0.32`이고, version은 0.0.15다. Red: core version test가 `^0.0.31`에서 실패했다. Green: 통과한다.
 - F387-hwp: `engines.soksak`은 `^0.0.31`이고, version은 0.0.14다. Red: core version test가 `^0.0.30`에서 실패했다. Green: 통과한다.
 - F379-hwp: `engines.soksak`은 `^0.0.30`이고, version은 0.0.13다. Red: core version test가 `^0.0.29`에서 실패했다. Green: 통과한다.
 - F355-7-hwp: 0.0.9판은 plugin release의 `pnpm pack` 형태를 설치하는 첫 core release인 core `^0.0.26`을 요구한다.
