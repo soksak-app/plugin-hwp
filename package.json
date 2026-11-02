@@ -1,6 +1,6 @@
 {
   "name": "@soksak/plugin-hwp",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.24.0",
@@ -11,7 +11,7 @@
     "url": "git+https://github.com/soksak-app/plugin-hwp.git"
   },
   "engines": {
-    "soksak": "^0.0.29"
+    "soksak": "^0.0.30"
   },
   "files": [
     "plugin.json",
