@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H48: The repository uses the records kit 0.0.6, whose release gate accepts a closed item with a `Closed:` reason.
 - H29-1: The held release item is closed, because version 0.0.15 contains its correction.
 - F389-hwp: `engines.soksak` is `^0.0.32`, and the version is 0.0.15. Red: the core version test failed on `^0.0.31`. Green: it passes.
 - F387-hwp: `engines.soksak` is `^0.0.31`, and the version is 0.0.14. Red: the core version test failed on `^0.0.30`. Green: it passes.
