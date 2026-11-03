@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H29-1: The held release item is closed, because version 0.0.15 contains its correction.
 - F389-hwp: `engines.soksak` is `^0.0.32`, and the version is 0.0.15. Red: the core version test failed on `^0.0.31`. Green: it passes.
 - F387-hwp: `engines.soksak` is `^0.0.31`, and the version is 0.0.14. Red: the core version test failed on `^0.0.30`. Green: it passes.
 - F379-hwp: `engines.soksak` is `^0.0.30`, and the version is 0.0.13. Red: the core version test failed on `^0.0.29`. Green: it passes.

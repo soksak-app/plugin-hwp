@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H29-1: version 0.0.15가 수정을 담으므로 hold된 release 항목을 닫았다.
 - F389-hwp: `engines.soksak`은 `^0.0.32`이고, version은 0.0.15다. Red: core version test가 `^0.0.31`에서 실패했다. Green: 통과한다.
 - F387-hwp: `engines.soksak`은 `^0.0.31`이고, version은 0.0.14다. Red: core version test가 `^0.0.30`에서 실패했다. Green: 통과한다.
 - F379-hwp: `engines.soksak`은 `^0.0.30`이고, version은 0.0.13다. Red: core version test가 `^0.0.29`에서 실패했다. Green: 통과한다.
