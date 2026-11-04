@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H51: core 호환성 문서는 package가 선언한 범위 `^0.0.34`를 적고, test가 두 문서를 `engines.soksak`과 비교한다. Red: test가 `^0.0.34`에 대한 `^0.0.24`로 실패했다. Green: 통과한다.
 - F432-hwp: `engines.soksak`은 `^0.0.34`이고, version은 0.0.17이다. Red: core version test가 `^0.0.33`에서 실패했다. Green: 통과한다.
 - F402-hwp: `engines.soksak`은 `^0.0.33`이고 version은 0.0.16이다. Red: core version test가 `^0.0.32`에서 실패했다. Green: 통과한다.
 - H48: 이 저장소는 records kit 0.0.6을 쓰며, 그 release gate는 `Closed:` 사유가 있는 닫힌 항목을 받아들인다.

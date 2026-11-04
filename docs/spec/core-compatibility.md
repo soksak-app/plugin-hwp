@@ -2,4 +2,4 @@
 
 [한국어](core-compatibility.ko.md)
 
-The HWP package uses the view manifest contract of core release `0.0.24`. Its `plugin.json` declares a view composition without `surface.module`, which the published core `v0.0.20` reader refuses. `package.json` therefore declares `engines.soksak: "^0.0.24"`, which admits core `0.0.24` and does not claim compatibility with earlier versions or later unverified versions. The package release remains gated on a published core release that carries this contract; see the [HWP compatibility status](../features.md).
+The HWP package declares `engines.soksak: "^0.0.34"`, which admits core release `0.0.34` under the core version-range rules and does not claim compatibility with earlier versions or later unverified versions. Core `0.0.34` accepts its `plugin.json`, whose view composition has no `surface.module`.

@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H51: The core compatibility document states `^0.0.34`, the range that the package declares, and a test compares both documents with `engines.soksak`. Red: the test failed with `^0.0.24` against `^0.0.34`. Green: it passes.
 - F432-hwp: `engines.soksak` is `^0.0.34`, and the version is 0.0.17. Red: the core version test failed on `^0.0.33`. Green: it passes.
 - F402-hwp: `engines.soksak` is `^0.0.33`, and the version is 0.0.16. Red: the core version test failed on `^0.0.32`. Green: it passes.
 - H48: The repository uses the records kit 0.0.6, whose release gate accepts a closed item with a `Closed:` reason.
