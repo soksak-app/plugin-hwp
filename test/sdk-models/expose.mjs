@@ -1,5 +1,5 @@
-// Model of createExpose of the plugin API for the calls that the hwp view page makes: status, command and dom
-// registration and the exposure requests status.get, status.watch, status.unwatch, command.run, dom.act and dom.rect.
+// Model of createExpose of the plugin API for the calls that the hwp view page makes: status, command and element
+// registration and the exposure requests status.get, status.watch, status.unwatch, command.run, element.act and element.rect.
 // A status watch is an event subscription: changed(name, value, version) of the port carries the current value and each
 // later different value until status.unwatch (core packages/plugin-api/index.js, expose.json). The wire form and the refusals are the forms of test/fixtures/contract/expose.json and
 // command-registration.json, and the binder of bind in create-binder.json. A call outside this surface throws an error
@@ -55,7 +55,7 @@ function checkParams(name, schema, params) {
 }
 
 /**
- * Creates the exposure of one surface page. register(kind, name) posts the registration of a status, dom or command
+ * Creates the exposure of one surface page. register(kind, name) posts the registration of a status, element or command
  * and resolves when the host accepts it. onRequest(handle) subscribes to the exposure requests, and reply(id, payload)
  * answers one with {result} or {error: {code, message}}. changed(name, value, version) carries the values of a watched
  * status. declarations is the declared exposes of the plugin, or a function that returns them.
@@ -65,7 +65,7 @@ export function createExpose({ register, unregister, onRequest, reply, changed }
   const declared = () => (typeof declarations === "function" ? declarations() : declarations);
   const isDeclared = (kind, name) => (declared()[kind] ?? []).some((entry) => entry.name === name);
   const statuses = new Map();
-  const doms = new Map();
+  const elements = new Map();
   const commands = new Map();
   let disposed = false;
   let bindings = 0;
@@ -100,11 +100,11 @@ export function createExpose({ register, unregister, onRequest, reply, changed }
     return status;
   };
   const elementOf = (name, params) => {
-    const element = doms.get(name);
-    if (!element) throw new RequestError(ERROR.notRegistered, `unknown dom ${name}`);
+    const element = elements.get(name);
+    if (!element) throw new RequestError(ERROR.notRegistered, `unknown element ${name}`);
     const index = params.index ?? 0;
     if (!Number.isInteger(index) || index < 0) throw new RequestError(ERROR.invalidParams, "index must be a non-negative integer");
-    if (index !== 0) throw new RequestError(ERROR.notRegistered, `dom ${name} has no element at index ${index}`);
+    if (index !== 0) throw new RequestError(ERROR.notRegistered, `element ${name} has no element at index ${index}`);
     return element;
   };
 
@@ -129,15 +129,15 @@ export function createExpose({ register, unregister, onRequest, reply, changed }
         if (status) stop(status);
         return null;
       }
-      case "dom.act": {
-        const element = doms.get(params.name);
-        if (!element) throw new RequestError(ERROR.notRegistered, `unknown dom ${params.name}`);
-        if (params.address !== undefined) throw new RequestError(ERROR.invalidParams, `dom ${params.name} takes no address`);
+      case "element.act": {
+        const element = elements.get(params.name);
+        if (!element) throw new RequestError(ERROR.notRegistered, `unknown element ${params.name}`);
+        if (params.address !== undefined) throw new RequestError(ERROR.invalidParams, `element ${params.name} takes no address`);
         if (params.action !== "click") throw new RequestError(ERROR.invalidParams, `unknown action ${params.action}`);
         elementOf(params.name, params).click();
         return null;
       }
-      case "dom.rect": {
+      case "element.rect": {
         const element = elementOf(params.name, params);
         const box = element.getBoundingClientRect();
         return { x: box.x, y: box.y, width: box.width, height: box.height, zoom: effectiveZoom(element) };
@@ -198,14 +198,14 @@ export function createExpose({ register, unregister, onRequest, reply, changed }
         throw error;
       }
     },
-    async dom(name, element) {
+    async element(name, element) {
       refuseDisposed();
-      if (doms.has(name)) throw new Error(`dom ${name} is already registered`);
-      doms.set(name, element);
+      if (elements.has(name)) throw new Error(`element ${name} is already registered`);
+      elements.set(name, element);
       try {
-        await register("dom", name);
+        await register("element", name);
       } catch (error) {
-        doms.delete(name);
+        elements.delete(name);
         throw error;
       }
     },

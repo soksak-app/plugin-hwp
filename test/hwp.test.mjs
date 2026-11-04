@@ -132,7 +132,7 @@ test("the view page mounts the surface over the view channel and registers every
   const host = await setup(t);
   assert.deepEqual(host.reports.registered.toSorted(), manifest.exposes.commands.map((entry) => entry.name).toSorted());
   const kinds = host.reports.native.filter(([name]) => name === "registered").map(([, payload]) => payload.kind);
-  assert.deepEqual([...new Set(kinds)].toSorted(), ["dom", "status"]);
+  assert.deepEqual([...new Set(kinds)].toSorted(), ["element", "status"]);
   assert.deepEqual(host.reports.native.filter(([, payload]) => payload.kind === "status").map(([, payload]) => payload.name), ["hwp.document"]);
 });
 
@@ -264,17 +264,18 @@ test("an error message of the editor page is shown as the tab error", async (t) 
   assert.equal(host.reports.error.at(-1), "편집기 · rhwp-studio exposes no window.rhwpStudio.automation");
 });
 
-test("every interactive element is bound to a declared command and has a dom name", async (t) => {
+test("every interactive element is bound to a declared command and has an element name", async (t) => {
   const host = await setup(t);
   const root = host.window.document.body.lastElementChild.shadowRoot;
-  const domNames = new Set(manifest.exposes.dom.map((entry) => entry.name));
+  assert.equal(Object.hasOwn(manifest.exposes, "dom"), false, "plugin.json declares no exposes.dom");
+  const elementNames = new Set(manifest.exposes.element.map((entry) => entry.name));
   for (const element of root.querySelectorAll("[data-expose]")) {
-    assert.ok(domNames.has(element.dataset.expose), `the dom name ${element.dataset.expose} is not declared`);
+    assert.ok(elementNames.has(element.dataset.expose), `the element name ${element.dataset.expose} is not declared`);
   }
   for (const element of root.querySelectorAll("[data-command]")) {
     assert.ok(declared("commands", element.dataset.command), `the command ${element.dataset.command} is not declared`);
   }
-  assert.ok(root.querySelectorAll("[data-expose]").length >= manifest.exposes.dom.length);
+  assert.ok(root.querySelectorAll("[data-expose]").length >= manifest.exposes.element.length);
 });
 
 test("the start stores the open, each step, the read, the render and the watch", async (t) => {

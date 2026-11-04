@@ -154,7 +154,7 @@
         "result": {}
       }
     ],
-    "dom": [
+    "element": [
       {
         "name": "hwp.frame",
         "description": "The HWP surface."

@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H49: `plugin.json` declares `exposes.element`, the page calls `expose.element`, `engines.soksak` is `^0.0.35`, and the copies of the plugin API cases are the files of core F502-13. Its release waits for the core release of F502-13 and the records kit release of KR9. Red: on the sources before the change, 11 of the 62 changed tests failed, and the start ended in `opening`. Green: they pass.
 - H52: The contract copies are in `test/fixtures/contract`, `contract-copies.json` declares the nine copies with their SHA-256, the release holds it, and a test checks it against the copies. Red: the test failed without the declaration. Green: it passes.
 - H51: The core compatibility document states `^0.0.34`, the range that the package declares, and a test compares both documents with `engines.soksak`. Red: the test failed with `^0.0.24` against `^0.0.34`. Green: it passes.
 - F432-hwp: `engines.soksak` is `^0.0.34`, and the version is 0.0.17. Red: the core version test failed on `^0.0.33`. Green: it passes.

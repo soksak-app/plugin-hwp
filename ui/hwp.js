@@ -423,7 +423,7 @@ export async function mount(root, context) {
     disposeDiagnostics = await context.diagnostics.attach({ context, document: root.ownerDocument, documentRegion: region });
     if (typeof disposeDiagnostics !== "function") throw new TypeError("the HWP diagnostics attach function must return its disposer");
   }
-  for (const element of root.querySelectorAll("[data-expose]")) expose.dom(element.dataset.expose, element);
+  for (const element of root.querySelectorAll("[data-expose]")) expose.element(element.dataset.expose, element);
 
   // save and reload show their failures as the tab error, so a control that runs them does not report them again.
   const shown = () => {};
