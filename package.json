@@ -15,6 +15,7 @@
   },
   "files": [
     "plugin.json",
+    "contract-copies.json",
     "diagnostics.json",
     "ui/hwp-diagnostics.js",
     "events.json",
