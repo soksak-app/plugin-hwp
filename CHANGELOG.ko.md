@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- F476-hwp: test가 선언된 version을 되풀이하지 않는다.
 - F474-hwp: release run이 v0.0.19을 게시했고 registry가 이를 올린다.
 - F474-hwp: `engines.soksak`은 `^0.0.36`이고, version은 0.0.19이다. Red: core version test가 `^0.0.35`에서 실패했다. Green: 통과한다.
 - F432-hwp: `engines.soksak`은 `^0.0.34`이고, version은 0.0.17이다. Red: core version test가 `^0.0.33`에서 실패했다. Green: 통과한다.
