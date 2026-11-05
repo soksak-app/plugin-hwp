@@ -1,6 +1,7 @@
 # 기능
 
 - [o] H57 — P0, H55 후속: host script 는 빌드된 page 에서 caret 을 멈춘다. 입력: 빌드된 page 에서 H55 의 script 는 `rhwp-studio exposes no getInputHandler` 를 보내므로 caret 은 timer 를 유지한다. focus 없는 창에서 tab 이 보일 때와 숨었을 때 host 의 `CVDisplayLink` thread 는 6 s 동안 mygo 11, 6, Wails 11, 6, Tauri 10, 6 이고, `ui/hwp.js` 는 그 오류를 tab 에 전한다. H55 와 H55-1 의 test 는 그 모양의 fake 를 쓰고 bundle 에서 이름만 찾았다. 기대: script 는 빌드된 page 의 caret 에 닿고, test 는 `make run-studio` 로 빌드한 page 에서 이를 확인하며, 각 host 는 두 상태 모두 그런 thread 가 없다. Red: `make run-studio` 로 빌드한 page 에서 H55 의 script 로 돌린 test 가 `rhwp-studio exposes no getInputHandler` 로 실패한다. Green: 같은 test 가 그 page 에서 통과하고, mygo, Wails, Tauri 의 debug build 에서 문서를 연 host 는 focus 없는 창에서 tab 이 보일 때와 숨었을 때 6 s 동안 `CVDisplayLink` thread 가 없다. Key window 에서 page 를 click 한 뒤에는 12~13 개, tab 을 숨기면 0 개, tab 이 돌아오면 12~13 개다.
+- [o] F479-hwp — P0, core F479와 연결: plugin이 `engines.soksak` `^0.0.37`을 선언해 core release 0.0.37이 설치하고, version은 0.0.20이다. 결과: release run이 v0.0.20을 게시했고 registry가 이를 올린다.
 - [o] F476-hwp — P2, core F476과 연결: test는 선언된 version을 되풀이하지 않는다. 입력: test가 자기가 선언한 version과 범위의 assertion을 가져, 동작 변경 없이 release마다 바뀌었다. 결과: 이를 지웠고 `make test`가 통과한다.
 - [o] F474-hwp — P0, core F474와 연결: plugin이 `engines.soksak` `^0.0.36`를 선언해 core release 0.0.36이 설치하고, version은 0.0.19이다. Red: `test/core-version.test.mjs`가 `^0.0.35`에서 실패했다. Green: 통과한다. 결과: release run이 v0.0.19을 게시했고 registry가 이를 올리며, 게시된 core 0.0.36의 `sok plugin install`이 이를 선택한다.
 - [o] F472-hwp — P2, core F472와 연결: 저장소의 명령 이름이 하는 일을 말하고, `make check`가 `sok-check commands`를 실행한다. 결과: `make test`가 통과한다.
