@@ -11,13 +11,13 @@ install:
 test:
 	pnpm test
 
-# check runs the checks of the kit releases that package.json pins: soksak-events checks that each source of occurrences has an
-# event or a stated reason and that the emit sites match events.json, and soksak-records checks the records. The application
+# check runs the checks of the kit releases that package.json pins: soksak-check census checks that each source of occurrences has an
+# event or a stated reason and that the emit sites match events.json, and soksak-check records checks the records. The application
 # validates plugin.json and diagnostics.json when it installs the release, and the registry check compares the exposed names of
 # the release with each listed core.
 check:
-	pnpm exec soksak-events --census census.json --catalog events.json
-	pnpm exec soksak-records
+	pnpm exec soksak-check census --config census.json --catalog events.json
+	pnpm exec soksak-check records
 
 # studio builds from the already installed rhwp-studio source into ui/studio (docs/studio.md).
 studio:
@@ -32,7 +32,7 @@ pack: studio
 # the tests and checks on the pushed commits.
 # RANGE holds the commits of the pushed refs; the pre-push hook sets it, and it defaults to origin/main..HEAD.
 push-check:
-	pnpm exec soksak-commits "$(or $(RANGE),origin/main..HEAD)"
+	pnpm exec soksak-check commits "$(or $(RANGE),origin/main..HEAD)"
 
 # Sets this repository to use .githooks, which checks commit messages and records at commit time.
 hooks:
