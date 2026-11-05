@@ -49,10 +49,10 @@ Installer는 예정된 `soksak-studio-v0.8.7-2` source tag를 가져오고, `rhw
 - automation context의 `hasSelection`이 바뀌면 `{type: "soksak-hwp", event: "selection", selection}`. 같은 때에 읽는다.
 - 그 상태를 읽을 수 없거나 caret 을 붙들 수 없으면 `{type: "soksak-hwp", event: "error", message}`.
 
-script 는 page 가 숨겨졌거나 focus 가 없는 동안 `rhwp-studio` 의 caret 도 멈춰 둔다. caret 의 opacity 가 바뀔 때마다 WebKit 에 frame 을 요청하는데, caret 의 timer 는 두 상태를 모르기 때문이다. script 는 편집기의 응답마다, 그리고 보임과 focus 가 바뀔 때마다 `window.rhwpStudio` 의 `getInputHandler()` 를 읽어 input handler 의 `caret` 을 쥔다. 아무도 page 를 보지 않는 동안 caret 은 보이되 timer 가 없다. `startBlink` 로 시작된 timer 는 곧바로 다시 멈춘다. page 가 다시 주목을 받으면 위치가 있는 caret 은 다시 깜박이고, 편집기가 숨긴 caret 은 숨겨진 채로 남는다.
+script 는 page 가 숨겨졌거나 focus 가 없는 동안 `rhwp-studio` 의 caret 도 멈춰 둔다. caret 의 opacity 가 바뀔 때마다 WebKit 에 frame 을 요청하는데, caret 의 timer 는 두 상태를 모르기 때문이다. `rhwp-studio` 는 host 에게 input handler 를 주지 않으므로, script 는 편집기의 응답마다, 그리고 보임과 focus 가 바뀔 때마다 plugin registry 인 `window.rhwpStudio.plugins` 의 field `deps` 에서 `getInputHandler` 를 읽어 input handler 의 `caret` 을 쥔다. 아무도 page 를 보지 않는 동안 caret 은 보이되 timer 가 없다. `startBlink` 로 시작된 timer 는 곧바로 다시 멈춘다. page 가 다시 주목을 받으면 위치가 있는 caret 은 다시 깜박이고, 편집기가 숨긴 caret 은 숨겨진 채로 남는다.
 
 ## 이후 rhwp tag로 갱신
 
 1. `scripts/install-studio-source.mjs`의 `REPOSITORY`, `TAG`, `COMMIT`을 검토한 HWP Studio source release로 바꾼다. `scripts/build-studio.mjs`의 `CORE_VERSION`과 `@rhwp/core` version은 별도 pin으로 유지하고 해당 Studio source가 사용하는 WebAssembly package가 바뀔 때만 갱신한다.
 2. 고정 source의 startup owner test, `make studio`, `make check`를 실행한다.
-3. 새 source의 embed protocol(`rhwp-studio/src/embed/`), `window.rhwpStudio.automation` context, `src/engine/caret-renderer.ts` 를 읽고 `ui/`에서 사용하는 요청과 필드의 변화를 확인한다.
+3. 새 source의 embed protocol(`rhwp-studio/src/embed/`), `window.rhwpStudio.automation` context, `src/plugin/host.ts`, `src/engine/caret-renderer.ts` 를 읽고 `ui/`에서 사용하는 요청과 필드의 변화를 확인한다.

@@ -60,14 +60,17 @@ const schedule = () => {
 
 let caret = null;
 const attended = () => document.visibilityState === "visible" && document.hasFocus();
-/** Takes the caret of the input handler, which the page creates when the editor starts. Every start of its timer passes startBlink. */
+/**
+ * Takes the caret of the input handler, which the page creates when the editor starts. rhwp-studio gives a host no input
+ * handler; the registry of its plugins holds the function that returns it. Every start of the timer of the caret passes startBlink.
+ */
 const takeCaret = () => {
-  const studio = window.rhwpStudio;
-  if (typeof studio?.getInputHandler !== "function") {
-    post({ event: "error", message: "rhwp-studio exposes no getInputHandler" });
+  const getInputHandler = window.rhwpStudio?.plugins?.deps?.getInputHandler;
+  if (typeof getInputHandler !== "function") {
+    post({ event: "error", message: "the plugin registry of rhwp-studio has no getInputHandler" });
     return;
   }
-  const handler = studio.getInputHandler();
+  const handler = getInputHandler();
   if (handler === null) return;
   if (typeof handler.caret?.startBlink !== "function" || typeof handler.caret.stopBlink !== "function") {
     post({ event: "error", message: "the input handler of rhwp-studio has no caret with startBlink and stopBlink" });

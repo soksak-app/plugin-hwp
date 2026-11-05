@@ -48,7 +48,10 @@ Object.defineProperty(window.document, "visibilityState", { configurable: true, 
 window.document.hasFocus = () => page.focused;
 const caret = new Caret();
 let handler = null;
-window.rhwpStudio = { automation: { getContext: () => ({ isDirty: false, hasSelection: false }) }, getInputHandler: () => handler };
+window.rhwpStudio = {
+  automation: { getContext: () => ({ isDirty: false, hasSelection: false }) },
+  plugins: { deps: { getInputHandler: () => handler } },
+};
 const errors = [];
 window.addEventListener("message", (event) => {
   if (event.data?.type === "soksak-hwp" && event.data.event === "error") errors.push(event.data.message);
@@ -137,7 +140,7 @@ test("a caret that the editor hid stays still when the page returns", async () =
   caret.hide();
 });
 
-test("the built page has the input handler and the caret that the script holds", (t) => {
+test("the built page gives the script its input handler through the plugin registry, and its caret", (t) => {
   const assets = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ui", "studio", "assets");
   if (!existsSync(assets)) {
     t.skip("make studio builds ui/studio before this check");
@@ -145,7 +148,15 @@ test("the built page has the input handler and the caret that the script holds",
   }
   const name = readdirSync(assets).find((file) => /^index-.*\.js$/.test(file));
   const bundle = readFileSync(path.join(assets, name), "utf8");
-  for (const code of ["getInputHandler:", "this.caret=new", "startBlink(){", "stopBlink(){", "this.blinkTimer=null", "this.currentRect=null"]) {
+  // window.rhwpStudio itself has no input handler; the registry of its plugins holds the function in its field deps.
+  const registry = /window\.rhwpStudio\.plugins=([\w$]+)/.exec(bundle)?.[1];
+  assert.ok(registry, "the bundle sets no window.rhwpStudio.plugins");
+  const made = new RegExp(`\\b${registry.replace(/\$/g, "\\$")}=new ([\\w$]+)\\(\\{[^}]*getInputHandler:`).exec(bundle)?.[1];
+  assert.ok(made, "the registry is not made with getInputHandler");
+  const at = bundle.search(new RegExp(`\\b${made.replace(/\$/g, "\\$")}=class\\b|class ${made.replace(/\$/g, "\\$")}\\b`));
+  assert.ok(at >= 0, `the bundle has no class ${made}`);
+  assert.match(bundle.slice(at, at + 200), /constructor\(e\)\{this\.deps=e/);
+  for (const code of ["this.caret=new", "startBlink(){", "stopBlink(){", "this.blinkTimer=null", "this.currentRect=null"]) {
     assert.ok(bundle.includes(code), `the bundle has no ${code}`);
   }
 });

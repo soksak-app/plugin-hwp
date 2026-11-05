@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H55-1: The script reaches the caret through the plugin registry of the built page, so the caret stops as H55 states and a tab with a document no longer shows an error of the script.
 - H55: The caret of the editor page runs no timer while the page is hidden or has no focus, so an open document asks WebKit for no frame there, and the caret blinks again when the page is attended.
 - H54: The editor page opens a document without a request outside the plugin. The build sets `RHWP_DISABLE_EXTERNAL_WEBFONTS=1`, and `make pack` runs `test/studio-requests.test.mjs`.
 - H49: `plugin.json` declares `exposes.element`, the page calls `expose.element`, `engines.soksak` is `^0.0.35`, and the copies of the plugin API cases are the files of core F502-13. Its release waits for the core release of F502-13 and the records kit release of KR19. Red: on the sources before the change, 11 of the 62 changed tests failed, and the start ended in `opening`. Green: they pass.
