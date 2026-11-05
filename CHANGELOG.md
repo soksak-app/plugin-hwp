@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- F474-hwp: The release run published v0.0.19, and the registry lists it.
 - F474-hwp: `engines.soksak` is `^0.0.36`, and the version is 0.0.19. Red: the core version test failed on `^0.0.35`. Green: it passes.
 - F432-hwp: `engines.soksak` is `^0.0.34`, and the version is 0.0.17. Red: the core version test failed on `^0.0.33`. Green: it passes.
 - F402-hwp: `engines.soksak` is `^0.0.33`, and the version is 0.0.16. Red: the core version test failed on `^0.0.32`. Green: it passes.
