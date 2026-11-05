@@ -47,10 +47,12 @@ The planned source includes the upstream-owned startup test. After the planned t
 - `{type: "soksak-hwp", event: "save"}` on Command-S, because the embed mode of `rhwp-studio` registers no save command and only prevents the default action of the shortcut;
 - `{type: "soksak-hwp", event: "modified", modified}` when `isDirty` of the automation context changes, read after each input event and each reply of the editor, because `rhwp-studio` has no change event for a page at the top level;
 - `{type: "soksak-hwp", event: "selection", selection}` when `hasSelection` of the automation context changes, read at the same times;
-- `{type: "soksak-hwp", event: "error", message}` when the script cannot read that state.
+- `{type: "soksak-hwp", event: "error", message}` when the script cannot read that state or hold the caret.
+
+The script also holds the caret of `rhwp-studio` still while the page is hidden or has no focus, because each change of the opacity of the caret asks WebKit for a frame and the timer of the caret knows neither state. The script reads `getInputHandler()` of `window.rhwpStudio` after each reply of the editor and at each change of visibility and focus, and takes `caret` of the input handler. While nobody attends the page, the caret is shown and has no timer: a start of the timer through `startBlink` stops it again. When the page is attended again, a caret with a position blinks again, and a caret that the editor hid stays hidden.
 
 ## Update to a later rhwp tag
 
 1. Set `REPOSITORY`, `TAG` and `COMMIT` in `scripts/install-studio-source.mjs` to the reviewed HWP Studio source release. Keep `CORE_VERSION` in `scripts/build-studio.mjs` and the `@rhwp/core` package version as a separate pin; update them only when the WebAssembly package used by that Studio source changes.
 2. Run the startup owner test from the pinned source, then `make studio` and `make check`.
-3. Read the embed protocol of the new source (`rhwp-studio/src/embed/`) and the context of `window.rhwpStudio.automation` for changes to requests and fields used by the files of `ui/`.
+3. Read the embed protocol of the new source (`rhwp-studio/src/embed/`), the context of `window.rhwpStudio.automation` and `src/engine/caret-renderer.ts` for changes to requests and fields used by the files of `ui/`.
