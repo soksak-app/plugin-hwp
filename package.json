@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@rhwp/core": "0.8.7",
-    "@soksak/kit": "https://github.com/soksak-app/kit/releases/download/v0.0.11/soksak-kit-0.0.11.tgz",
+    "@soksak/kit": "https://github.com/soksak-app/kit/releases/download/v0.0.12/soksak-kit-0.0.12.tgz",
     "jsdom": "^30.1.1"
   }
 }
