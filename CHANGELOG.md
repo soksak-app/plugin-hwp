@@ -13,6 +13,7 @@
 - F355-4-hwp: `make pack OUT=<folder>` writes the release with `pnpm pack`, and release.yml no longer downloads a core release, because core 0.0.25 installs the `pnpm pack` file of a plugin and has no `sok plugin pack`. The release holds `diagnostics.json` and its module, which only a diagnostic build reads, and `@soksak/plugin-api` is pinned to the core release `v0.0.25`.
 ## Unreleased
 
+- F466-hwp: The repository pins the kit release that reports a citation of a local build log or a temporary log.
 - F467-hwp: The repository pins `@soksak/kit`.
 - F463-hwp: The repository uses the checks kit and its one executable `soksak-check`.
 - F462-hwp: `engines.soksak` is `^0.0.35`, and the version is 0.0.18. Red: the core version test failed on `^0.0.34`. Green: it passes.
