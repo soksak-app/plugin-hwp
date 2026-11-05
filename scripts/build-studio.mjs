@@ -16,9 +16,11 @@ const SOURCE = requireInstalledStudioSource(CACHE);
 const STUDIO = join(SOURCE, "rhwp-studio");
 const OUTPUT = join(ROOT, "ui/studio");
 
+// The switch of the Studio build keeps the page from every font address outside the plugin: a document opens without a request to a
+// network, and the fonts that the plugin does not bundle come from the system (docs/studio.md#fonts).
 const run = (command, args, cwd) => {
   console.log(`build-studio: ${command} ${args.join(" ")}`);
-  execFileSync(command, args, { cwd, stdio: "inherit" });
+  execFileSync(command, args, { cwd, stdio: "inherit", env: { ...process.env, RHWP_DISABLE_EXTERNAL_WEBFONTS: "1" } });
 };
 
 console.log("build-studio: using installed rhwp Studio source");

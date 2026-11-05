@@ -10,6 +10,12 @@ The H40 source candidate always sets the Studio progress message. It waits for t
 
 `make studio` runs `scripts/build-studio.mjs`, which writes the built editor to `ui/studio/`. Git ignores that folder, and `make pack` and the release workflow build it before they pack the plugin.
 
+## Fonts
+
+The build runs the Studio build with `RHWP_DISABLE_EXTERNAL_WEBFONTS=1`, the switch of `rhwp-studio` for a self-hosted page, so the page requests no font address outside the plugin and a document opens without a network. Each font of a document comes from the fonts that `rhwp-studio` bundles under `ui/studio/fonts` when its catalog names a bundled file, and otherwise from the fallback chain of the system. Hamchorom Batang and Hamchorom Dotum, the default faces of most documents, are named only by addresses outside the plugin in that catalog. `THIRD_PARTY_LICENSES.md` of the source keeps Hancom fonts out of its repository because of their copyright, so the plugin does not bundle them either. On macOS the chain draws Hamchorom Batang with AppleMyungjo and Hamchorom Dotum with Apple SD Gothic Neo.
+
+`test/studio-requests.test.mjs` runs the built page on a jsdom document, opens `samples/biz_plan.hwp` and fails on any address outside the plugin. `make pack` runs it after the build.
+
 ## Development build
 
 `make studio` consumes the source directory already at `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`. The directory may be a plain installed source without `.git` or a symlink to a development checkout. Both use the same build preparation contract: the source must contain `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE` and `THIRD_PARTY_LICENSES.md`. Missing files produce an error naming the missing source file. The build does not clone, checkout, change sparse-checkout settings, inspect a commit, or reject dirty Git state.

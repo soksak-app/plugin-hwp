@@ -10,6 +10,12 @@ H40 source candidate는 Studio progress message를 항상 갱신한다. Message�
 
 `make studio`는 `scripts/build-studio.mjs`를 실행하고, 이 script는 빌드한 편집기를 `ui/studio/`에 쓴다. Git은 그 폴더를 무시하고, `make pack`과 release workflow는 plugin을 pack하기 전에 그것을 빌드한다.
 
+## 글꼴
+
+Build는 `rhwp-studio`의 self-hosted page용 switch인 `RHWP_DISABLE_EXTERNAL_WEBFONTS=1`로 Studio build를 실행한다. 그래서 page는 plugin 밖의 font address를 요청하지 않고, 문서는 network 없이 열린다. 문서의 각 글꼴은 catalog가 번들 파일을 가리키면 `rhwp-studio`가 `ui/studio/fonts`에 번들한 글꼴에서 오고, 그렇지 않으면 시스템의 fallback chain에서 온다. 대부분의 문서가 기본으로 쓰는 함초롬바탕과 함초롬돋움을 그 catalog는 plugin 밖의 address로만 가리킨다. Source의 `THIRD_PARTY_LICENSES.md`는 저작권 때문에 한컴 글꼴을 저장소에 넣지 않으므로, plugin도 이를 번들하지 않는다. macOS에서 이 chain은 함초롬바탕을 AppleMyungjo로, 함초롬돋움을 Apple SD Gothic Neo로 그린다.
+
+`test/studio-requests.test.mjs`는 빌드한 page를 jsdom 문서에서 실행해 `samples/biz_plan.hwp`를 열고, plugin 밖의 address가 하나라도 있으면 실패한다. `make pack`은 build 뒤에 이를 실행한다.
+
 ## 개발 빌드
 
 `make studio`는 `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`에 이미 설치된 source directory를 사용한다. Directory는 `.git`이 없는 일반 설치 경로이거나 개발 checkout을 가리키는 symlink일 수 있다. 두 경로는 같은 빌드 준비 계약을 따른다. Source에는 `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE`, `THIRD_PARTY_LICENSES.md`가 있어야 하며 누락된 파일을 이름으로 알리는 오류를 낸다. Build는 clone, checkout, sparse-checkout 설정 변경, commit 확인, Git dirty 상태 거부를 하지 않는다.
