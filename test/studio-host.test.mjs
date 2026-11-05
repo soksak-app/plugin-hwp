@@ -6,7 +6,7 @@ import { window } from "./dom.mjs";
 globalThis.location = window.location;
 globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
 const context = { isDirty: false, hasSelection: false };
-window.rhwpStudio = { automation: { getContext: () => context } };
+window.rhwpStudio = { automation: { getContext: () => context }, getInputHandler: () => null };
 const announced = [];
 const announce = (event) => { if (event.data?.type === "soksak-hwp") announced.push(event.data); };
 window.addEventListener("message", announce);

@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H55: 편집 page 의 caret 은 page 가 숨겨졌거나 focus 가 없는 동안 timer 를 돌리지 않아, 열린 문서가 그때 WebKit 에 frame 을 요청하지 않는다. page 가 다시 주목을 받으면 caret 은 다시 깜박인다.
 - H54: 편집 page 는 plugin 바깥으로 요청하지 않고 문서를 연다. 빌드는 `RHWP_DISABLE_EXTERNAL_WEBFONTS=1` 을 설정하고, `make pack` 이 `test/studio-requests.test.mjs` 를 실행한다.
 - H49: `plugin.json`은 `exposes.element`를 선언하고, page는 `expose.element`를 호출하며, `engines.soksak`은 `^0.0.35`이고, plugin API case 사본은 core F502-13의 파일이다. 그 release는 F502-13의 core release와 KR9의 records kit release를 기다린다. Red: 변경 전 source에서 바뀐 test 62개 중 11개가 실패했고, start는 `opening`에서 끝났다. Green: 통과한다.
 - H52: contract 사본은 `test/fixtures/contract`에 있고, `contract-copies.json`이 사본 아홉 개를 SHA-256과 함께 선언하며, release가 이를 담고, test가 사본과 비교한다. Red: 선언이 없어 test가 실패했다. Green: 통과한다.

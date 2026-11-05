@@ -10,7 +10,9 @@
 //   reply of rhwp-studio to a request of the surface page.
 //   {type: "soksak-hwp", event: "selection", selection} when hasSelection of the automation context changes, read at
 //   the same times.
-//   {type: "soksak-hwp", event: "error", message} when the script cannot read that state.
+//   {type: "soksak-hwp", event: "error", message} when the script cannot read that state or hold the caret.
+// It also holds the caret of rhwp-studio still while the page is hidden or has no focus: each change of the opacity of the
+// caret asks WebKit for a frame, and the timer of the caret knows neither state.
 import { startStudioHost } from "./view-diagnostics.js";
 
 const post = (body) => window.postMessage({ type: "soksak-hwp", ...body }, location.origin);
@@ -56,6 +58,42 @@ const schedule = () => {
   requestAnimationFrame(check);
 };
 
+let caret = null;
+const attended = () => document.visibilityState === "visible" && document.hasFocus();
+/** Takes the caret of the input handler, which the page creates when the editor starts. Every start of its timer passes startBlink. */
+const takeCaret = () => {
+  const studio = window.rhwpStudio;
+  if (typeof studio?.getInputHandler !== "function") {
+    post({ event: "error", message: "rhwp-studio exposes no getInputHandler" });
+    return;
+  }
+  const handler = studio.getInputHandler();
+  if (handler === null) return;
+  if (typeof handler.caret?.startBlink !== "function" || typeof handler.caret.stopBlink !== "function") {
+    post({ event: "error", message: "the input handler of rhwp-studio has no caret with startBlink and stopBlink" });
+    return;
+  }
+  caret = handler.caret;
+  const startBlink = caret.startBlink;
+  caret.startBlink = function () {
+    // startBlink shows the caret; a caret that nobody attends stays shown without its timer.
+    startBlink.call(this);
+    if (!attended()) this.stopBlink();
+  };
+};
+const holdCaret = () => {
+  if (caret === null) takeCaret();
+  if (caret === null) return;
+  if (attended()) {
+    if (caret.blinkTimer === null && caret.currentRect !== null) caret.startBlink();
+  } else if (caret.blinkTimer !== null) {
+    caret.startBlink();
+  }
+};
+document.addEventListener("visibilitychange", holdCaret);
+window.addEventListener("focus", holdCaret);
+window.addEventListener("blur", holdCaret);
+
 window.addEventListener("keydown", (event) => {
   if (event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey && event.code === "KeyS") {
     event.preventDefault();
@@ -68,7 +106,10 @@ for (const type of ["keyup", "input", "compositionend", "paste", "cut", "drop", 
   window.addEventListener(type, schedule, true);
 }
 window.addEventListener("message", (event) => {
-  if (event.source === window && event.data?.type === "rhwp-response") schedule();
+  if (event.source === window && event.data?.type === "rhwp-response") {
+    schedule();
+    holdCaret();
+  }
 });
 
 void startStudioHost(location.href, { document, window, post });
