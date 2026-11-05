@@ -11,9 +11,9 @@ importers:
       '@rhwp/core':
         specifier: 0.8.7
         version: 0.8.7
-      '@soksak/kit-checks':
-        specifier: https://github.com/soksak-app/kit-checks/releases/download/v0.0.8/soksak-kit-checks-0.0.8.tgz
-        version: https://github.com/soksak-app/kit-checks/releases/download/v0.0.8/soksak-kit-checks-0.0.8.tgz
+      '@soksak/kit':
+        specifier: https://github.com/soksak-app/kit/releases/download/v0.0.11/soksak-kit-0.0.11.tgz
+        version: https://github.com/soksak-app/kit/releases/download/v0.0.11/soksak-kit-0.0.11.tgz
       jsdom:
         specifier: ^30.1.1
         version: 30.1.2
@@ -80,9 +80,9 @@ packages:
   '@rhwp/core@0.8.7':
     resolution: {integrity: sha512-qgNpY9aclCvy9D7cPnpuplu42kUFZCCPhdjAS5HBso4Z4XeHG3uchYdUleQBoas/zEuwfJ7H4/ulepqdL/LXDA==}
 
-  '@soksak/kit-checks@https://github.com/soksak-app/kit-checks/releases/download/v0.0.8/soksak-kit-checks-0.0.8.tgz':
-    resolution: {integrity: sha512-0Xj0DbobM75cqn4brkMRkLQSqpBV+lgdkcPqoIfSimrur7LZub1PkveDrRDTIBHohQzXJiFS7+hesmapyuXg7Q==, tarball: https://github.com/soksak-app/kit-checks/releases/download/v0.0.8/soksak-kit-checks-0.0.8.tgz}
-    version: 0.0.8
+  '@soksak/kit@https://github.com/soksak-app/kit/releases/download/v0.0.11/soksak-kit-0.0.11.tgz':
+    resolution: {integrity: sha512-P8dM4BNpmB7dQ9sP6Z2AHVAy56G5DK+Fes+5j+cMCXCmXkJV2QS06ldMlpaNy2QMx2n4rVVbFhwZSRq1CPloMg==, tarball: https://github.com/soksak-app/kit/releases/download/v0.0.11/soksak-kit-0.0.11.tgz}
+    version: 0.0.11
     hasBin: true
 
   ajv@8.20.0:
@@ -248,7 +248,7 @@ snapshots:
 
   '@rhwp/core@0.8.7': {}
 
-  '@soksak/kit-checks@https://github.com/soksak-app/kit-checks/releases/download/v0.0.8/soksak-kit-checks-0.0.8.tgz':
+  '@soksak/kit@https://github.com/soksak-app/kit/releases/download/v0.0.11/soksak-kit-0.0.11.tgz':
     dependencies:
       ajv: 8.20.0
 
