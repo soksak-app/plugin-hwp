@@ -30,7 +30,7 @@ Local development uses the installed symlink directly. It does not call the sour
 
 ```sh
 make install
-make studio
+make run-studio
 ```
 
 The installer acquires the planned `soksak-studio-v0.8.7-2` source tag, sparsely checks out `rhwp-studio` without its `e2e` folders and other tests plus the tracked startup owner test, `assets/fonts`, `LICENSE` and `THIRD_PARTY_LICENSES.md`, and verifies the exact `COMMIT` recorded in `scripts/install-studio-source.mjs` and clean Git state. It refuses a symlink or an existing directory without a Git checkout instead of replacing or repairing that source. The installer does not run during local development. Release CI runs `make install` before `make pack`, which builds the installed directory before packing.

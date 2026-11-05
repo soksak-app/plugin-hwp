@@ -30,7 +30,7 @@ Local development는 설치된 symlink를 직접 사용한다. Source installer�
 
 ```sh
 make install
-make studio
+make run-studio
 ```
 
 Installer는 예정된 `soksak-studio-v0.8.7-2` source tag를 가져오고, `rhwp-studio`의 `e2e`와 다른 tests를 제외하되 추적되는 startup owner test, `assets/fonts`, `LICENSE`, `THIRD_PARTY_LICENSES.md`를 sparse checkout한 뒤 `scripts/install-studio-source.mjs`의 `COMMIT`과 clean Git 상태를 확인한다. Symlink 또는 Git checkout이 없는 기존 directory는 source를 교체하거나 복구하지 않고 거부한다. Local development에서는 installer를 자동 실행하지 않는다. Release CI는 `make pack` 전에 `make install`를 실행하고, `make pack`이 설치된 directory를 빌드한 뒤 pack한다.
