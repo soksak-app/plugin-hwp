@@ -13,6 +13,7 @@
 - F355-4-hwp: `make pack OUT=<folder>` writes the release with `pnpm pack`, and release.yml no longer downloads a core release, because core 0.0.25 installs the `pnpm pack` file of a plugin and has no `sok plugin pack`. The release holds `diagnostics.json` and its module, which only a diagnostic build reads, and `@soksak/plugin-api` is pinned to the core release `v0.0.25`.
 ## Unreleased
 
+- F462-hwp: `engines.soksak` is `^0.0.35`, and the version is 0.0.18. Red: the core version test failed on `^0.0.34`. Green: it passes.
 - F367-hwp: `engines.soksak` is `^0.0.29`, and the version is 0.0.12. Red: the core version test failed on `^0.0.28`. Green: it passes.
 - F364-hwp: `engines.soksak` is `^0.0.28`, and the version is 0.0.11. Red: the core version test failed on `^0.0.27`. Green: it passes.
 - F360-hwp: `engines.soksak` is `^0.0.27`, so core 0.0.27 installs the plugin, and the version is 0.0.10. Red: `the HWP package requires only core 0.0.27` failed on `^0.0.26`. Green: it passes.
