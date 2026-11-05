@@ -8,9 +8,9 @@ HWP plugin: opens the HWP and HWPX documents of the project in rhwp-studio, the 
 make test                                   # tests
 make check                                  # event source check and document check of the kit releases
 make install                 # installation stage: locked dependencies and the exact Studio source
-make studio                                 # build from the installed source directory or development symlink
+make run-studio                                 # build from the installed source directory or development symlink
 make pack OUT=<folder> # packs the plugin into <folder>
-make hooks                                  # once after cloning: check commit messages and records at commit time
+make install-hooks                                  # once after cloning: check commit messages and records at commit time
 ```
 
 `make check` runs the event source check and the document check of the kit that `package.json` pins. The application validates `plugin.json` and `diagnostics.json` when it installs the release, and the registry check compares the exposed names of the release with the declarations of each listed core.

@@ -12,7 +12,7 @@ const studioPage = path.join(root, "ui", "studio", "index.html");
 
 test("the packed HWP editor page includes every local module script target", (t) => {
   if (!existsSync(studioPage)) {
-    t.skip("make studio builds ui/studio/index.html before the release package graph check");
+    t.skip("make run-studio builds ui/studio/index.html before the release package graph check");
     return;
   }
   const destination = mkdtempSync(path.join(tmpdir(), "hwp-release-graph-"));

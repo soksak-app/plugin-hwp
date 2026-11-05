@@ -1,5 +1,5 @@
 # Tests, builds and packs the hwp plugin (docs/features.md). pack writes the release with pnpm pack.
-.PHONY: install test check studio pack push-check hooks
+.PHONY: install test check run-studio pack check-push install-hooks
 
 # The installation stage (core docs/spec/plugins.md#repositories): it installs the locked dependencies and the exact Studio release source
 # (docs/studio.md); the tests, checks and packs consume them without installing.
@@ -11,19 +11,20 @@ install:
 test:
 	pnpm test
 
-# check runs the checks of the kit releases that package.json pins: soksak-check events checks that each source of occurrences has an
-# event or a stated reason and that the emit sites match events.json, and soksak-check docs checks the records. The application
+# check runs the checks of the kit releases that package.json pins: sok-check events checks that each source of occurrences has an
+# event or a stated reason and that the emit sites match events.json, and sok-check docs checks the records. The application
 # validates plugin.json and diagnostics.json when it installs the release, and the registry check compares the exposed names of
 # the release with each listed core.
 check:
-	pnpm exec soksak-check events --config event-sources.json --catalog events.json
-	pnpm exec soksak-check docs
+	pnpm exec sok-check events --config event-sources.json --catalog events.json
+	pnpm exec sok-check docs
+	pnpm exec sok-check commands
 
 # studio builds from the already installed rhwp-studio source into ui/studio (docs/studio.md).
-studio:
+run-studio:
 	pnpm build
 
-pack: studio
+pack: run-studio
 	@test -n "$(OUT)" || { echo "make pack OUT=<folder>" >&2; exit 2; }
 	node --test test/studio-package-graph.test.mjs
 	pnpm pack --pack-destination $(OUT)
@@ -31,9 +32,9 @@ pack: studio
 # The check that a push needs: the commit messages of the pushed range, because a published commit message is kept; CI runs
 # the tests and checks on the pushed commits.
 # RANGE holds the commits of the pushed refs; the pre-push hook sets it, and it defaults to origin/main..HEAD.
-push-check:
-	pnpm exec soksak-check commits "$(or $(RANGE),origin/main..HEAD)"
+check-push:
+	pnpm exec sok-check commits "$(or $(RANGE),origin/main..HEAD)"
 
 # Sets this repository to use .githooks, which checks commit messages and records at commit time.
-hooks:
+install-hooks:
 	@git config core.hooksPath .githooks
