@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H56: `make pack` builds `build/test` before its tests, and its tests and `pnpm test` have a time limit and exit when they end, so a failed test no longer holds the build.
 - H55-1: The script reaches the caret through the plugin registry of the built page, so the caret stops as H55 states and a tab with a document no longer shows an error of the script.
 - H55: The caret of the editor page runs no timer while the page is hidden or has no focus, so an open document asks WebKit for no frame there, and the caret blinks again when the page is attended.
 - H54: The editor page opens a document without a request outside the plugin. The build sets `RHWP_DISABLE_EXTERNAL_WEBFONTS=1`, and `make pack` runs `test/studio-requests.test.mjs`.

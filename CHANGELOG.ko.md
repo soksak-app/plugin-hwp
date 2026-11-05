@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H56: `make pack`은 test 전에 `build/test`를 만들고, 그 test와 `pnpm test`에 시간 제한이 있으며 끝나면 종료하므로, 실패한 test가 build를 붙잡지 않는다.
 - H55-1: script 는 빌드된 page 의 plugin registry 를 거쳐 caret 에 닿으므로, caret 은 H55 대로 멈추고 문서를 연 tab 에 script 의 오류가 나타나지 않는다.
 - H55: 편집 page 의 caret 은 page 가 숨겨졌거나 focus 가 없는 동안 timer 를 돌리지 않아, 열린 문서가 그때 WebKit 에 frame 을 요청하지 않는다. page 가 다시 주목을 받으면 caret 은 다시 깜박인다.
 - H54: 편집 page 는 plugin 바깥으로 요청하지 않고 문서를 연다. 빌드는 `RHWP_DISABLE_EXTERNAL_WEBFONTS=1` 을 설정하고, `make pack` 이 `test/studio-requests.test.mjs` 를 실행한다.
