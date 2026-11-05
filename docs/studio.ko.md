@@ -8,7 +8,7 @@ H40 source candidate는 Studio progress message를 항상 갱신한다. Message�
 
 ## 빌드
 
-`make studio`는 `scripts/build-studio.mjs`를 실행하고, 이 script는 빌드한 편집기를 `ui/studio/`에 쓴다. Git은 그 폴더를 무시하고, `make pack`과 release workflow는 plugin을 pack하기 전에 그것을 빌드한다.
+`make run-studio`는 `scripts/build-studio.mjs`를 실행하고, 이 script는 빌드한 편집기를 `ui/studio/`에 쓴다. Git은 그 폴더를 무시하고, `make pack`과 release workflow는 plugin을 pack하기 전에 그것을 빌드한다.
 
 ## 글꼴
 
@@ -16,9 +16,11 @@ Build는 `rhwp-studio`의 self-hosted page용 switch인 `RHWP_DISABLE_EXTERNAL_W
 
 `test/studio-requests.test.mjs`는 빌드한 page를 jsdom 문서에서 실행해 `samples/biz_plan.hwp`를 열고, plugin 밖의 address가 하나라도 있으면 실패한다. `make pack`은 build 뒤에 이를 실행한다.
 
+`test/studio-caret-page.test.mjs`는 같은 page 위에서 `ui/studio-host.js`를 실행한다. 문서가 열린 뒤 script의 오류가 있으면 실패하고, caret의 style 변화를 센다. Page를 보고 있을 때는 변하고, page가 숨었거나 focus가 없을 때는 변하지 않아야 한다. `make pack`은 build 뒤에 이를 실행한다.
+
 ## 개발 빌드
 
-`make studio`는 `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`에 이미 설치된 source directory를 사용한다. Directory는 `.git`이 없는 일반 설치 경로이거나 개발 checkout을 가리키는 symlink일 수 있다. 두 경로는 같은 빌드 준비 계약을 따른다. Source에는 `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE`, `THIRD_PARTY_LICENSES.md`가 있어야 하며 누락된 파일을 이름으로 알리는 오류를 낸다. Build는 clone, checkout, sparse-checkout 설정 변경, commit 확인, Git dirty 상태 거부를 하지 않는다.
+`make run-studio`는 `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`에 이미 설치된 source directory를 사용한다. Directory는 `.git`이 없는 일반 설치 경로이거나 개발 checkout을 가리키는 symlink일 수 있다. 두 경로는 같은 빌드 준비 계약을 따른다. Source에는 `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE`, `THIRD_PARTY_LICENSES.md`가 있어야 하며 누락된 파일을 이름으로 알리는 오류를 낸다. Build는 clone, checkout, sparse-checkout 설정 변경, commit 확인, Git dirty 상태 거부를 하지 않는다.
 
 Build는 `@rhwp/core` devDependency의 WebAssembly package를 `rhwp-studio`가 import하는 source의 `pkg` 폴더로 복사한다. Package version은 별도 `CORE_VERSION` pin `0.8.7`과 같아야 한다. `rhwp-studio`의 `node_modules`가 없으면 lockfile로 `npm ci` 설치한다. 이어 상대 asset 경로로 HWP control plugin 없이 `npm run build:no-hwpctrl -- --base ./`를 실행해 `ui/studio/`를 빌드하고, `ui/studio-host.js`를 `ui/studio/index.html`의 마지막 module script로 추가하며, `LICENSE`와 `THIRD_PARTY_LICENSES.md`를 `ui/studio/`에 복사한다.
 
@@ -54,5 +56,5 @@ script 는 page 가 숨겨졌거나 focus 가 없는 동안 `rhwp-studio` 의 ca
 ## 이후 rhwp tag로 갱신
 
 1. `scripts/install-studio-source.mjs`의 `REPOSITORY`, `TAG`, `COMMIT`을 검토한 HWP Studio source release로 바꾼다. `scripts/build-studio.mjs`의 `CORE_VERSION`과 `@rhwp/core` version은 별도 pin으로 유지하고 해당 Studio source가 사용하는 WebAssembly package가 바뀔 때만 갱신한다.
-2. 고정 source의 startup owner test, `make studio`, `make check`를 실행한다.
+2. 고정 source의 startup owner test, `make run-studio`, `make check`를 실행한다.
 3. 새 source의 embed protocol(`rhwp-studio/src/embed/`), `window.rhwpStudio.automation` context, `src/plugin/host.ts`, `src/engine/caret-renderer.ts` 를 읽고 `ui/`에서 사용하는 요청과 필드의 변화를 확인한다.

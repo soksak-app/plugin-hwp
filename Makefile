@@ -27,7 +27,7 @@ run-studio:
 pack: run-studio
 	@test -n "$(OUT)" || { echo "make pack OUT=<folder>" >&2; exit 2; }
 	node scripts/build-test.mjs
-	node --test --test-timeout=60000 --test-force-exit test/studio-package-graph.test.mjs test/studio-requests.test.mjs test/studio-caret.test.mjs
+	node --test --test-timeout=60000 --test-force-exit test/studio-package-graph.test.mjs test/studio-requests.test.mjs test/studio-caret.test.mjs test/studio-caret-page.test.mjs
 	pnpm pack --pack-destination $(OUT)
 
 # The check that a push needs: the commit messages of the pushed range, because a published commit message is kept; CI runs

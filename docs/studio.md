@@ -8,7 +8,7 @@ The H40 source candidate always sets the Studio progress message. It waits for t
 
 ## Build
 
-`make studio` runs `scripts/build-studio.mjs`, which writes the built editor to `ui/studio/`. Git ignores that folder, and `make pack` and the release workflow build it before they pack the plugin.
+`make run-studio` runs `scripts/build-studio.mjs`, which writes the built editor to `ui/studio/`. Git ignores that folder, and `make pack` and the release workflow build it before they pack the plugin.
 
 ## Fonts
 
@@ -16,9 +16,11 @@ The build runs the Studio build with `RHWP_DISABLE_EXTERNAL_WEBFONTS=1`, the swi
 
 `test/studio-requests.test.mjs` runs the built page on a jsdom document, opens `samples/biz_plan.hwp` and fails on any address outside the plugin. `make pack` runs it after the build.
 
+`test/studio-caret-page.test.mjs` runs `ui/studio-host.js` over that same built page. After the document opens, it fails on an error of the script, and it counts the changes of the style of the caret: the caret changes while the page is attended and does not change while the page is hidden or has no focus. `make pack` runs it after the build.
+
 ## Development build
 
-`make studio` consumes the source directory already at `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`. The directory may be a plain installed source without `.git` or a symlink to a development checkout. Both use the same build preparation contract: the source must contain `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE` and `THIRD_PARTY_LICENSES.md`. Missing files produce an error naming the missing source file. The build does not clone, checkout, change sparse-checkout settings, inspect a commit, or reject dirty Git state.
+`make run-studio` consumes the source directory already at `node_modules/.cache/rhwp-soksak-studio-v0.8.7-2`. The directory may be a plain installed source without `.git` or a symlink to a development checkout. Both use the same build preparation contract: the source must contain `rhwp-studio/package.json`, `rhwp-studio/package-lock.json`, `LICENSE` and `THIRD_PARTY_LICENSES.md`. Missing files produce an error naming the missing source file. The build does not clone, checkout, change sparse-checkout settings, inspect a commit, or reject dirty Git state.
 
 The build copies the WebAssembly package of the devDependency `@rhwp/core`, whose version must equal the separate `CORE_VERSION` pin `0.8.7`, to the source's `pkg` folder. It installs the dependencies of `rhwp-studio` from its lockfile with `npm ci` when `node_modules` is absent. It then runs `npm run build:no-hwpctrl -- --base ./` with relative asset paths into `ui/studio/`, adds `ui/studio-host.js` as the final module script in `ui/studio/index.html`, and copies `LICENSE` and `THIRD_PARTY_LICENSES.md` into `ui/studio/`.
 
@@ -54,5 +56,5 @@ The script also holds the caret of `rhwp-studio` still while the page is hidden 
 ## Update to a later rhwp tag
 
 1. Set `REPOSITORY`, `TAG` and `COMMIT` in `scripts/install-studio-source.mjs` to the reviewed HWP Studio source release. Keep `CORE_VERSION` in `scripts/build-studio.mjs` and the `@rhwp/core` package version as a separate pin; update them only when the WebAssembly package used by that Studio source changes.
-2. Run the startup owner test from the pinned source, then `make studio` and `make check`.
+2. Run the startup owner test from the pinned source, then `make run-studio` and `make check`.
 3. Read the embed protocol of the new source (`rhwp-studio/src/embed/`), the context of `window.rhwpStudio.automation`, `src/plugin/host.ts` and `src/engine/caret-renderer.ts` for changes to requests and fields used by the files of `ui/`.

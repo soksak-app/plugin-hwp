@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { window } from "./dom.mjs";
 
 // The caret of rhwp-studio as src/engine/caret-renderer.ts has it, with a shorter timer so the test counts ticks quickly.
@@ -138,27 +135,6 @@ test("a caret that the editor hid stays still when the page returns", async () =
   caret.show({ pageIndex: 0 });
   assert.ok(await ticksOver() > 0);
   caret.hide();
-});
-
-test("the built page gives the script its input handler through the plugin registry, and its caret", (t) => {
-  const assets = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ui", "studio", "assets");
-  if (!existsSync(assets)) {
-    t.skip("make studio builds ui/studio before this check");
-    return;
-  }
-  const name = readdirSync(assets).find((file) => /^index-.*\.js$/.test(file));
-  const bundle = readFileSync(path.join(assets, name), "utf8");
-  // window.rhwpStudio itself has no input handler; the registry of its plugins holds the function in its field deps.
-  const registry = /window\.rhwpStudio\.plugins=([\w$]+)/.exec(bundle)?.[1];
-  assert.ok(registry, "the bundle sets no window.rhwpStudio.plugins");
-  const made = new RegExp(`\\b${registry.replace(/\$/g, "\\$")}=new ([\\w$]+)\\(\\{[^}]*getInputHandler:`).exec(bundle)?.[1];
-  assert.ok(made, "the registry is not made with getInputHandler");
-  const at = bundle.search(new RegExp(`\\b${made.replace(/\$/g, "\\$")}=class\\b|class ${made.replace(/\$/g, "\\$")}\\b`));
-  assert.ok(at >= 0, `the bundle has no class ${made}`);
-  assert.match(bundle.slice(at, at + 200), /constructor\(e\)\{this\.deps=e/);
-  for (const code of ["this.caret=new", "startBlink(){", "stopBlink(){", "this.blinkTimer=null", "this.currentRect=null"]) {
-    assert.ok(bundle.includes(code), `the bundle has no ${code}`);
-  }
 });
 
 test("a page whose input handler has no caret says so", async () => {
