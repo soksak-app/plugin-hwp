@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- F474-hwp: `engines.soksak`은 `^0.0.36`이고, version은 0.0.19이다. Red: core version test가 `^0.0.35`에서 실패했다. Green: 통과한다.
 - F432-hwp: `engines.soksak`은 `^0.0.34`이고, version은 0.0.17이다. Red: core version test가 `^0.0.33`에서 실패했다. Green: 통과한다.
 - F402-hwp: `engines.soksak`은 `^0.0.33`이고 version은 0.0.16이다. Red: core version test가 `^0.0.32`에서 실패했다. Green: 통과한다.
 - H48: 이 저장소는 records kit 0.0.6을 쓰며, 그 release gate는 `Closed:` 사유가 있는 닫힌 항목을 받아들인다.
