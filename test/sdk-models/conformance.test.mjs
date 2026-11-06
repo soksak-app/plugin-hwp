@@ -6,7 +6,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { createExpose } from "./expose.mjs";
+import { JSDOM } from "jsdom";
+import { createExpose, roleOf } from "./expose.mjs";
 import { createViewBridge } from "./view.mjs";
 
 const fixtureFile = (name) => JSON.parse(readFileSync(new URL(`../fixtures/contract/${name}.json`, import.meta.url), "utf8"));
@@ -71,13 +72,24 @@ test("expose cases replay against the exposure model", async () => {
       reply: (id, payload) => { replies.push({ id, payload }); },
       changed: (name, value, version) => { changed.push({ name, value, version }); },
     }, testCase.declarations);
+    // The markup of the case, which gives each element its tag and attributes; the role that element.rect reports reads them.
+    const markup = new JSDOM(testCase.markup ?? "").window.document;
     // The fake element of a selector: its click runs the listeners of the page and records the click.
     const elementOf = (selector) => {
       const name = selector.replace("#", "");
       if (!elements.has(selector)) {
         const listeners = {};
+        const node = markup.querySelector(selector);
+        if (!node) throw new Error(`the markup of ${testCase.id} has no element ${selector}`);
         const element = {
           id: name,
+          tagName: node.tagName,
+          type: node.type,
+          multiple: node.multiple,
+          size: node.size,
+          getAttribute: (attribute) => node.getAttribute(attribute),
+          hasAttribute: (attribute) => node.hasAttribute(attribute),
+          matches: (query) => node.matches(query),
           dataset: {},
           value: "",
           // The markup of a case sets no zoom, so each element has the initial computed zoom 1 and no flat-tree parent.
@@ -544,3 +556,12 @@ function elementOf(name, rect, effects) {
 function rectElement(rect) {
   return { getBoundingClientRect: () => ({ left: rect.left, top: rect.top, width: rect.width, height: rect.height }) };
 }
+
+// element.rect reports the ARIA role of the element by the rule of core's roleOf (expose.json): the first token of the role
+// attribute, else the implicit role of the tag, and null for a group and for an element that only holds text.
+test("the role of element.rect follows the role attribute and the tag, and a group or a plain element has none (H59)", () => {
+  const { document } = new JSDOM("<div role='tab selected'></div><button></button><div></div><div role='group'><input></div>"
+    + "<ul><li></li></ul><a href='#'></a><a></a><h2></h2><span contenteditable></span>").window;
+  const roles = [...document.body.querySelectorAll("*")].map((element) => roleOf(element));
+  assert.deepEqual(roles, ["tab", "button", null, null, "textbox", "list", "listitem", "link", null, "heading", "textbox"]);
+});

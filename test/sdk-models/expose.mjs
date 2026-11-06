@@ -7,6 +7,42 @@
 
 const ERROR = { unknownStatus: 1001, notRegistered: 1002, invalidParams: -32602, unknownMethod: -32601, failed: -32000 };
 
+// The implicit ARIA role of an input of each type and of a tag that needs no attribute to have it (HTML-AAM).
+const INPUT_ROLES = Object.freeze({
+  button: "button", image: "button", reset: "button", submit: "button", checkbox: "checkbox", radio: "radio", range: "slider",
+  number: "spinbutton", search: "searchbox", email: "textbox", tel: "textbox", text: "textbox", url: "textbox",
+});
+const TAG_ROLES = Object.freeze({
+  article: "article", dialog: "dialog", h1: "heading", h2: "heading", h3: "heading", h4: "heading", h5: "heading", h6: "heading", hr: "separator",
+  img: "img", li: "listitem", meter: "meter", nav: "navigation", ol: "list", progress: "progressbar", search: "search", table: "table", td: "cell",
+  th: "columnheader", tr: "row", ul: "list",
+});
+// The input types whose implicit role is combobox when the input names a list of suggestions (HTML-AAM).
+const LIST_INPUTS = new Set(["email", "search", "tel", "text", "url"]);
+
+/**
+ * The ARIA role of an element, as element.rect of the plugin API reports it: the first token of its role attribute, else the
+ * implicit role of its tag and input type, else textbox for a contenteditable element, else null. A group only groups, so its
+ * role is null (expose.json).
+ */
+export function roleOf(element) {
+  const explicit = element.getAttribute("role")?.trim().split(/\s+/)[0];
+  if (explicit) return explicit === "group" ? null : explicit;
+  const tag = element.tagName.toLowerCase();
+  if (Object.hasOwn(TAG_ROLES, tag)) return TAG_ROLES[tag];
+  if (tag === "a") return element.hasAttribute("href") ? "link" : null;
+  if (tag === "button") return "button";
+  if (tag === "textarea") return "textbox";
+  if (tag === "select") return element.multiple || element.size > 1 ? "listbox" : "combobox";
+  if (tag === "input") {
+    // An input without a known type attribute is a text input, whose type property is text.
+    if (element.hasAttribute("list") && LIST_INPUTS.has(element.type)) return "combobox";
+    return Object.hasOwn(INPUT_ROLES, element.type) ? INPUT_ROLES[element.type] : null;
+  }
+  if (element.matches('[contenteditable]:not([contenteditable="false"])')) return "textbox";
+  return null;
+}
+
 /**
  * The effective CSS zoom of the element, as elementRect of the plugin API reads it: the product of the computed zoom of the
  * element and of each ancestor of the flat tree (a slotted element continues at its slot, a shadow root at its host).
@@ -140,7 +176,7 @@ export function createExpose({ register, unregister, onRequest, reply, changed }
       case "element.rect": {
         const element = elementOf(params.name, params);
         const box = element.getBoundingClientRect();
-        return { x: box.x, y: box.y, width: box.width, height: box.height, zoom: effectiveZoom(element) };
+        return { x: box.x, y: box.y, width: box.width, height: box.height, zoom: effectiveZoom(element), role: roleOf(element) };
       }
       case "command.run": {
         const command = commands.get(params.name);
