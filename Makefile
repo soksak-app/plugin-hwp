@@ -30,11 +30,12 @@ pack: run-studio
 	node --test --test-timeout=60000 --test-force-exit test/studio-package-graph.test.mjs test/studio-requests.test.mjs test/studio-caret.test.mjs test/studio-caret-page.test.mjs
 	pnpm pack --pack-destination $(OUT)
 
-# The check that a push needs: the commit messages of the pushed range, because a published commit message is kept; CI runs
-# the tests and checks on the pushed commits.
+# The checks that a push needs: the commit messages and the checklist history of the pushed range, because a published commit
+# is kept; CI runs the tests and checks on the pushed commits.
 # RANGE holds the commits of the pushed refs; the pre-push hook sets it, and it defaults to origin/main..HEAD.
 check-push:
 	pnpm exec sok-check commits "$(or $(RANGE),origin/main..HEAD)"
+	pnpm exec sok-check docs --range "$(or $(RANGE),origin/main..HEAD)"
 
 # Sets this repository to use .githooks, which checks commit messages and records at commit time.
 install-hooks:

@@ -2,13 +2,14 @@
 
 [English](CHANGELOG.md)
 
+- H53: push check와 CI가 kit의 체크리스트 이력 검사를 실행한다. `package.json`이 KR14와 KR15를 담은 kit 0.0.14를 pin하고, `make check-push`가 push 범위에 `sok-check docs --range`를 실행하며, CI가 event의 범위에 `make check-push`를 실행한다. Red: 변경 전 Makefile과 `ci.yml`에서 push check test가 실패했다. Green: 통과한다.
 - H58: core 호환 문서가 `package.json`이 선언한 범위 `^0.0.39`을 적는다.
 - H57: Test 는 host script 를 빌드된 page 에서 실행하고, mygo, Wails, Tauri 에서 창에 focus 가 없거나 tab 이 숨었을 때 caret 은 멈춘다.
 - H56: `make pack`은 test 전에 `build/test`를 만들고, 그 test와 `pnpm test`에 시간 제한이 있으며 끝나면 종료하므로, 실패한 test가 build를 붙잡지 않는다.
 - H55-1: script 는 빌드된 page 의 plugin registry 를 거쳐 caret 에 닿으므로, caret 은 H55 대로 멈추고 문서를 연 tab 에 script 의 오류가 나타나지 않는다.
 - H55: 편집 page 의 caret 은 page 가 숨겨졌거나 focus 가 없는 동안 timer 를 돌리지 않아, 열린 문서가 그때 WebKit 에 frame 을 요청하지 않는다. page 가 다시 주목을 받으면 caret 은 다시 깜박인다.
 - H54: 편집 page 는 plugin 바깥으로 요청하지 않고 문서를 연다. 빌드는 `RHWP_DISABLE_EXTERNAL_WEBFONTS=1` 을 설정하고, `make pack` 이 `test/studio-requests.test.mjs` 를 실행한다.
-- H49: `plugin.json`은 `exposes.element`를 선언하고, page는 `expose.element`를 호출하며, `engines.soksak`은 `^0.0.35`이고, plugin API case 사본은 core F502-13의 파일이다. 그 release는 F502-13의 core release와 KR9의 records kit release를 기다린다. Red: 변경 전 source에서 바뀐 test 62개 중 11개가 실패했고, start는 `opening`에서 끝났다. Green: 통과한다.
+- H49: `plugin.json`은 `exposes.element`를 선언하고, page는 `expose.element`를 호출하며, `engines.soksak`은 `^0.0.35`이고, plugin API case 사본은 core F502-13의 파일이다. 그 release는 F502-13의 core release와 KR19의 records kit release를 기다린다. Red: 변경 전 source에서 바뀐 test 62개 중 11개가 실패했고, start는 `opening`에서 끝났다. Green: 통과한다.
 - H52: contract 사본은 `test/fixtures/contract`에 있고, `contract-copies.json`이 사본 아홉 개를 SHA-256과 함께 선언하며, release가 이를 담고, test가 사본과 비교한다. Red: 선언이 없어 test가 실패했다. Green: 통과한다.
 - H51: core 호환성 문서는 package가 선언한 범위 `^0.0.34`를 적고, test가 두 문서를 `engines.soksak`과 비교한다. Red: test가 `^0.0.34`에 대한 `^0.0.24`로 실패했다. Green: 통과한다.
 - F497-hwp: `engines.soksak`은 `^0.0.39`이고, version은 0.0.22이다.
