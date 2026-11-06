@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- F494-hwp: `engines.soksak` is `^0.0.38`, and the version is 0.0.21.
 - F479-hwp: The release run published v0.0.20, and the registry lists it.
 - F479-hwp: `engines.soksak` is `^0.0.37`, and the version is 0.0.20.
 - F476-hwp: The tests repeat no declared version.
