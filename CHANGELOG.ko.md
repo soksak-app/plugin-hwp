@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H58: core 호환 문서가 `package.json`이 선언한 범위 `^0.0.39`을 적는다.
 - H57: Test 는 host script 를 빌드된 page 에서 실행하고, mygo, Wails, Tauri 에서 창에 focus 가 없거나 tab 이 숨었을 때 caret 은 멈춘다.
 - H56: `make pack`은 test 전에 `build/test`를 만들고, 그 test와 `pnpm test`에 시간 제한이 있으며 끝나면 종료하므로, 실패한 test가 build를 붙잡지 않는다.
 - H55-1: script 는 빌드된 page 의 plugin registry 를 거쳐 caret 에 닿으므로, caret 은 H55 대로 멈추고 문서를 연 tab 에 script 의 오류가 나타나지 않는다.

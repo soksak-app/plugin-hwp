@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H58: The core compatibility documents state `^0.0.39`, the range that `package.json` declares.
 - H57: A test runs the host script on the built page, and the caret stops on mygo, Wails and Tauri while the window has no focus or the tab is hidden.
 - H56: `make pack` builds `build/test` before its tests, and its tests and `pnpm test` have a time limit and exit when they end, so a failed test no longer holds the build.
 - H55-1: The script reaches the caret through the plugin registry of the built page, so the caret stops as H55 states and a tab with a document no longer shows an error of the script.
