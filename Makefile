@@ -12,10 +12,11 @@ test:
 	pnpm test
 
 # test-app runs the window checks of this plugin (e2e/) against the published core application of the core release of the installed
-# @soksak/window-check (core docs/spec/plugins.md#window-checks-of-a-plugin): scripts/test-app.mjs keeps the application zips of that
-# release in build/app-cache/, installs this plugin from its packed release into each application and runs the checks.
+# @soksak/window-check (core docs/spec/plugins.md#window-checks-of-a-plugin): its bin soksak-test-app keeps the application zips of
+# that release in build/app-cache/, installs the release of this repository that make pack writes, the start probe of the package and
+# the fixture plugins of e2e/fixtures into each application, and runs the checks.
 test-app:
-	node scripts/test-app.mjs
+	pnpm exec soksak-test-app
 
 # check runs the checks of the kit releases that package.json pins: sok-check events checks that each source of occurrences has an
 # event or a stated reason and that the emit sites match events.json, and sok-check docs checks the records. The application

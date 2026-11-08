@@ -4,7 +4,7 @@
 // a native press on the page gives the editor the keyboard focus. On the virtual key window native keys with their stated text type
 // at the caret, Shift-ArrowLeft selects the typed letter, a pointer drag selects text, and Command-S writes the file, which the
 // surface reads back (core docs/spec/exposure.md#virtual-key-window). The startup check keeps the resource timing evidence of the
-// opened document in SOKSAK_RUN_FOLDER, which scripts/test-app.mjs sets.
+// opened document in SOKSAK_RUN_FOLDER, which soksak-test-app of @soksak/window-check sets.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
