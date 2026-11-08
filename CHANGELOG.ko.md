@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md)
 
-- H61 (core F715-5): hwp 문서, 그림, 측정의 window check가 `e2e/`에 있고 `make test-app`, 곧 `@soksak/window-check`의 bin `soksak-test-app`으로 공개된 core 앱을 대상으로 실행된다. core v0.0.40 release 와 window-check export `view-metrics-collection.mjs`, `view-frame-geometry.mjs`, `view-process-footprint.mjs`, `view-content.mjs`를 기다린다.
+- H61 (core F715-5): hwp 문서, 그림, 측정의 window check가 `e2e/`에 있고 `make test-app`, 곧 `@soksak/window-check`의 bin `soksak-test-app`으로 공개된 core 앱을 대상으로 실행된다. core v0.0.40 release 를 기다린다.
 - H60: core 호환성 문서가 `^0.0.40`은 core 0.0.40부터 그 뒤의 모든 0.0 release를 허용한다고 적고, test가 이를 요구한다. Red: 이전 문장에서 test가 실패했다. Green: 통과한다.
 - H49: core 0.0.35부터 0.0.39까지는 F502-13 없이 release되어 `exposes.element`를 거부하므로, `engines.soksak`은 F502-13의 core release인 `^0.0.40`이다. Red: version test가 `^0.0.39`에서 실패했다. Green: 통과한다.
 - H59: `expose.json` 사본과 digest는 core main의 파일이고, exposure model은 `element.rect`에서 core의 규칙으로 element의 role을 답한다. Red: `expose.element.act-rect-and-refusals` replay가 `role` 없이 실패했고, role test가 이전 규칙에서 실패했다. Green: 통과한다.
