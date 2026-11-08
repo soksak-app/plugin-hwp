@@ -1,6 +1,6 @@
 // The benchmarks of the hwp view: its process, history, layout and drag measurements meet the contract of
-// @soksak/window-check/view-metrics.mjs, and its reclaim restores the declared card width. The evidence is written into the logs of
-// the configuration folder.
+// @soksak/window-check/view-metrics.mjs, and its reclaim restores the declared card width. The evidence of each
+// application is written to build/hwp-view-metrics/<application>.json, which the run keeps.
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,9 +28,9 @@ for (const app of Object.values(APPS)) {
         baselinesMs: HWP_VIEW_BASELINES_MS,
         collect: async () => collectHwpViewMeasurements(t, s),
       });
-      const directory = join(app.configDir, "logs", "hwp-view-metrics");
+      const directory = new URL("../../build/hwp-view-metrics/", import.meta.url).pathname;
       mkdirSync(directory, { recursive: true });
-      const path = join(directory, `${process.pid}.json`);
+      const path = join(directory, `${app.name}.json`);
       writeFileSync(path, `${JSON.stringify(result, null, 2)}\n`);
       t.diagnostic(`HWP view measurement evidence ${path}`);
       assert.equal(result.evaluation.plugin, "hwp");
