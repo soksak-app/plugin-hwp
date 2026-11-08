@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H61 (core F715-5): The window checks of the hwp document, its drawing and its measurement are in `e2e/` and run with `make test-app` against the published core application; they wait for the window-check exports `catalog.mjs`, `view-metrics-collection.mjs`, `view-frame-geometry.mjs`, `view-process-footprint.mjs` and `view-content.mjs` of core v0.0.40.
 - H60: The core compatibility documents state that `^0.0.40` admits core 0.0.40 and every later 0.0 release, and a test requires it. Red: the test failed on the earlier statement. Green: it passes.
 - H49: `engines.soksak` is `^0.0.40`, the core release of F502-13, because core 0.0.35 to 0.0.39 were released without it and refuse `exposes.element`. Red: the version test failed on `^0.0.39`. Green: it passes.
 - H59: The copy of `expose.json` and its digest are the file of core main, and the exposure model answers the role of the element in `element.rect` by the rule of core. Red: the replay of `expose.element.act-rect-and-refusals` failed without `role`, and the role test failed on the earlier rule. Green: they pass.

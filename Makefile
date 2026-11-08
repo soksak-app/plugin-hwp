@@ -1,5 +1,5 @@
 # Tests, builds and packs the hwp plugin (docs/features.md). pack writes the release with pnpm pack.
-.PHONY: install test check run-studio pack check-push install-hooks
+.PHONY: install test test-app check run-studio pack check-push install-hooks
 
 # The installation stage (core docs/spec/plugins.md#repositories): it installs the locked dependencies and the exact Studio release source
 # (docs/studio.md); the tests, checks and packs consume them without installing.
@@ -10,6 +10,12 @@ install:
 # test runs only the tests of this plugin, over fakes of the core side.
 test:
 	pnpm test
+
+# test-app runs the window checks of this plugin (e2e/) against the published core application of the core release of the installed
+# @soksak/window-check (core docs/spec/plugins.md#window-checks-of-a-plugin): scripts/test-app.mjs keeps the application zips of that
+# release in build/app-cache/, installs this plugin from its packed release into each application and runs the checks.
+test-app:
+	node scripts/test-app.mjs
 
 # check runs the checks of the kit releases that package.json pins: sok-check events checks that each source of occurrences has an
 # event or a stated reason and that the emit sites match events.json, and sok-check docs checks the records. The application
