@@ -4,17 +4,8 @@
 import assert from "node:assert/strict";
 import { copyFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { valueProof } from "@soksak/window-check/view-content.mjs";
+import { valueProof, visibleDocument } from "@soksak/window-check/view-content.mjs";
 import { FIXTURE, lines } from "./hwp-support.mjs";
-
-/** The visible document region `document` of surface in host.window, or a failure that names what it holds. */
-async function visibleDocument(s, surface, document) {
-  const host = await s.get("host.window");
-  const row = host.documents.find((item) => item.surface === surface && item.document === document);
-  assert.ok(row?.visible && row.frame.width > 0 && row.frame.height > 0,
-    `${surface} shows no document region ${JSON.stringify(document)}: ${JSON.stringify(row)}`);
-  return row;
-}
 
 /**
  * The text that the hwp view of surface holds as its shown content: the glyphs of its first page, line by line, while its root document
