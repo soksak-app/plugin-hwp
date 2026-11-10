@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { JSDOM } from "jsdom";
-import { createOccurrences, waitFor } from "../occurrences.mjs";
+import { createOccurrences } from "../occurrences.mjs";
 import { createExpose, roleOf } from "./expose.mjs";
 import { createViewBridge } from "./view.mjs";
 
@@ -261,7 +261,7 @@ test("view operation cases replay against the bridge model", async (t) => {
       globalThis.window.location = { host: "probe" };
       let observe;
       const nextObservation = () => {
-        return waitFor(`the next observation of ${testCase.id}`, (resolve) => { observe = resolve; });
+        return new Promise((resolve) => { observe = resolve; });
       };
       const publish = (value) => {
         if (observe === undefined) throw new Error("operation observation has no waiting consumer");

@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createWindow, useWindow } from "./dom.mjs";
 import { recordTimers } from "./no-timers.mjs";
-import { createOccurrences, waitFor } from "./occurrences.mjs";
+import { createOccurrences } from "./occurrences.mjs";
 
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
@@ -366,7 +366,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
   let nextId = 1000;
   // Sends one command request of core to the page, as the workbench sends each request of a command that the view
   // registered. A command that the page has not registered reaches no view, so the host refuses it.
-  const run = (name, paramsOfRun = {}) => waitFor(`the reply of the view command ${name}`, (resolve, reject) => {
+  const run = (name, paramsOfRun = {}) => new Promise((resolve, reject) => {
     if (!reports.registered.includes(name)) {
       reject(new Error(`view command ${name} is not registered`));
       return;
@@ -378,7 +378,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
   let nextExposure = 0;
   // Forwards one exposure request of core to the page as the host event exposure-request {id, surface, method, params}
   // and resolves with the reply {result} or {error} of the page.
-  const expose = (method, paramsOfRequest) => waitFor(`the reply of the exposure request ${method}`, (resolve) => {
+  const expose = (method, paramsOfRequest) => new Promise((resolve) => {
     if (!subscribed.has("exposure-request")) {
       resolve({ error: { message: "the page has no subscription of exposure-request" } });
       return;

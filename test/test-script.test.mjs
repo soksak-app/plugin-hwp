@@ -10,7 +10,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const script = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts.test;
 const nodeTest = script.split("&&").map((part) => part.trim()).find((part) => part.startsWith("node --test "));
 assert.ok(nodeTest, "the test script runs no node --test command");
-const patterns = nodeTest.slice("node --test ".length).trim().split(/\s+/).map((pattern) => pattern.replace(/^"(.*)"$/, "$1"));
+// The options of node --test, such as the limit of the runner, select no file.
+const patterns = nodeTest.slice("node --test ".length).trim().split(/\s+/).filter((part) => !part.startsWith("--")).map((pattern) => pattern.replace(/^"(.*)"$/, "$1"));
 
 // Each test file under test/, as a path relative to the repository root with forward slashes.
 function testFiles(directory) {
@@ -33,11 +34,14 @@ test("the test command runs every test file under test/, including its subdirect
   assert.deepEqual(files.filter((file) => !selected(file)), [], "the test command does not run these test files");
 });
 
-// A test is judged by the events that it waits for, not by time (docs/spec/calls.md, tests): neither the test command nor
-// the test run of make pack sets a time limit on a test.
-test("the test commands set no time limit on a test", () => {
+// A test is judged by the events that it waits for, not by time (docs/spec/calls.md, tests): a wait ends only by its event, and the
+// limit of the runner, the limit of each core test, fails a test whose event does not come with its name. The test command and the
+// test run of make pack both run node --test with that limit.
+test("the test commands run node --test with the runner limit of 120000 ms", () => {
   const makefile = readFileSync(path.join(root, "Makefile"), "utf8");
-  for (const [where, text] of [["package.json", script], ["Makefile", makefile]]) {
-    assert.doesNotMatch(text, /--test-timeout/, `${where} sets a time limit on the tests`);
+  const runs = [["package.json", nodeTest], ...makefile.split("\n").filter((line) => /\bnode --test\b/.test(line)).map((line) => ["Makefile", line.trim()])];
+  assert.equal(runs.length, 2, "the test command and the test run of make pack are the node --test runs");
+  for (const [where, run] of runs) {
+    assert.deepEqual(run.split(/\s+/).filter((part) => part.startsWith("--test-timeout")), ["--test-timeout=120000"], `${where}: ${run}`);
   }
 });

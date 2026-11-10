@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H63: A wait ends only by its occurrence, and the limit of the test runner, `--test-timeout=120000` in the test script and in the test run of `make pack`, fails a test whose occurrence does not come with its name; the occurrences helper no longer rejects the open waits at `beforeExit`. A probe of two waits that never come in one file failed both tests at the limit with their names.
 - H62: No wait of the page ends by a limit: an embed request, the listening wait and a viewport marker request end by their answer or by the end of the editor page, which the view records and shows as the tab error, the SDK model follows the call rule of core 0.0.40, and the tests wait for the events that they assert. Red: 8 tests failed at once on the timers of the limits and on the code of an error reply. Green: they pass.
 - H60: The core compatibility documents state that `^0.0.40` admits core 0.0.40 and every later 0.0 release, and a test requires it. Red: the test failed on the earlier statement. Green: it passes.
 - H49: `engines.soksak` is `^0.0.40`, the core release of F502-13, because core 0.0.35 to 0.0.39 were released without it and refuse `exposes.element`. Red: the version test failed on `^0.0.39`. Green: it passes.

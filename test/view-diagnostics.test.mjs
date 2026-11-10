@@ -383,7 +383,7 @@ test("disposal cancels pending viewport reads and removes the marker", async () 
   const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
-  const { promise: readPosted, resolve: markReadPosted } = occurrence("the post of the read request");
+  const { promise: readPosted, resolve: markReadPosted } = occurrence();
   const region = {
     onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
@@ -574,7 +574,7 @@ test("concurrent disposal callers both wait for marker cleanup", async () => {
   const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
-  const { promise: stopPosted, resolve: markStopPosted } = occurrence("the post of the stop request");
+  const { promise: stopPosted, resolve: markStopPosted } = occurrence();
   const region = {
     onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
@@ -620,7 +620,7 @@ test("mount and pagehide share the in-flight view diagnostic disposer", async ()
   let cleanups = 0;
   let disposed = false;
   const cleanup = new Promise((resolve) => { finishCleanup = resolve; });
-  const { promise: cleanupStarted, resolve: markCleanupStarted } = occurrence("the start of the marker cleanup");
+  const { promise: cleanupStarted, resolve: markCleanupStarted } = occurrence();
   const dispose = source.createViewDiagnosticDisposer({
     viewWindow,
     onDisposeStart: () => { disposed = true; },
@@ -724,7 +724,7 @@ test("studio startup skips diagnostics in releases and waits for the diagnostic 
 
   globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({ module: "ui/hwp-diagnostics.js" }) });
   let finishAttach;
-  const { promise: attaching, resolve: markAttaching } = occurrence("the attach of the diagnostic companion");
+  const { promise: attaching, resolve: markAttaching } = occurrence();
   let attached = false;
   const load = source.startStudioDiagnostics(`${window.location.href}?diagnostics=1`, {
     document, window,
