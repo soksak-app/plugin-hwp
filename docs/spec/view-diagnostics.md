@@ -43,6 +43,13 @@ the same document window with `type`, `id`, and either `result` or `error`; it i
 same-window message event reaches its listener, so the reply is not handled as another request. An unsupported request still receives
 an explicit error reply.
 
+A marker request has no time limit ([calls](calls.md)). It waits for the reply of the studio page that it was sent to, and the end
+of that page ends it: the region reports the end of the WebContent process of the page as the document state whose `error` is
+`the web content process ended`, and a navigation that it starts as a larger `navigations` count. The request then fails with
+`HWP studio viewport marker <operation> request <id> ended: <reason>`, and a request to a page that has ended fails at once
+without a post. The marker ends with the page that holds it, so a failed start sends no cleanup request to an ended page, and a
+stop or a disposal after the end of that page removes no marker. Disposal ends each pending request.
+
 The `rgb(255, 0, 255)` edge pixels identify the studio viewport rectangle only. They do not establish the displayed editor
 content or its cadence; OCR-confirmed natural content and recorded frame timestamps remain separate evidence.
 
