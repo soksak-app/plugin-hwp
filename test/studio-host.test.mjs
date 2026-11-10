@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { window } from "./dom.mjs";
-import { waitFor } from "./occurrences.mjs";
 
 // ui/studio-host.js runs in the editor page; the test gives it the globals of that page and a fake automation context.
 // The animation frames of the page are the frames that the test runs: requestAnimationFrame queues its callback, and
@@ -20,7 +19,7 @@ window.postMessage = (message, ...rest) => {
   postMessage(message, ...rest);
 };
 // jsdom delivers a posted message in a later task; the test waits for the delivery of listening.
-const listening = waitFor("the delivery of listening", (resolve) => {
+const listening = new Promise((resolve) => {
   const announce = (event) => {
     if (event.data?.type !== "soksak-hwp" || event.data.event !== "listening") return;
     window.removeEventListener("message", announce);

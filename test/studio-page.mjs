@@ -4,7 +4,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createOccurrences, waitFor } from "./occurrences.mjs";
+import { createOccurrences } from "./occurrences.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const studio = path.join(root, "ui", "studio");
@@ -99,7 +99,7 @@ export function recordPosts(window) {
 
 /** Resolves when check() holds after a change of the document, which a mutation observer of the whole document reports. */
 export function whenDocument(window, check) {
-  return waitFor(`a document in which ${check} holds`, (resolve) => {
+  return new Promise((resolve) => {
     if (check()) return resolve();
     const observer = new window.MutationObserver(() => {
       if (!check()) return;
