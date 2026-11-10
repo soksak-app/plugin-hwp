@@ -26,6 +26,7 @@
     "ui/hwp.js",
     "ui/events.js",
     "ui/requests.js",
+    "ui/region-page.js",
     "ui/studio"
   ],
   "scripts": {

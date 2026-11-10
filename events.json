@@ -428,6 +428,31 @@
       },
       "description": "The editor page reported that it cannot read its state."
     },
+    "plugin.hwp.studio.ended": {
+      "layer": "plugin",
+      "class": "lifecycle",
+      "level": "error",
+      "fields": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "reason"
+        ]
+      },
+      "description": "The editor page ended: its WebContent process ended or the region started another navigation, so no embed request reaches it."
+    },
     "plugin.hwp.studio.save_failed": {
       "layer": "plugin",
       "class": "lifecycle",

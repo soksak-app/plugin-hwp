@@ -5,6 +5,7 @@
 // ui/studio-host.js {type: "soksak-hwp", event}. A tab without a path opens a blank document of the editor, whose first
 // save asks for its file through core.file.place.
 import { createEmitter, errorText, messageText } from "./events.js";
+import { pageEnd } from "./region-page.js";
 import { connect } from "./requests.js";
 
 const css = `:host{display:block;height:100%}
@@ -53,11 +54,6 @@ export const toBase64 = (bytes) => {
 
 /** The number of bytes that the base64 text holds. */
 export const base64Size = (text) => Math.floor(text.length * 3 / 4) - (text.endsWith("==") ? 2 : text.endsWith("=") ? 1 : 0);
-
-/** The bound of the wait for the listening message of the editor page after its load. */
-const LISTENING_LIMIT_MS = 10000;
-/** The bound of the wait for the answer of one embed request; an export or a load of a large document fits in it. */
-const REQUEST_LIMIT_MS = 60000;
 
 /** The microseconds since start, a value of performance.now(). */
 const microsSince = (start) => Math.round((performance.now() - start) * 1000);
@@ -124,25 +120,41 @@ export async function mount(root, context) {
 
   const pending = new Map();
   let next = 0;
+  // The end of the editor page (docs/spec/calls.md): the reason once the page that the view loaded has ended, or null while
+  // it lives. The page ends with the end of its WebContent process or with a navigation that the region starts after the
+  // load, as the region reports them through onState; a request to an ended page has no answer to wait for.
+  let ended = null;
+  let loadedNavigations = null;
+  let endListening = () => {};
+  /** The error of the request id when the editor page has ended. */
+  const unanswered = (id) => new Error(`rhwp-studio did not answer ${id}: ${ended} in phase ${state.phase}`);
+  const endPage = (reason) => {
+    if (ended !== null) return;
+    ended = reason;
+    emitEvent("error", "plugin.hwp.studio.ended", { path, reason });
+    context.tab.error(`편집기가 끝났습니다 · ${reason}`);
+    for (const [id, { reject }] of pending) reject(unanswered(id));
+    pending.clear();
+    endListening(reason);
+  };
   /**
-   * Sends the embed request method with params to rhwp-studio and resolves its result. No event reports a request that the
-   * editor never answers, so each request has a bound and then fails with its id and the phase of the start.
+   * Sends the embed request method with params to rhwp-studio and resolves its result. The request waits for the answer of
+   * the editor page; the end of that page ends it with its id and the phase of the start, and no timer ends it.
    */
   const request = (method, params = {}) => {
     const start = performance.now();
-    let bound;
     return new Promise((resolve, reject) => {
       const id = `${method}-${++next}`;
+      if (ended !== null) {
+        reject(unanswered(id));
+        return;
+      }
       pending.set(id, { resolve, reject });
-      bound = setTimeout(() => {
-        pending.delete(id);
-        reject(new Error(`rhwp-studio did not answer ${id} within ${REQUEST_LIMIT_MS / 1000} s in phase ${state.phase}`));
-      }, REQUEST_LIMIT_MS);
       region.post({ type: "rhwp-request", id, method, params }).catch((failure) => {
         pending.delete(id);
         reject(failure);
       });
-    }).finally(() => clearTimeout(bound)).then((result) => {
+    }).then((result) => {
       emitEvent("debug", "plugin.hwp.request", { path, method, micros: microsSince(start), ok: true });
       return result;
     }, (error) => {
@@ -155,7 +167,12 @@ export async function mount(root, context) {
   // The editor page installs its message listener while its scripts run, which can end after the load reports the page;
   // ui/studio-host.js runs after them and posts listening, and a request posted before that would be lost.
   let markListening;
-  const listening = new Promise((resolve) => { markListening = resolve; });
+  const listening = new Promise((resolve, reject) => {
+    markListening = resolve;
+    endListening = (reason) => reject(new Error(`the editor page did not post listening: ${reason}`));
+  });
+  // The page has no listening to wait for once its end has rejected it; the start that awaits it takes the rejection.
+  listening.catch(() => {});
   const stopMessages = region.onMessage((message) => {
     // The region passes every message that the document posts to its own window, so it passes the requests of this
     // page back too.
@@ -202,13 +219,24 @@ export async function mount(root, context) {
       if (current.url !== address || current.loading) return false;
       stop();
       if (current.error !== null) reject(new Error(`the editor page did not load: ${current.error}`));
-      else resolve();
+      else {
+        // The navigations count of the loaded editor page: a later navigation of the region leaves that page.
+        loadedNavigations = current.navigations ?? null;
+        resolve();
+      }
       return true;
     };
     // onState does not replay a state that the region reported before this subscription, and region.state keeps it: a
     // restored session history loads its entry before the page subscribes.
     if (region.state !== null && settle(region.state)) return;
     stop = region.onState(settle);
+  });
+
+  // The states of the region after the load of the editor page tell its end.
+  const stopPageEnd = region.onState((current) => {
+    if (loadedNavigations === null && current.error === null) return;
+    const reason = pageEnd(current, loadedNavigations);
+    if (reason !== null) endPage(reason);
   });
 
   const files = await connect(context.runtime.sidecar(FILES_SIDECAR), context.surfaceId, (body) => {
@@ -380,12 +408,9 @@ export async function mount(root, context) {
   if (!region.history) await region.load(address);
   await loaded;
   setPhase("starting");
-  // No event reports that a loaded page never posts listening, so the wait has a bound: the scripts of the page have run
-  // when the load reports it, and the message follows them.
-  let bound;
-  await Promise.race([listening, new Promise((resolve, reject) => {
-    bound = setTimeout(() => reject(new Error(`the editor page loaded and did not post listening within ${LISTENING_LIMIT_MS / 1000} s`)), LISTENING_LIMIT_MS);
-  })]).finally(() => clearTimeout(bound));
+  // The scripts of the page have run when the load reports it, and listening follows them. The wait ends by listening or by
+  // the end of the editor page.
+  await listening;
   await request("ready");
   if (path === null) {
     // The editor creates the blank document with its own command file:new-doc.
@@ -440,6 +465,7 @@ export async function mount(root, context) {
       emitEvent("info", "plugin.hwp.close", { path });
       await disposeDiagnostics?.();
       stopMessages();
+      stopPageEnd();
       listeners.clear();
       files.dispose();
       for (const { reject } of pending.values()) reject(new Error("the hwp surface closed before rhwp-studio answered"));
