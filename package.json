@@ -26,11 +26,12 @@
     "ui/hwp.js",
     "ui/events.js",
     "ui/requests.js",
+    "ui/region-page.js",
     "ui/studio"
   ],
   "scripts": {
     "build": "node scripts/build-studio.mjs",
-    "test": "node scripts/build-test.mjs && node --test --test-timeout=60000 --test-force-exit test/"
+    "test": "node scripts/build-test.mjs && node --test --test-force-exit test/"
   },
   "devDependencies": {
     "@rhwp/core": "0.8.7",

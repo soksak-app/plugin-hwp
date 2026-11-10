@@ -23,34 +23,47 @@ function checkViewPage(html) {
   assert.doesNotMatch(html, /<script\b[^>]*\btype\s*=\s*["']?importmap\b/i, "the view page holds no import map of its own");
 }
 
+const named = (logs, name) => logs.filter((entry) => entry.event === `plugin.hwp.${name}`);
+const isMicros = (value) => Number.isInteger(value) && value >= 0;
+/** Resolves with the first record of name whose fields match, when the page writes it. */
+const logged = async (host, name, match = () => true) => {
+  const found = () => named(host.logs, name).find((entry) => match(entry.fields));
+  await host.until(() => found() !== undefined);
+  return found();
+};
+/** Resolves with the first record of plugin.hwp.report whose text matches reason, when the page writes it. */
+const reported = (host, reason) => logged(host, "report", (fields) => reason.test(fields.text ?? ""));
+// The start of the page ends with the phase ready, or with the record of a failed mount.
+const started = (host) => named(host.logs, "phase").some((entry) => entry.fields.phase === "ready") || named(host.logs, "report").length > 0;
+
 let cases = 0;
-/** Mounts the view page of one case and settles its start. status() reads hwp.document through the exposure. */
-async function setup(t, options = {}) {
+/**
+ * Mounts the view page of one case and waits for the end of its start, or for ended(host) when the case gives it.
+ * status() reads hwp.document through the exposure.
+ */
+async function setup(t, options = {}, ended = started) {
   const caseId = `case-${++cases}`;
   const host = createViewPage(t, caseId, options);
   // A start that fails is a record of the page, not a rejection of the import: the page reports the error through
-  // runtime.log and stays mounted with no surface.
-  await import(`../build/test/ui/view.js?case=${caseId}`);
-  await host.settle();
+  // runtime.log and stays mounted with no surface. The module awaits the mount, so the case waits for the end of the start
+  // and not for the import; an import that rejects fails the case as an unhandled rejection.
+  void import(`../build/test/ui/view.js?case=${caseId}`);
+  await host.until(() => ended(host));
   host.status = async () => (await host.expose("status.get", { name: "hwp.document" })).result;
   return host;
 }
-
-const named = (logs, name) => logs.filter((entry) => entry.event === `plugin.hwp.${name}`);
-const isMicros = (value) => Number.isInteger(value) && value >= 0;
-/** Waits until a record of name matches reason, or fails after 15 s. */
-const waitForLog = async (host, name, reason) => {
-  const waited = new Promise((resolve, reject) => {
-    const started = Date.now();
-    const poll = () => {
-      const found = named(host.logs, name).find((entry) => reason.test(entry.fields.text ?? ""));
-      if (found) resolve(found);
-      else if (Date.now() - started > 15000) reject(new Error(`no record of ${name} matched ${reason} in 15 s`));
-      else setTimeout(poll, 100);
-    };
-    poll();
-  });
-  return waited;
+/** Resolves when the page has handled the message of the editor page with event, which it records as studio.message. */
+const handled = (host, event, count = 1) => host.until(() => named(host.logs, "studio.message").filter((entry) => entry.fields.event === event).length >= count);
+/** An edit of the editor page, which resolves when the page has handled its modified message. */
+const edit = async (host, text) => {
+  const before = named(host.logs, "studio.message").filter((entry) => entry.fields.event === "modified").length;
+  host.studio.edit(text);
+  await handled(host, "modified", before + 1);
+};
+/** Resolves with the nth record of name (from 1), when the page writes it. */
+const nth = async (host, name, count) => {
+  await host.until(() => named(host.logs, name).length >= count);
+  return named(host.logs, name)[count - 1];
 };
 
 
@@ -140,19 +153,19 @@ test("a status watch of the view sends each changed value as a changed call with
   const host = await setup(t);
   const changes = () => host.reports.native.filter(([name]) => name === "changed").map(([, payload]) => payload);
   assert.deepEqual(await host.expose("status.watch", { name: "hwp.document" }), { result: null });
-  await host.settle();
+  await host.until(() => changes().length === 1);
   assert.deepEqual(changes(), [{ name: "hwp.document", value: await host.status(), version: 1 }]);
   host.studio.edit("!");
-  await host.settle();
+  await host.until(() => changes().length === 2);
   assert.deepEqual(changes().at(-1), { name: "hwp.document", value: await host.status(), version: 2 });
   assert.equal(changes().at(-1).value.modified, true);
   assert.deepEqual(await host.expose("status.unwatch", { name: "hwp.document" }), { result: null });
-  host.studio.edit("?");
-  await host.settle();
+  host.studio.post({ type: "soksak-hwp", event: "modified", modified: false });
+  await handled(host, "modified", 2);
   assert.equal(changes().length, 2, "no change is sent after the unwatch");
 });
 
-test("the view attaches the document region studio, places it, and loads the editor page in it", { timeout: 5000 }, async (t) => {
+test("the view attaches the document region studio, places it, and loads the editor page in it", async (t) => {
   const host = await setup(t);
   assert.deepEqual(host.calls.find(([name]) => name === "document.attach")?.[1], { name: "studio" });
   assert.ok(host.calls.some(([name, params]) => name === "composition.place" && params.regions.length === 1
@@ -165,7 +178,7 @@ test("the view attaches the document region studio, places it, and loads the edi
   assert.deepEqual(host.reports.title, ["plan.hwp"]);
 });
 
-test("the start waits until the editor page listens, so its first request is not lost", { timeout: 5000 }, async (t) => {
+test("the start waits until the editor page listens, so its first request is not lost", async (t) => {
   const host = await setup(t);
   assert.deepEqual(host.studio.dropped, []);
   assert.equal(new URL(host.studio.loaded).searchParams.has("diagnostics"), false,
@@ -174,31 +187,68 @@ test("the start waits until the editor page listens, so its first request is not
   assert.equal((await host.status()).phase, "ready");
 });
 
-test("a loaded editor page that never posts listening fails the start with an error that names the step", { timeout: 20000 }, async (t) => {
-  const host = await setup(t, { listens: false });
-  // The wait of the module is real time, so the record of the failed start arrives after it.
-  const report = await waitForLog(host, "report", /mount failed: .*the editor page loaded and did not post listening within 10 s/);
+// The start of a page whose editor page never posts listening waits in the phase starting.
+const starting = (host) => named(host.logs, "phase").some((entry) => entry.fields.phase === "starting");
+
+test("the wait for listening ends when the WebContent process of the editor page ends, and the start fails with that end", async (t) => {
+  const host = await setup(t, { listens: false }, starting);
+  assert.deepEqual(host.timers, [], "the wait for listening starts no timer");
+  host.studio.end();
+  const report = await reported(host, /mount failed: /);
+  assert.equal(report.fields.text, "view hwp: mount failed: the editor page did not post listening: the web content process of the editor page ended");
   assert.equal(report.level, "error");
 });
 
-test("an embed request that the editor never answers fails when its document.post call reaches its limit", { timeout: 5000 }, async (t) => {
+test("the wait for listening ends when the region starts another navigation", async (t) => {
+  const host = await setup(t, { listens: false }, starting);
+  assert.deepEqual(host.timers, [], "the wait for listening starts no timer");
+  host.studio.navigate("https://example.test/");
+  const report = await reported(host, /mount failed: /);
+  assert.equal(report.fields.text, "view hwp: mount failed: the editor page did not post listening: the document region started another navigation");
+});
+
+test("an embed request that the editor does not answer stays open and ends with the WebContent process of the editor page", async (t) => {
   const host = await setup(t, { silent: ["exportHwp"] });
-  host.studio.edit("!");
-  // The mocked clock is enabled before the save starts: the call limit of the document.post call that the save makes is
-  // a timer created while the save runs, and the timer must be the mocked one that the tick advances.
-  t.mock.timers.enable({ apis: ["setTimeout"] });
-  // Each document.post is a view call, whose default limit bounds the wait of the embed request.
-  const saving = assert.rejects(host.run("hwp.save"), /command document.post did not reply within 10000ms/);
-  await Promise.resolve();
-  t.mock.timers.tick(10000);
+  await edit(host, "!");
+  const saving = assert.rejects(host.run("hwp.save"),
+    /^Error: rhwp-studio did not answer exportHwp-3: the web content process of the editor page ended in phase ready$/);
+  await host.until(() => host.studio.requests.includes("exportHwp"));
+  assert.deepEqual(host.timers, [], "an embed request starts no timer");
+  host.studio.end();
   await saving;
-  t.mock.timers.reset();
+  assert.deepEqual(named(host.logs, "request").at(-1).fields.error,
+    "Error: rhwp-studio did not answer exportHwp-3: the web content process of the editor page ended in phase ready");
+});
+
+test("an embed request that the editor does not answer ends when the region starts another navigation", async (t) => {
+  const host = await setup(t, { silent: ["exportHwp"] });
+  await edit(host, "!");
+  const saving = assert.rejects(host.run("hwp.save"), /rhwp-studio did not answer exportHwp-3: the document region started another navigation in phase ready/);
+  await host.until(() => host.studio.requests.includes("exportHwp"));
+  assert.deepEqual(host.timers, [], "an embed request starts no timer");
+  host.studio.navigate("https://example.test/");
+  await saving;
+});
+
+test("an embed request after the end of the editor page fails with it at once, and the end is recorded and shown as the tab error", async (t) => {
+  const host = await setup(t);
+  assert.deepEqual(host.timers, [], "the start starts no timer");
+  host.studio.end();
+  // The page has run its state listeners when the host has delivered the state of the end.
+  await host.until(() => host.delivered.some(({ event, data }) => event === "document-state" && data.state.error !== null));
+  await assert.rejects(host.run("hwp.request", { method: "ready" }),
+    /^Error: rhwp-studio did not answer ready-3: the web content process of the editor page ended in phase ready$/);
+  assert.deepEqual(host.studio.dropped, [], "no request reaches an ended page");
+  const ended = await logged(host, "studio.ended");
+  assert.equal(ended.level, "error");
+  assert.deepEqual(ended.fields, { path: "docs/plan.hwp", reason: "the web content process of the editor page ended" });
+  await host.until(() => host.reports.error.length === 1);
+  assert.equal(host.reports.error[0], "편집기가 끝났습니다 · the web content process of the editor page ended");
 });
 
 test("an edit marks the tab modified, and a save exports the format, writes it and tells the editor", async (t) => {
   const host = await setup(t, { params: { path: "a.hwpx" }, files: new Map([["a.hwpx", bytes("x")]]) });
-  host.studio.edit("y");
-  await host.settle();
+  await edit(host, "y");
   assert.equal((await host.status()).modified, true);
   assert.deepEqual(host.reports.modified, [true]);
   const { result } = await host.expose("command.run", { name: "hwp.save", params: {} });
@@ -213,14 +263,13 @@ test("Command-S in the editor page saves the document", async (t) => {
   const host = await setup(t);
   host.studio.edit("!");
   host.studio.post({ type: "soksak-hwp", event: "save" });
-  await host.settle();
+  await logged(host, "save");
   assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단!"));
 });
 
 test("a save over a file that changed on disk fails as the tab error and keeps the edits", async (t) => {
   const host = await setup(t);
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   host.files.set("docs/plan.hwp", bytes("다른 글"));
   await assert.rejects(host.run("hwp.save"), /changed on disk: docs\/plan.hwp/);
   assert.equal(host.reports.error.at(-1), "저장하지 못했습니다 · changed on disk: docs/plan.hwp");
@@ -231,13 +280,12 @@ test("a change on disk reloads an unmodified document and shows the banner over 
   const host = await setup(t);
   host.files.set("docs/plan.hwp", bytes("새 글"));
   host.sidecar.emit({ changed: "docs/plan.hwp" });
-  await host.settle();
+  await nth(host, "render", 2);
   assert.deepEqual(host.studio.document, bytes("새 글"));
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   host.files.set("docs/plan.hwp", bytes("또 다른 글"));
   host.sidecar.emit({ changed: "docs/plan.hwp" });
-  await host.settle();
+  await nth(host, "disk.changed", 2);
   assert.equal((await host.status()).disk, "changed");
   assert.equal(host.window.document.body.lastElementChild.shadowRoot.querySelector("#banner").hidden, false);
   assert.deepEqual(host.studio.document, bytes("새 글!"));
@@ -246,7 +294,7 @@ test("a change on disk reloads an unmodified document and shows the banner over 
 test("a selection message of the editor page sets the selection of hwp.document", async (t) => {
   const host = await setup(t);
   host.studio.post({ type: "soksak-hwp", event: "selection", selection: true });
-  await host.settle();
+  await handled(host, "selection");
   assert.equal((await host.status()).selection, true);
 });
 
@@ -260,7 +308,7 @@ test("hwp.document reports each step of the start as the phase events and ends r
 test("an error message of the editor page is shown as the tab error", async (t) => {
   const host = await setup(t);
   host.studio.post({ type: "soksak-hwp", event: "error", message: "rhwp-studio exposes no window.rhwpStudio.automation" });
-  await host.settle();
+  await host.until(() => host.reports.error.length === 1);
   assert.equal(host.reports.error.at(-1), "편집기 · rhwp-studio exposes no window.rhwpStudio.automation");
 });
 
@@ -296,8 +344,7 @@ test("the start stores the open, each step, the read, the render and the watch",
 
 test("a save stores its format, size and result, and a failed save stores the error as <code>: <text>", async (t) => {
   const host = await setup(t, { params: { path: "a.hwpx" }, files: new Map([["a.hwpx", bytes("x")]]) });
-  host.studio.edit("y");
-  await host.settle();
+  await edit(host, "y");
   await host.run("hwp.save");
   const [saved] = named(host.logs, "save");
   assert.equal(saved.level, "info");
@@ -326,12 +373,11 @@ test("a change on disk stores the action that it causes", async (t) => {
   const host = await setup(t);
   host.files.set("docs/plan.hwp", bytes("new"));
   host.sidecar.emit({ changed: "docs/plan.hwp" });
-  await host.settle();
-  host.studio.edit("!");
-  await host.settle();
+  await nth(host, "render", 2);
+  await edit(host, "!");
   host.files.set("docs/plan.hwp", bytes("newer"));
   host.sidecar.emit({ changed: "docs/plan.hwp" });
-  await host.settle();
+  await nth(host, "disk.changed", 2);
   assert.deepEqual(named(host.logs, "disk.changed").map((entry) => entry.fields),
     [{ path: "docs/plan.hwp", modified: false, action: "reload" }, { path: "docs/plan.hwp", modified: true, action: "banner" }]);
   assert.deepEqual(named(host.logs, "read").slice(1).map((entry) => entry.fields.reason), ["change", "change"]);
@@ -340,7 +386,7 @@ test("a change on disk stores the action that it causes", async (t) => {
 test("a watch failure of the sidecar is stored as an error", async (t) => {
   const host = await setup(t);
   host.sidecar.emit({ error: "watch stopped" });
-  await host.settle();
+  await logged(host, "watch.failed");
   assert.deepEqual(named(host.logs, "watch.failed").map((entry) => [entry.level, entry.fields]),
     [["error", { path: "docs/plan.hwp", error: "watch stopped" }]]);
 });
@@ -350,7 +396,7 @@ test("the messages of the editor page are stored, and its error as an error", as
   host.studio.post({ type: "soksak-hwp", event: "selection", selection: true });
   host.studio.post({ type: "soksak-hwp", event: "modified", modified: true });
   host.studio.post({ type: "soksak-hwp", event: "error", message: "no automation" });
-  await host.settle();
+  await logged(host, "studio.error");
   assert.deepEqual(named(host.logs, "studio.message").map((entry) => entry.fields),
     [{ path: "docs/plan.hwp", event: "listening" }, { path: "docs/plan.hwp", event: "selection", selection: true },
       { path: "docs/plan.hwp", event: "modified", modified: true }]);
@@ -360,11 +406,10 @@ test("the messages of the editor page are stored, and its error as an error", as
 
 test("a save that Command-S starts and that fails is stored and not dropped", async (t) => {
   const host = await setup(t);
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   host.files.set("docs/plan.hwp", bytes("other"));
   host.studio.post({ type: "soksak-hwp", event: "save" });
-  await host.settle();
+  await logged(host, "studio.save_failed");
   assert.deepEqual(named(host.logs, "studio.message").at(-1).fields, { path: "docs/plan.hwp", event: "save" });
   assert.deepEqual(named(host.logs, "studio.save_failed").map((entry) => [entry.level, entry.fields]),
     [["warn", { path: "docs/plan.hwp", error: "Error: changed on disk: docs/plan.hwp" }]]);
@@ -389,12 +434,12 @@ test("every stored event is declared in the catalog with its level and fields", 
   const host = await setup(t);
   host.studio.edit("y");
   host.studio.post({ type: "soksak-hwp", event: "error", message: "x" });
-  await host.settle();
+  await logged(host, "studio.error");
   await host.run("hwp.save");
   host.files.set("docs/plan.hwp", bytes("z"));
   await assert.rejects(host.run("hwp.save"));
   host.sidecar.emit({ error: "stopped" });
-  await host.settle();
+  await logged(host, "watch.failed");
   const logs = host.logs.filter((entry) => entry.event !== "plugin.hwp.report");
   assert.ok(logs.length > 10);
   for (const { level, event, fields } of logs) {
@@ -418,8 +463,7 @@ test("a tab without a path opens a blank document of the editor and reads no fil
 test("the first save of a blank document asks for the file, exports its format, writes it and watches it", async (t) => {
   const files = new Map();
   const host = await setup(t, { params: {}, files, place: () => ({ path: "docs/new.hwpx" }) });
-  host.studio.edit("본문");
-  await host.settle();
+  await edit(host, "본문");
   const { result } = await host.expose("command.run", { name: "hwp.save", params: {} });
   assert.deepEqual(host.reports.commands, [["core.file.place", { name: "새 문서.hwp" }]]);
   assert.deepEqual(files.get("docs/new.hwpx"), bytes("본문"));
@@ -432,8 +476,7 @@ test("the first save of a blank document asks for the file, exports its format, 
   assert.equal(document.modified, false);
   assert.deepEqual(host.reports.title, ["새 문서", "new.hwpx"]);
   // The next save writes the named file in place.
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   await host.run("hwp.save");
   assert.deepEqual(files.get("docs/new.hwpx"), bytes("본문!"));
   assert.equal(host.reports.commands.length, 1, "a named document does not ask for its place again");
@@ -441,8 +484,7 @@ test("the first save of a blank document asks for the file, exports its format, 
 
 test("a cancelled place keeps the blank document modified and writes nothing", async (t) => {
   const host = await setup(t, { params: {}, files: new Map(), place: () => ({ path: null }) });
-  host.studio.edit("x");
-  await host.settle();
+  await edit(host, "x");
   const { result } = await host.expose("command.run", { name: "hwp.save", params: {} });
   assert.deepEqual(result, { version: null });
   assert.equal((await host.status()).path, null);
@@ -452,8 +494,7 @@ test("a cancelled place keeps the blank document modified and writes nothing", a
 
 test("a place that is not an hwp or hwpx file is refused as the tab error", async (t) => {
   const host = await setup(t, { params: {}, files: new Map(), place: () => ({ path: "notes.txt" }) });
-  host.studio.edit("x");
-  await host.settle();
+  await edit(host, "x");
   await assert.rejects(host.run("hwp.save"), /opens \.hwp and \.hwpx files, not notes\.txt/);
   assert.equal((await host.status()).path, null);
   assert.match(host.reports.error.at(-1), /not notes\.txt/);
@@ -461,8 +502,7 @@ test("a place that is not an hwp or hwpx file is refused as the tab error", asyn
 
 test("every event of a blank document and its first save is declared in the catalog with its level and fields", async (t) => {
   const host = await setup(t, { params: {}, files: new Map(), place: () => ({ path: "new.hwp" }) });
-  host.studio.edit("y");
-  await host.settle();
+  await edit(host, "y");
   await host.run("hwp.save");
   for (const { level, event, fields } of host.logs.filter((entry) => entry.event !== "plugin.hwp.report")) {
     const entry = catalog.events[event];
@@ -500,13 +540,12 @@ test("a region that restored the session history loads no editor page", async (t
 
 test("a tab state of another form is refused", async (t) => {
   const host = await setup(t, { stored: { path: 3 } });
-  await waitForLog(host, "report", /the tab state of hwp tab hwp-1 is not \{path\}: \{"path":3\}/);
+  await reported(host, /the tab state of hwp tab hwp-1 is not \{path\}: \{"path":3\}/);
 });
 
 test("an export reply that is not an array of byte values fails the save and keeps the file", async (t) => {
   const host = await setup(t, { params: { path: "docs/plan.hwp" }, replies: { exportHwp: () => "not bytes" } });
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   await assert.rejects(host.run("hwp.save"), /exportHwp did not reply with a non-empty array of byte values/);
   assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단"));
   assert.match(host.reports.error.at(-1), /^저장하지 못했습니다 · exportHwp did not reply/);
@@ -514,16 +553,14 @@ test("an export reply that is not an array of byte values fails the save and kee
 
 test("an export reply with no bytes fails the save instead of writing an empty file", async (t) => {
   const host = await setup(t, { params: { path: "docs/plan.hwp" }, replies: { exportHwp: () => [] } });
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   await assert.rejects(host.run("hwp.save"), /non-empty array/);
   assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단"));
 });
 
 test("a save whose notice to the editor fails is saved, and the tab shows that the notice failed", async (t) => {
   const host = await setup(t, { params: { path: "docs/plan.hwp" }, replies: { notifySaved: () => { throw new Error("editor gone"); } } });
-  host.studio.edit("!");
-  await host.settle();
+  await edit(host, "!");
   const { result } = await host.expose("command.run", { name: "hwp.save", params: {} });
   assert.equal(result.version, sha(bytes("첫 문단!")));
   assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단!"));
@@ -535,14 +572,16 @@ test("a save whose notice to the editor fails is saved, and the tab shows that t
 test("an error message of the editor page without text shows the whole event", async (t) => {
   const host = await setup(t);
   host.studio.post({ type: "soksak-hwp", event: "error" });
-  await host.settle();
+  await host.until(() => host.reports.error.length === 1);
   assert.equal(host.reports.error.at(-1), '편집기 · {"type":"soksak-hwp","event":"error"}');
 });
 
 test("a refused view event batch uses the bridge error route", async (t) => {
-  const host = await setup(t, { refuseLog: "log route refused" });
+  // Every record of the page is refused, so the start is known by the first refused batch on the error route.
+  const host = await setup(t, { refuseLog: "log route refused" }, (page) => page.reports.errorLines.length > 0);
+  const before = host.reports.errorLines.length;
   host.window.dispatchEvent(new host.window.ErrorEvent("error", { error: new Error("failed"), message: "failed" }));
-  await host.settle();
+  await host.until(() => host.reports.errorLines.length > before);
   assert.ok(host.reports.errorLines.some((line) => line.where === "log batch" && line.text.includes("log route refused")),
     "the bridge did not report the refused batch through runtime.error");
 });

@@ -6,13 +6,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { JSDOM } from "jsdom";
 
-import { address, inPlugin, installPage, page, pluginOrigin, studio } from "./studio-page.mjs";
+import { address, inPlugin, installPage, page, pluginOrigin, recordPosts, studio, whenDocument } from "./studio-page.mjs";
 
-test("the built editor page opens a document without a request outside the plugin", { timeout: 60_000 }, async (t) => {
+test("the built editor page opens a document without a request outside the plugin", async (t) => {
   if (!existsSync(page)) {
     t.skip("make run-studio builds ui/studio/index.html before this test");
     return;
@@ -23,22 +22,16 @@ test("the built editor page opens a document without a request outside the plugi
   t.after(() => dom.window.close());
   const { document } = dom.window;
   installPage(dom.window, requested);
-  const replies = [];
-  dom.window.postMessage = (message) => { replies.push(message); };
+  const { posted: replies, until } = recordPosts(dom.window);
   const script = readdirSync(path.join(studio, "assets")).find((file) => /^index-.*\.js$/.test(file));
   await import(pathToFileURL(path.join(studio, "assets", script)).href);
-  const until = async (done, what) => {
-    for (let elapsed = 0; !done(); elapsed += 50) {
-      assert.ok(elapsed < 30_000, `${what}; the status line says ${JSON.stringify(document.getElementById("sb-message")?.textContent)}`);
-      await delay(50);
-    }
-  };
-  await until(() => document.getElementById("sb-message")?.textContent === "HWP 파일을 선택해주세요.", "the page did not start");
+  // The page has started when its status line asks for a file.
+  await whenDocument(dom.window, () => document.getElementById("sb-message")?.textContent === "HWP 파일을 선택해주세요.");
 
   const data = Array.from(readFileSync(path.join(studio, "samples", "biz_plan.hwp")));
   dom.window.dispatchEvent(new dom.window.MessageEvent("message", { source: dom.window, origin: pluginOrigin,
     data: { type: "rhwp-request", id: "open", method: "loadFile", params: { data, fileName: "biz_plan.hwp", skipUnsavedGuard: true, suppressDialogs: true } } }));
-  await until(() => replies.some((reply) => reply.id === "open"), "the page did not answer loadFile");
+  await until(() => replies.some((reply) => reply.id === "open"));
   assert.deepEqual(replies.find((reply) => reply.id === "open"), { type: "rhwp-response", id: "open", result: { pageCount: 6 } });
 
   const faces = document.getElementById("rhwp-web-font-faces")?.textContent ?? "";

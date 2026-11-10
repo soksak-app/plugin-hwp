@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createWindow, useWindow } from "./dom.mjs";
+import { recordTimers } from "./no-timers.mjs";
+import { createOccurrences, waitFor } from "./occurrences.mjs";
 
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const bytes = (text) => new TextEncoder().encode(text);
@@ -49,12 +51,6 @@ const declared = (kind, name) => (MANIFEST.exposes[kind] ?? []).some((entry) => 
 // The sidecars of a view are the dependencies of plugin.json, named by their package names.
 const sidecarDeclared = (name) => Object.hasOwn(MANIFEST.dependencies ?? {}, name);
 
-const settle = (rounds = 10) => {
-  let done = Promise.resolve();
-  for (let i = 0; i < rounds; i += 1) done = done.then(() => new Promise((resolve) => setTimeout(resolve, 0)));
-  return done;
-};
-
 /** A files sidecar of one surface over an in-memory file system with readBytes, writeBytes and watch. */
 function fakeFiles(files) {
   const listeners = new Set();
@@ -86,11 +82,15 @@ function fakeFiles(files) {
  * runtime.native.on, which emit runs. load(url) records the load and reports the loaded page; the editor page installs
  * its message listener after the load reports the page, in a later task, and then posts the listening message of
  * ui/studio-host.js. post(message) delivers one message of the editor page. The document is its bytes; edit(text)
- * appends text and posts the modified message.
+ * appends text and posts the modified message. The state of the region counts each page that it shows in navigations, as
+ * the region counts each navigation that it starts; end(error) reports the end of the shown page as the region reports
+ * the end of its WebContent process, and navigate(url) shows another page.
  */
-function fakeStudio(name, emit, { listens = true, silent = [], history = false, replies = {} } = {}) {
-  const studio = { document: null, requests: [], dropped: [], loaded: null, savedAs: [], history };
+function fakeStudio(name, emit, recorded, { listens = true, silent = [], history = false, replies = {} } = {}) {
+  const studio = { document: null, requests: recorded(), dropped: recorded(), loaded: null, savedAs: recorded(), history };
   let listening = false;
+  let navigations = 0;
+  let shown = "";
   const deliver = (message) => queueMicrotask(() => emit("document-message", { document: name, message }));
   const answers = {
     ready: () => true,
@@ -113,7 +113,10 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false, 
   studio.post = deliver;
   // Shows the editor page at url as a load does, or as a region that restored a session history does by itself.
   const show = (url) => {
-    queueMicrotask(() => emit("document-state", { document: name, state: { url, loading: false, error: null } }));
+    navigations += 1;
+    shown = url;
+    const state = { url, loading: false, error: null, navigations };
+    queueMicrotask(() => emit("document-state", { document: name, state }));
     if (listens) setTimeout(() => {
       listening = true;
       deliver({ type: "soksak-hwp", event: "listening" });
@@ -121,6 +124,18 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false, 
   };
   studio.show = show;
   studio.deliverState = (state) => queueMicrotask(() => emit("document-state", { document: name, state }));
+  // The WebContent process of the shown page ends: the region reports its failure, and the page answers no request.
+  studio.end = () => {
+    listening = false;
+    studio.deliverState({ url: shown, loading: false, error: "the web content process ended", navigations });
+  };
+  // Another navigation starts in the region; the page that it leaves answers no request.
+  studio.navigate = (url) => {
+    listening = false;
+    navigations += 1;
+    shown = url;
+    studio.deliverState({ url, loading: true, error: null, navigations });
+  };
   studio.region = {
     history,
     async load(url) {
@@ -154,7 +169,8 @@ function fakeStudio(name, emit, { listens = true, silent = [], history = false, 
  *     history       whether the document region restored a session history
  *     place         the answer of core.file.place at the first save of a blank document
  *
- * Returns { window, studio, files, reports, logs, calls, registered, run, post, expose, settle }.
+ * Returns { window, studio, files, reports, logs, calls, delivered, registered, run, post, expose, until }; until(check) resolves
+ * when check() holds after a report, a record or a call of the page, or after a host event that the page received.
  */
 export function createViewPage(t, caseId, { stored = null, params = { path: "docs/plan.hwp" }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]),
   origin = { directory: "/project" }, listens = true, silent = [], history = false, replies = {}, refuseLog = null,
@@ -169,21 +185,30 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
     unobserve() {}
     disconnect() {}
   };
-  const reports = { title: [], modified: [], error: [], errorLines: [], state: [], registered: [], native: [], commands: [] };
-  const logs = [];
-  const calls = [];
+  // Each report, record and call of the page is an occurrence that a test can wait for (test/occurrences.mjs).
+  const { recorded, until } = createOccurrences();
+  const reports = Object.fromEntries(["title", "modified", "error", "errorLines", "state", "registered", "native", "commands"]
+    .map((name) => [name, recorded()]));
+  const logs = recorded();
+  const calls = recorded();
   // Each sidecar send of the page, with the cids that it carries.
-  const sidecarSends = [];
+  const sidecarSends = recorded();
   const pending = new Map();
   const subscribed = new Set();
   const exposurePending = new Map();
   const nativeEmit = new Map();
   const post = (message) => window.dispatchEvent(new window.MessageEvent("message", { source: window, origin: "", data: message }));
+  // Each host event that the page received, recorded after the page has dispatched it to its listeners.
+  const delivered = recorded();
+  // The timers that the page starts (test/no-timers.mjs); none starts.
+  const timers = recordTimers(recorded());
   const emitNative = (name, data) => {
-    if (nativeEmit.get(name)) post({ sok: 1, event: name, data });
+    if (!nativeEmit.get(name)) return;
+    post({ sok: 1, event: name, data });
+    delivered.push({ event: name, data });
   };
   const sidecar = fakeFiles(files);
-  const studio = fakeStudio("studio", emitNative, { listens, silent, history, replies });
+  const studio = fakeStudio("studio", emitNative, recorded, { listens, silent, history, replies });
   const LEVELS = ["error", "warn", "info", "debug", "trace"];
   const handler = { postMessage: (sent) => { const message = JSON.parse(JSON.stringify(sent)); deliver(message); } };
   window.webkit = { messageHandlers: { "sok-view": handler } };
@@ -341,7 +366,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
   let nextId = 1000;
   // Sends one command request of core to the page, as the workbench sends each request of a command that the view
   // registered. A command that the page has not registered reaches no view, so the host refuses it.
-  const run = (name, paramsOfRun = {}) => new Promise((resolve, reject) => {
+  const run = (name, paramsOfRun = {}) => waitFor(`the reply of the view command ${name}`, (resolve, reject) => {
     if (!reports.registered.includes(name)) {
       reject(new Error(`view command ${name} is not registered`));
       return;
@@ -353,7 +378,7 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
   let nextExposure = 0;
   // Forwards one exposure request of core to the page as the host event exposure-request {id, surface, method, params}
   // and resolves with the reply {result} or {error} of the page.
-  const expose = (method, paramsOfRequest) => new Promise((resolve) => {
+  const expose = (method, paramsOfRequest) => waitFor(`the reply of the exposure request ${method}`, (resolve) => {
     if (!subscribed.has("exposure-request")) {
       resolve({ error: { message: "the page has no subscription of exposure-request" } });
       return;
@@ -362,5 +387,5 @@ export function createViewPage(t, caseId, { stored = null, params = { path: "doc
     exposurePending.set(id, resolve);
     post({ sok: 1, event: "exposure-request", data: { id, surface: "hwp-1", method, params: paramsOfRequest } });
   });
-  return { window, studio, sidecar, files, reports, logs, calls, sidecarSends, snapshots: [], subscribed, run, post, expose, settle };
+  return { window, studio, sidecar, files, reports, logs, calls, sidecarSends, delivered, snapshots: [], subscribed, timers, run, post, expose, until };
 }

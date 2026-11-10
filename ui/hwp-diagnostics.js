@@ -1,3 +1,4 @@
+import { pageEnd } from "./region-page.js";
 import { createViewDiagnosticDisposer, createViewFrameDiagnostics } from "./view-diagnostics.js";
 
 const markerType = "soksak-hwp-viewport-marker";
@@ -74,8 +75,9 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
       || typeof diagnostics.read !== "function" || typeof diagnostics.dispose !== "function") {
     throw new TypeError("HWP studio viewport diagnostics require frame diagnostics");
   }
-  if (!documentRegion || typeof documentRegion.onMessage !== "function" || typeof documentRegion.post !== "function") {
-    throw new TypeError("HWP studio viewport diagnostics require the studio document region message channel");
+  if (!documentRegion || typeof documentRegion.onMessage !== "function" || typeof documentRegion.post !== "function"
+      || typeof documentRegion.onState !== "function") {
+    throw new TypeError("HWP studio viewport diagnostics require the studio document region message channel and its state");
   }
   let disposed = false;
   let markerActive = false;
@@ -83,22 +85,32 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
   let pendingStart = null;
   let disposal = null;
   let nextMarkerRequest = 0;
+  // The navigations count of the studio page that holds the active marker: the marker ends with that page.
+  let markerPage = null;
   const pendingRequests = new Set();
-  const markerRequest = (operation) => {
+  /**
+   * Sends a marker request to the studio page that the region showed at the navigations count page, the current page by
+   * default. The request waits for the reply of that page; the end of the page ends it (docs/spec/calls.md), a request to an
+   * ended page fails at once, and no timer ends it. A failure by the end of the page has pageEnded.
+   */
+  const markerRequest = (operation, page = documentRegion.state?.navigations ?? null) => {
     const id = `viewport-${++nextMarkerRequest}`;
+    const endedError = (reason) => Object.assign(new Error(`HWP studio viewport marker ${operation} request ${id} ended: ${reason}`), { pageEnded: true });
+    const endedAlready = pageEnd(documentRegion.state, page);
+    if (endedAlready !== null) return Promise.reject(endedError(endedAlready));
     return new Promise((resolve, reject) => {
       let settled = false;
       let unsubscribe;
-      let timeout;
+      let unsubscribeState;
       let request;
       const finish = (error, result) => {
         if (settled) return;
         settled = true;
         pendingRequests.delete(request);
-        clearTimeout(timeout);
         let failure = error;
         try {
           unsubscribe?.();
+          unsubscribeState?.();
         } catch (cleanupError) {
           failure = failure ? new AggregateError([failure, cleanupError], "HWP viewport marker request cleanup failed") : cleanupError;
         }
@@ -117,9 +129,11 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
         }
       });
       if (typeof unsubscribe !== "function") throw new TypeError("HWP studio viewport marker listener did not return its disposer");
-      timeout = setTimeout(() => {
-        finish(new Error(`HWP studio viewport marker ${operation} request ${id} timed out after 10 s`));
-      }, 10_000);
+      unsubscribeState = documentRegion.onState((state) => {
+        const reason = pageEnd(state, page);
+        if (reason !== null) finish(endedError(reason));
+      });
+      if (typeof unsubscribeState !== "function") throw new TypeError("HWP studio viewport marker state listener did not return its disposer");
       request = { operation, cancel: () => finish(new Error(`HWP studio viewport marker ${operation} request ${id} was cancelled during disposal`)) };
       pendingRequests.add(request);
       try {
@@ -131,7 +145,15 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
   };
   const stopMarker = async () => {
     if (!markerActive) return null;
-    const result = await markerRequest("stop");
+    let result;
+    try {
+      result = await markerRequest("stop", markerPage);
+    } catch (error) {
+      // The marker ended with its page.
+      if (!error.pageEnded) throw error;
+      markerActive = false;
+      return null;
+    }
     if (result !== null) throw new TypeError("HWP studio viewport marker stop must return null");
     markerActive = false;
     return result;
@@ -144,15 +166,22 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
     markerStarting = true;
     pendingStart = (async () => {
       let marker;
+      const page = documentRegion.state?.navigations ?? null;
       try {
-        marker = await markerRequest("start");
+        marker = await markerRequest("start", page);
         marker = requireStudioViewport(marker);
         markerActive = true;
+        markerPage = page;
         const result = await diagnostics.start();
         return { ...result, studioViewport: marker };
       } catch (error) {
+        // A page that ended took its marker with it, so no cleanup request reaches it.
+        if (error.pageEnded) {
+          markerActive = false;
+          throw error;
+        }
         try {
-          const result = await markerRequest("stop");
+          const result = await markerRequest("stop", page);
           if (result !== null) throw new TypeError("HWP studio viewport marker stop must return null");
           markerActive = false;
         } catch (cleanupError) {
@@ -196,7 +225,7 @@ export function createStudioViewportDiagnostics({ diagnostics, documentRegion })
   const read = async () => {
     const result = diagnostics.read();
     if (!markerActive) return { ...result, studioViewport: null, studioClock: null, resourceTimings: null };
-    const snapshot = requireStudioResourceSnapshot(await markerRequest("read"));
+    const snapshot = requireStudioResourceSnapshot(await markerRequest("read", markerPage));
     return { ...result, ...snapshot };
   };
   const dispose = () => {

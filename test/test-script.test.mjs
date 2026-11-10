@@ -32,3 +32,12 @@ test("the test command runs every test file under test/, including its subdirect
   assert.ok(files.length > 0, "no test file was found under test/");
   assert.deepEqual(files.filter((file) => !selected(file)), [], "the test command does not run these test files");
 });
+
+// A test is judged by the events that it waits for, not by time (docs/spec/calls.md, tests): neither the test command nor
+// the test run of make pack sets a time limit on a test.
+test("the test commands set no time limit on a test", () => {
+  const makefile = readFileSync(path.join(root, "Makefile"), "utf8");
+  for (const [where, text] of [["package.json", script], ["Makefile", makefile]]) {
+    assert.doesNotMatch(text, /--test-timeout/, `${where} sets a time limit on the tests`);
+  }
+});

@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H62: No wait of the page ends by a limit: an embed request, the listening wait and a viewport marker request end by their answer or by the end of the editor page, which the view records and shows as the tab error, the SDK model follows the call rule of core 0.0.40, and the tests wait for the events that they assert. Red: 8 tests failed at once on the timers of the limits and on the code of an error reply. Green: they pass.
 - H60: The core compatibility documents state that `^0.0.40` admits core 0.0.40 and every later 0.0 release, and a test requires it. Red: the test failed on the earlier statement. Green: it passes.
 - H49: `engines.soksak` is `^0.0.40`, the core release of F502-13, because core 0.0.35 to 0.0.39 were released without it and refuse `exposes.element`. Red: the version test failed on `^0.0.39`. Green: it passes.
 - H59: The copy of `expose.json` and its digest are the file of core main, and the exposure model answers the role of the element in `element.rect` by the rule of core. Red: the replay of `expose.element.act-rect-and-refusals` failed without `role`, and the role test failed on the earlier rule. Green: they pass.

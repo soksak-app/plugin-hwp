@@ -1,20 +1,22 @@
-// Model of createViewBridge of the plugin API view entry for the calls that the hwp view page makes: calls.request with the
-// call limit, commands.register, runtime.native.on, runtime.theme, runtime.sidecar and composition.create. The wire form
+// Model of createViewBridge of the plugin API view entry for the calls that the hwp view page makes: calls.request and
+// calls.peerLost, commands.register, runtime.native.on, runtime.theme, runtime.sidecar and composition.create. The wire form
 // of each call is the form that the published view and calls cases (test/fixtures/contract) record. A call outside this
 // surface throws an error that names the call. The conformance test is test/sdk-models/conformance.test.mjs.
 import { createComposition } from "./composition.mjs";
 
-// The default limit of a call, in milliseconds, when the call declares none (calls.json).
-const DEFAULT_LIMIT = 10000;
+// The reasons that end a call when its peer is lost (calls.json).
+const PEER_LOST_REASONS = ["process-ended", "surface-closed", "sidecar-ended"];
 
 /**
  * Creates the bridge of one view page. The page posts through handler.postMessage and receives the host messages
- * through window.sokView.attach. report(event) receives the call-layer reports: timeout, late-reply and open-calls.
+ * through window.sokView.attach. report(event) receives the call-layer reports: peer-lost, late-reply and open-calls.
+ * A call has no time limit: its reply, its cancel or the end of its peer ends it, and the model starts no timer.
  */
 export function createViewBridge({ handler, report }) {
   if (typeof report !== "function") throw new TypeError("createViewBridge requires the report function");
   let sequence = 0;
   let operationSequence = 0;
+  // The open calls in the order of their start, and the calls that a cancel ended, whose replies are late replies.
   const pending = new Map();
   const late = new Map();
   const commands = new Map();
@@ -28,29 +30,51 @@ export function createViewBridge({ handler, report }) {
 
   const post = (message) => handler.postMessage(message);
   const openCalls = () => {
-    const started = [...pending.values()].map((entry) => entry.startedAt);
-    report({ kind: "open-calls", plugin: plugin(), count: pending.size, oldestStartedAt: started.length > 0 ? Math.min(...started) : null });
+    const oldest = pending.values().next().value;
+    report({ kind: "open-calls", plugin: plugin(), count: pending.size, oldestStartedAt: oldest ? oldest.startedAt : null });
   };
-  // A request posts {sok, id, command, params} and resolves with the result of the reply with the same id. A reply that
-  // arrives after the limit is reported as late and is not passed to the caller.
-  function request(command, params, timeout = DEFAULT_LIMIT, cids) {
+  const ended = (message, fields) => Object.assign(new Error(message), fields);
+  /** Removes an open call and its abort listener; the caller settles its promise. */
+  const end = (id) => {
+    const entry = pending.get(id);
+    pending.delete(id);
+    entry.detach();
+    return entry;
+  };
+  // A request posts {sok, id, command, params} and resolves with the result of the reply with the same id. A signal that
+  // aborts posts the cancel {sok, id, cancel: true} and rejects the call with cancelled; a reply after the cancel is reported
+  // as late and is not passed to the caller.
+  function request(command, params, { signal, cids } = {}) {
+    if (signal?.aborted) return Promise.reject(ended("cancelled", { reason: "cancelled" }));
     const id = ++sequence;
     const startedAt = Date.now();
     return new Promise((resolve, reject) => {
-      const entry = { command, startedAt, resolve, reject, timer: null };
-      entry.timer = setTimeout(() => {
-        pending.delete(id);
-        late.set(id, { command, startedAt });
-        report({ kind: "timeout", plugin: plugin(), command, timeout });
-        openCalls();
-        const error = new Error(`command ${command} did not reply within ${timeout}ms`);
-        error.code = -32000;
-        reject(error);
-      }, timeout);
+      const entry = { command, startedAt, resolve, reject, detach: () => {} };
       pending.set(id, entry);
+      if (signal) {
+        const onAbort = () => {
+          end(id);
+          late.set(id, { command, startedAt });
+          openCalls();
+          post({ sok: 1, id, cancel: true });
+          reject(ended("cancelled", { reason: "cancelled" }));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        entry.detach = () => signal.removeEventListener("abort", onAbort);
+      }
       post({ sok: 1, id, command, params, ...(cids === undefined ? {} : { cids }) });
       openCalls();
     });
+  }
+  /** Ends every open call because its peer is gone; the reason is one of PEER_LOST_REASONS. */
+  function peerLost(reason) {
+    if (!PEER_LOST_REASONS.includes(reason)) throw new RangeError(`peer lost reason must be one of ${PEER_LOST_REASONS.join(", ")}, got ${reason}`);
+    const calls = [...pending.keys()].map((id) => end(id));
+    for (const entry of calls) {
+      report({ kind: "peer-lost", plugin: plugin(), command: entry.command, reason });
+      entry.reject(ended(`command ${entry.command} ended: ${reason}`, { reason }));
+    }
+    openCalls();
   }
   const failure = (error) => ({ code: -32000, message: error instanceof Error ? error.message : String(error) });
 
@@ -74,10 +98,8 @@ export function createViewBridge({ handler, report }) {
     if (message.sok !== 1) return;
     if (message.command !== undefined) return void runCommand(message);
     if (message.id !== undefined && pending.has(message.id)) {
-      const entry = pending.get(message.id);
-      pending.delete(message.id);
-      clearTimeout(entry.timer);
-      if (message.error !== undefined) entry.reject(new Error(message.error.message));
+      const entry = end(message.id);
+      if (message.error !== undefined) entry.reject(ended(message.error.message, { code: message.error.code }));
       else entry.resolve(message.result ?? null);
       openCalls();
       return;
@@ -169,7 +191,7 @@ export function createViewBridge({ handler, report }) {
     error: runtimeError,
     // A command of the host with cids: the request carries them, and its answer is the answer of the command.
     command(name, params, options = {}) {
-      return request(name, params, DEFAULT_LIMIT, options.cids);
+      return request(name, params, { signal: options.signal, cids: options.cids });
     },
     theme(listener) {
       themeListeners.set(listener, listener);
@@ -193,9 +215,11 @@ export function createViewBridge({ handler, report }) {
 
   const bridge = {
     calls: {
-      request(command, params, timeout) {
-        return request(command, params, timeout);
+      request(command, params, options = {}) {
+        if (Object.hasOwn(options, "timeout")) throw new TypeError("timeout is not an option of a call: a call ends by its reply, its cancel or the end of its peer");
+        return request(command, params, options);
       },
+      peerLost,
     },
     runtime,
     commands: {

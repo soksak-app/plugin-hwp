@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { window } from "./dom.mjs";
 
-// The caret of rhwp-studio as src/engine/caret-renderer.ts has it, with a shorter timer so the test counts ticks quickly.
+// The caret of rhwp-studio as src/engine/caret-renderer.ts has it. Its blink timer is the state that the test reads: startBlink
+// starts the timer and stopBlink clears it, so blinking() tells whether a tick of the caret is due, and no tick runs in the test.
 class Caret {
   blinkTimer = null;
   currentRect = null;
-  ticks = 0;
   element = window.document.createElement("div");
   show(rect) {
     this.currentRect = rect;
@@ -23,18 +23,13 @@ class Caret {
   startBlink() {
     this.stopBlink();
     this.element.style.opacity = "1";
-    let visible = true;
-    this.blinkTimer = setInterval(() => {
-      this.ticks += 1;
-      visible = !visible;
-      this.element.style.opacity = visible ? "1" : "0";
-    }, 2);
+    this.blinkTimer = {};
   }
   stopBlink() {
-    if (this.blinkTimer !== null) {
-      clearInterval(this.blinkTimer);
-      this.blinkTimer = null;
-    }
+    this.blinkTimer = null;
+  }
+  blinking() {
+    return this.blinkTimer !== null;
   }
 }
 
@@ -49,19 +44,15 @@ window.rhwpStudio = {
   automation: { getContext: () => ({ isDirty: false, hasSelection: false }) },
   plugins: { deps: { getInputHandler: () => handler } },
 };
+// Each error that the script posts is recorded when it posts it; the window still delivers it.
 const errors = [];
-window.addEventListener("message", (event) => {
-  if (event.data?.type === "soksak-hwp" && event.data.event === "error") errors.push(event.data.message);
-});
+const postMessage = window.postMessage.bind(window);
+window.postMessage = (message, ...rest) => {
+  if (message?.type === "soksak-hwp" && message.event === "error") errors.push(message.message);
+  postMessage(message, ...rest);
+};
 await import("../build/test/ui/studio-host.js");
 
-const pass = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-/** The ticks of the caret over 40 ms. */
-async function ticksOver() {
-  const before = caret.ticks;
-  await pass(40);
-  return caret.ticks - before;
-}
 const setVisibility = (visibility) => {
   page.visibility = visibility;
   window.document.dispatchEvent(new window.Event("visibilitychange"));
@@ -70,22 +61,24 @@ const setFocus = (focused) => {
   page.focused = focused;
   window.dispatchEvent(new window.Event(focused ? "focus" : "blur"));
 };
-/** A reply of the editor, the first moment at which the script can have the input handler of a page that started. */
-async function reply() {
+/**
+ * A reply of the editor, the first moment at which the script can have the input handler of a page that started. The window
+ * dispatches the event to the listener of the script before it returns.
+ */
+function reply() {
   window.dispatchEvent(new window.MessageEvent("message", { source: window, data: { type: "rhwp-response" } }));
-  await pass(5);
 }
 
 test("a page without the input handler yet has no caret to hold and posts no error", async () => {
-  await reply();
+  reply();
   assert.deepEqual(errors, []);
 });
 
 test("the caret keeps blinking in a visible page that has the focus", async () => {
   handler = { caret };
   caret.show({ pageIndex: 0 });
-  await reply();
-  assert.ok(await ticksOver() > 0);
+  reply();
+  assert.equal(caret.blinking(), true);
 });
 
 test("a caret that started before the script had it stops at the first reply of a page without the focus", async () => {
@@ -96,8 +89,8 @@ test("a caret that started before the script had it stops at the first reply of 
   early.show({ pageIndex: 0 });
   page.focused = false;
   await import("../build/test/ui/studio-host.js?early");
-  await reply();
-  assert.equal(early.blinkTimer, null);
+  reply();
+  assert.equal(early.blinking(), false);
   early.hide();
   page.focused = true;
   handler = held;
@@ -105,35 +98,35 @@ test("a caret that started before the script had it stops at the first reply of 
 
 test("a hidden page runs no tick of the caret and shows the caret, and the caret blinks again when the page returns", async () => {
   setVisibility("hidden");
-  assert.equal(await ticksOver(), 0);
+  assert.equal(caret.blinking(), false);
   assert.equal(caret.element.style.opacity, "1");
   setVisibility("visible");
-  assert.ok(await ticksOver() > 0);
+  assert.equal(caret.blinking(), true);
 });
 
 test("a page without the focus runs no tick of the caret, and the caret blinks again with the focus", async () => {
   setFocus(false);
-  assert.equal(await ticksOver(), 0);
+  assert.equal(caret.blinking(), false);
   assert.equal(caret.element.style.opacity, "1");
   setFocus(true);
-  assert.ok(await ticksOver() > 0);
+  assert.equal(caret.blinking(), true);
 });
 
 test("a move of the caret in a hidden page starts no tick", async () => {
   setVisibility("hidden");
   caret.update({ pageIndex: 0 });
-  assert.equal(await ticksOver(), 0);
+  assert.equal(caret.blinking(), false);
   setVisibility("visible");
-  assert.ok(await ticksOver() > 0);
+  assert.equal(caret.blinking(), true);
 });
 
 test("a caret that the editor hid stays still when the page returns", async () => {
   setFocus(false);
   caret.hide();
   setFocus(true);
-  assert.equal(await ticksOver(), 0);
+  assert.equal(caret.blinking(), false);
   caret.show({ pageIndex: 0 });
-  assert.ok(await ticksOver() > 0);
+  assert.equal(caret.blinking(), true);
   caret.hide();
 });
 
@@ -142,6 +135,6 @@ test("a page whose input handler has no caret says so", async () => {
   handler = { caret: {} };
   window.rhwpStudio = { ...window.rhwpStudio };
   await import(`../build/test/ui/studio-host.js?shape`);
-  await reply();
+  reply();
   assert.ok(errors.some((message) => message.includes("caret")), `errors ${JSON.stringify(errors)}`);
 });

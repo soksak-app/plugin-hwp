@@ -40,6 +40,13 @@ View는 `type`, `id`, `operation`을 가진 document-region message로 marker re
 `result` 또는 `error`를 가진 응답을 같은 document window에 게시한다. 같은 window의 message event가 listener에 도달하면 이 정확한
 응답 형태를 무시해 응답을 새 request로 처리하지 않는다. 지원하지 않는 request에는 명시적인 error 응답을 보낸다.
 
+Marker request에는 시간 한도가 없다([calls](calls.ko.md)). Request는 자기가 간 studio page의 응답을 기다리고, 그 page의 끝이
+request를 끝낸다. Region은 page의 WebContent process가 끝나면 `error`가 `the web content process ended`인 document state로,
+region이 시작한 navigation은 더 큰 `navigations` 수로 알린다. 그때 request는
+`HWP studio viewport marker <operation> request <id> ended: <reason>`으로 실패하고, 이미 끝난 page로 가는 request는 post 없이 바로
+실패한다. Marker는 그것을 가진 page와 함께 끝나므로, 실패한 start는 끝난 page에 정리 request를 보내지 않고, 그 page가 끝난 뒤의
+stop이나 dispose는 marker를 지우지 않는다. Dispose는 대기 중인 각 request를 끝낸다.
+
 `rgb(255, 0, 255)` edge pixel은 studio viewport rectangle만 식별한다. 표시된 editor content나 cadence를 증명하지 않는다.
 OCR로 확인한 자연 content와 capture frame timestamp는 별도 증거로 유지한다.
 
