@@ -4,6 +4,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createOccurrences, waitFor } from "./occurrences.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const studio = path.join(root, "ui", "studio");
@@ -83,4 +84,28 @@ export function installPage(window, requested) {
     }
   }
   for (const [name, value] of Object.entries(shared)) Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
+}
+
+/**
+ * Records each message that the page posts to its own window in posted, when it posts it, and returns {posted, until}:
+ * until(check) resolves when check() holds after a post (test/occurrences.mjs).
+ */
+export function recordPosts(window) {
+  const { recorded, until } = createOccurrences();
+  const posted = recorded();
+  window.postMessage = (message) => { posted.push(message); };
+  return { posted, until };
+}
+
+/** Resolves when check() holds after a change of the document, which a mutation observer of the whole document reports. */
+export function whenDocument(window, check) {
+  return waitFor(`a document in which ${check} holds`, (resolve) => {
+    if (check()) return resolve();
+    const observer = new window.MutationObserver(() => {
+      if (!check()) return;
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(window.document, { subtree: true, childList: true, characterData: true, attributes: true });
+  });
 }

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { recordTimers } from "./no-timers.mjs";
+import { createOccurrences, occurrence } from "./occurrences.mjs";
 
 const source = await import("../build/test/ui/view-diagnostics.js").catch((error) => ({ importError: error }));
 const viewportEvidence = {
@@ -87,7 +89,7 @@ test("the studio viewport marker measures the document viewport and removes its 
   assert.equal(listeners.has("message"), false, "disposal must remove the message listener");
 });
 
-test("an active studio diagnostic read returns available resource timings on the studio clock", { timeout: 5_000 }, async () => {
+test("an active studio diagnostic read returns available resource timings on the studio clock", async () => {
   const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const children = [];
@@ -164,6 +166,7 @@ test("an active studio diagnostic read returns available resource timings on the
   };
   const dispose = await attachStudio({ document, window });
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) {
       parentListeners.add(listener);
       return () => parentListeners.delete(listener);
@@ -208,7 +211,7 @@ test("an active studio diagnostic read returns available resource timings on the
   dispose();
 });
 
-test("inactive diagnostic reads return no studio resource snapshot", { timeout: 5_000 }, async () => {
+test("inactive diagnostic reads return no studio resource snapshot", async () => {
   const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   let requests = 0;
   const diagnostics = {
@@ -220,6 +223,7 @@ test("inactive diagnostic reads return no studio resource snapshot", { timeout: 
   const commands = createStudioViewportDiagnostics({
     diagnostics,
     documentRegion: {
+      onState() { throw new Error("inactive read must not subscribe to the studio state"); },
       onMessage() { throw new Error("inactive read must not subscribe to the studio"); },
       post() { requests++; throw new Error("inactive read must not query the studio"); },
     },
@@ -232,7 +236,7 @@ test("inactive diagnostic reads return no studio resource snapshot", { timeout: 
   await commands.dispose();
 });
 
-test("an active studio read reports an unsupported Resource Timing API", { timeout: 5_000 }, async () => {
+test("an active studio read reports an unsupported Resource Timing API", async () => {
   const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const replies = [];
@@ -285,6 +289,7 @@ test("view diagnostics serialize marker start and clean it up when disposal over
   const listeners = new Set();
   const posted = [];
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
@@ -321,6 +326,7 @@ test("view diagnostic start removes the viewport marker when observer startup fa
   const listeners = new Set();
   const posted = [];
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
@@ -350,6 +356,7 @@ test("view diagnostic start rejects inconsistent marker evidence and requests cl
   const listeners = new Set();
   const posted = [];
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
@@ -376,10 +383,13 @@ test("disposal cancels pending viewport reads and removes the marker", async () 
   const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
+  const { promise: readPosted, resolve: markReadPosted } = occurrence("the post of the read request");
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
+      if (message.operation === "read") markReadPosted();
       if (message.operation !== "read") queueMicrotask(() => {
         for (const listener of listeners) listener({
           type: message.type, id: message.id,
@@ -399,7 +409,7 @@ test("disposal cancels pending viewport reads and removes the marker", async () 
   const commands = createStudioViewportDiagnostics({ diagnostics, documentRegion: region });
   await commands.start();
   const reading = commands.read();
-  await Promise.resolve();
+  await readPosted;
   const disposing = commands.dispose();
   await assert.rejects(reading, /cancelled during disposal/);
   await disposing;
@@ -407,11 +417,90 @@ test("disposal cancels pending viewport reads and removes the marker", async () 
   assert.equal(listeners.size, 0);
 });
 
+/**
+ * A studio region whose state reports the end of its page, as the document region reports it through onState: end() reports
+ * the end of the WebContent process of the page, and navigate() a navigation that the region starts to another page.
+ */
+function endingRegion() {
+  const listeners = new Set();
+  const stateListeners = new Set();
+  const { recorded, until } = createOccurrences();
+  const posted = recorded();
+  // The timers that the marker starts (test/no-timers.mjs); none starts.
+  const timers = recordTimers(recorded());
+  const region = {
+    state: { url: "soksak://hwp/ui/studio/index.html?chrome=embed", loading: false, error: null, navigations: 1 },
+    onState(listener) { stateListeners.add(listener); return () => stateListeners.delete(listener); },
+    onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+    post(message) { posted.push(message); return Promise.resolve(); },
+  };
+  const report = (state) => {
+    region.state = state;
+    for (const listener of [...stateListeners]) listener(state);
+  };
+  return {
+    region, posted, listeners, stateListeners, timers, until,
+    answer: (request, result) => { for (const listener of [...listeners]) listener({ type: request.type, id: request.id, result }); },
+    end: () => report({ ...region.state, error: "the web content process ended" }),
+    navigate: () => report({ ...region.state, url: "https://example.test/", loading: true, navigations: region.state.navigations + 1 }),
+  };
+}
+
+const frameDiagnostics = () => {
+  let enabled = false;
+  return {
+    read: () => ({ enabled }),
+    async start() { enabled = true; return { enabled: true }; },
+    async stop() { enabled = false; return { enabled: false }; },
+    async dispose() { enabled = false; },
+  };
+};
+
+test("a viewport marker request ends with the WebContent process of the studio page, and the marker ends with that page", async () => {
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const studio = endingRegion();
+  const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
+  const starting = assert.rejects(commands.start(),
+    /^Error: HWP studio viewport marker start request viewport-1 ended: the web content process of the editor page ended$/);
+  await studio.until(() => studio.posted.length === 1);
+  assert.deepEqual(studio.timers, [], "the start request starts no timer");
+  studio.end();
+  await starting;
+  assert.deepEqual(studio.posted.map(({ operation }) => operation), ["start"], "no cleanup request reaches the ended page");
+  assert.equal(studio.listeners.size, 0);
+  assert.equal(studio.stateListeners.size, 0);
+  await assert.rejects(commands.start(),
+    /^Error: HWP studio viewport marker start request viewport-2 ended: the web content process of the editor page ended$/);
+  assert.deepEqual(studio.posted.map(({ operation }) => operation), ["start"], "a request after the end is not posted");
+  await commands.dispose();
+});
+
+test("a viewport marker request ends when the region starts another navigation, and the stop removes no marker of another page", async () => {
+  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const studio = endingRegion();
+  const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
+  const starting = commands.start();
+  studio.answer(studio.posted[0], viewportEvidence);
+  await starting;
+  const reading = assert.rejects(commands.read(),
+    /^Error: HWP studio viewport marker read request viewport-2 ended: the document region started another navigation$/);
+  await studio.until(() => studio.posted.length === 2);
+  assert.deepEqual(studio.timers, [], "the read request starts no timer");
+  studio.navigate();
+  await reading;
+  const stopped = await commands.stop();
+  assert.equal(stopped.studioViewport, null);
+  assert.deepEqual(studio.posted.map(({ operation }) => operation), ["start", "read"]);
+  assert.equal(studio.stateListeners.size, 0);
+  await commands.dispose();
+});
+
 test("stopping during marker startup waits for the start and then removes the marker", async () => {
   const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
@@ -421,26 +510,26 @@ test("stopping during marker startup waits for the start and then removes the ma
       return Promise.resolve();
     },
   };
+  // The order of the events of the frame observer: a stop that waits for the start stops the observer after the start that
+  // follows the reply to the marker start request has started it.
+  const order = [];
   let enabled = false;
   const diagnostics = {
     read: () => ({ enabled }),
-    async start() { enabled = true; return { enabled: true }; },
-    async stop() { enabled = false; return { enabled: false }; },
+    async start() { order.push("observer started"); enabled = true; return { enabled: true }; },
+    async stop() { order.push("observer stopped"); enabled = false; return { enabled: false }; },
     async dispose() { enabled = false; },
   };
   const commands = createStudioViewportDiagnostics({ diagnostics, documentRegion: region });
   const starting = commands.start();
   const stopping = commands.stop();
-  let stopSettled = false;
-  void stopping.then(() => { stopSettled = true; }, () => { stopSettled = true; });
-  await Promise.resolve();
-  assert.equal(stopSettled, false, "stop ran before the marker start request completed");
   const startRequest = posted[0];
   for (const listener of listeners) listener({
     type: startRequest.type, id: startRequest.id, result: viewportEvidence,
   });
   await starting;
   const stopped = await stopping;
+  assert.deepEqual(order, ["observer started", "observer stopped"], "stop ran before the marker start request completed");
   assert.equal(stopped.studioViewport, null);
   assert.deepEqual(posted.map(({ operation }) => operation), ["start", "stop"]);
   assert.equal(enabled, false);
@@ -452,6 +541,7 @@ test("failed marker stop remains tracked so disposal retries removal", async () 
   const posted = [];
   let stopCount = 0;
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
@@ -484,9 +574,9 @@ test("concurrent disposal callers both wait for marker cleanup", async () => {
   const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
-  let markStopPosted;
-  const stopPosted = new Promise((resolve) => { markStopPosted = resolve; });
+  const { promise: stopPosted, resolve: markStopPosted } = occurrence("the post of the stop request");
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     post(message) {
       posted.push(message);
@@ -505,15 +595,16 @@ test("concurrent disposal callers both wait for marker cleanup", async () => {
   const starting = commands.start();
   const first = commands.dispose();
   const second = commands.dispose();
-  let secondSettled = false;
-  void second.then(() => { secondSettled = true; }, () => { secondSettled = true; });
+  // The order of the events: the later disposal caller settles after the reply to the stop request of the cleanup.
+  const order = [];
+  void second.then(() => { order.push("second settled"); }, () => { order.push("second settled"); });
   const startRequest = posted[0];
   for (const listener of listeners) listener({ type: startRequest.type, id: startRequest.id, result: viewportEvidence });
   const stopRequest = await stopPosted;
-  assert.equal(secondSettled, false, "a later disposal caller returned before cleanup finished");
+  order.push("stop replied");
   for (const listener of listeners) listener({ type: stopRequest.type, id: stopRequest.id, result: null });
   await Promise.all([starting, first, second]);
-  assert.equal(secondSettled, true);
+  assert.deepEqual(order, ["stop replied", "second settled"], "a later disposal caller returned before cleanup finished");
   assert.deepEqual(posted.map(({ operation }) => operation), ["start", "stop"]);
 });
 
@@ -529,10 +620,11 @@ test("mount and pagehide share the in-flight view diagnostic disposer", async ()
   let cleanups = 0;
   let disposed = false;
   const cleanup = new Promise((resolve) => { finishCleanup = resolve; });
+  const { promise: cleanupStarted, resolve: markCleanupStarted } = occurrence("the start of the marker cleanup");
   const dispose = source.createViewDiagnosticDisposer({
     viewWindow,
     onDisposeStart: () => { disposed = true; },
-    cleanup: async () => { cleanups++; await cleanup; },
+    cleanup: async () => { cleanups++; markCleanupStarted(); await cleanup; },
     onError: (error) => { throw error; },
   });
   const pageHide = listeners.get("pagehide");
@@ -541,7 +633,7 @@ test("mount and pagehide share the in-flight view diagnostic disposer", async ()
   assert.equal(disposed, true);
   assert.equal(listeners.has("pagehide"), false);
   assert.equal(dispose(), mountDisposal, "the mount caller must receive the pagehide cleanup promise");
-  await Promise.resolve();
+  await cleanupStarted;
   assert.equal(cleanups, 1);
   finishCleanup();
   await mountDisposal;
@@ -632,24 +724,29 @@ test("studio startup skips diagnostics in releases and waits for the diagnostic 
 
   globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({ module: "ui/hwp-diagnostics.js" }) });
   let finishAttach;
+  const { promise: attaching, resolve: markAttaching } = occurrence("the attach of the diagnostic companion");
   let attached = false;
   const load = source.startStudioDiagnostics(`${window.location.href}?diagnostics=1`, {
     document, window,
     loadModule: async () => ({ attachStudio: async (context) => {
       assert.equal(context.document, document);
       assert.equal(context.window, window);
-      await new Promise((resolve) => { finishAttach = resolve; });
+      const finished = new Promise((resolve) => { finishAttach = resolve; });
+      markAttaching();
+      await finished;
       attached = true;
       return async () => {};
     } }),
   });
-  let settled = false;
-  void load.then(() => { settled = true; });
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(settled, false, "diagnostic startup completed before its companion attached");
+  // The order of the events: the startup settles after its companion attached.
+  const order = [];
+  void load.then(() => { order.push("startup settled"); });
+  await attaching;
+  order.push("companion attached");
   finishAttach();
   assert.equal(typeof await load, "function");
   assert.equal(attached, true);
+  assert.deepEqual(order, ["companion attached", "startup settled"], "diagnostic startup completed before its companion attached");
 });
 
 test("studio startup reports a diagnostic failure without announcing listening", async (t) => {
@@ -773,7 +870,7 @@ test("document-frame observation does not repaint the view root", async () => {
   assert.equal(root.style.getPropertyValue("background-color"), "");
 });
 
-test("a native window message reply does not re-enter the studio marker handler", { timeout: 1000 }, async () => {
+test("a native window message reply does not re-enter the studio marker handler", async () => {
   const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
   const listeners = new Map();
   const posted = [];
@@ -818,7 +915,7 @@ test("a native window message reply does not re-enter the studio marker handler"
   dispose();
 });
 
-test("native document-post echoes do not resolve a marker request before the studio reply", { timeout: 1000 }, async () => {
+test("native document-post echoes do not resolve a marker request before the studio reply", async () => {
   const { attachStudio, createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
   const studioListeners = new Map();
   const regionListeners = new Set();
@@ -854,6 +951,7 @@ test("native document-post echoes do not resolve a marker request before the stu
   };
   const disposeStudio = await attachStudio({ document, window });
   const region = {
+    onState() { return () => {}; },
     onMessage(listener) { regionListeners.add(listener); return () => regionListeners.delete(listener); },
     post(message) {
       sentToStudio.push(message);

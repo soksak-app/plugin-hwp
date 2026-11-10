@@ -7,12 +7,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { JSDOM } from "jsdom";
+import { createOccurrences, waitFor } from "../occurrences.mjs";
 import { createExpose, roleOf } from "./expose.mjs";
 import { createViewBridge } from "./view.mjs";
 
 const fixtureFile = (name) => JSON.parse(readFileSync(new URL(`../fixtures/contract/${name}.json`, import.meta.url), "utf8"));
 const fixture = (name) => fixtureFile(name).cases;
-const settle = async () => { for (let i = 0; i < 20; i += 1) await new Promise((resolve) => setTimeout(resolve, 0)); };
+// A step ends with the occurrences that its output lists: reached(until, [list, start, expected]...) waits until each
+// recorded list holds at least the items that the step expects after start. An expected absence is asserted after those.
+const reached = (until, ...counts) => until(() => counts.every(([list, start, expected]) => list.length - start >= (expected?.length ?? 0)));
 const errorText = (error) => (error instanceof Error ? error.message : String(error?.message ?? error));
 
 const EXCLUDED_CASES = {
@@ -56,10 +59,11 @@ test("the excluded cases and steps are present in the copied fixtures", () => {
 
 test("expose cases replay against the exposure model", async () => {
   for (const testCase of fixture("expose")) {
-    const registered = [];
-    const replies = [];
-    const changed = [];
-    const effects = [];
+    const { recorded, until } = createOccurrences();
+    const registered = recorded();
+    const replies = recorded();
+    const changed = recorded();
+    const effects = recorded();
     const subscribers = new Set();
     const elements = new Map();
     let handle = null;
@@ -149,7 +153,8 @@ test("expose cases replay against the exposure model", async () => {
       } catch (error) {
         throws = errorText(error);
       }
-      await settle();
+      await reached(until, [registered, before.registered, step.output.registered], [replies, before.replies, step.output.replies],
+        [changed, before.changed, step.output.changed], [effects, before.effects, step.output.effects]);
       const output = {
         registered: registered.slice(before.registered),
         replies: replies.slice(before.replies),
@@ -163,33 +168,44 @@ test("expose cases replay against the exposure model", async () => {
   }
 });
 
-test("call limit cases replay against the bridge model on a mocked clock", async (t) => {
+test("call end cases replay against the bridge model", async (t) => {
   for (const testCase of fixture("calls")) {
-    // The clock of the case starts at 0 and moves only by the advance steps; the limit timers are the mocked timers.
-    t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
+    // A call has no time limit, and no step moves a clock: the clock of the case is fixed at 0, so the start of a call and
+    // the delay of a late reply are 0.
+    const clock = t.mock.method(Date, "now", () => 0);
     const sokView = { listener: null, attach(listener) { this.listener = listener; } };
     globalThis.window = { sokView, innerWidth: 800, innerHeight: 600, location: { host: "probe" } };
-    const posted = [];
-    const reports = [];
+    const { recorded, until } = createOccurrences();
+    const posted = recorded();
+    const reports = recorded();
+    const settled = recorded();
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: (event) => reports.push(event) });
     const outcomes = new Map();
-    // Each step is followed by the microtasks of the settled promises only; the mocked timers do not run them.
-    const flush = async () => { for (let i = 0; i < 20; i += 1) await Promise.resolve(); };
+    const signals = new Map();
     for (const [index, step] of testCase.steps.entries()) {
       const label = `${testCase.id}#${index}`;
       const before = posted.length;
       const reportsBefore = reports.length;
       if (step.request) {
-        const name = step.request.name;
-        outcomes.set(name, null);
-        bridge.calls.request(step.request.command, step.request.params, step.request.timeout)
-          .then((value) => outcomes.set(name, { resolved: value }), (error) => outcomes.set(name, { rejected: error.message, code: error.code }));
-      } else if (step.advance !== undefined) {
-        t.mock.timers.tick(step.advance);
+        const { name, command, params, signal } = step.request;
+        const options = {};
+        if (signal) {
+          signals.set(name, new AbortController());
+          options.signal = signals.get(name).signal;
+        }
+        bridge.calls.request(command, params, options).then(
+          (value) => { outcomes.set(name, { resolved: value }); settled.push(name); },
+          (error) => { outcomes.set(name, { rejected: error.message, code: error.code ?? null }); settled.push(name); });
       } else if (step.reply) {
         sokView.listener({ sok: 1, ...step.reply });
+      } else if (step.cancel) {
+        signals.get(step.cancel).abort();
+      } else if (step.peerLost) {
+        bridge.calls.peerLost(step.peerLost);
       } else throw new Error(`unknown call step in ${label}`);
-      await flush();
+      // A step that settles its watched call ends with that settlement; an open call is asserted after the messages and reports.
+      await reached(until, [posted, before, step.output.sent], [reports, reportsBefore, step.output.reports]);
+      if (step.output.outcome !== null) await until(() => outcomes.has(step.watch));
       const output = {
         sent: posted.slice(before).map(({ sok, ...rest }) => rest),
         reports: reports.slice(reportsBefore),
@@ -197,14 +213,15 @@ test("call limit cases replay against the bridge model on a mocked clock", async
       };
       assert.deepEqual(output, step.output, label);
     }
-    t.mock.timers.reset();
+    clock.mock.restore();
   }
 });
 
 test("view command cases replay against the bridge model", async () => {
   for (const testCase of replayable("view-commands")) {
     const sokView = viewWindow();
-    const posted = [];
+    const { recorded, until } = createOccurrences();
+    const posted = recorded();
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
     const behaviors = { echo: (params) => params, fail: () => { throw new Error("save failed"); }, none: () => undefined, context: (params, context) => context };
     for (const [index, step] of testCase.steps.entries()) {
@@ -217,7 +234,7 @@ test("view command cases replay against the bridge model", async () => {
           const run = typeof step.register.run === "string" && step.register.run in behaviors ? behaviors[step.register.run] : step.register.run;
           const promise = bridge.commands.register(step.register.name, run);
           if (step.answer ?? step.register.answer) {
-            await settle();
+            await until(() => posted.length > before);
             sokView.listener({ sok: 1, id: posted.at(-1).id, ...(step.answer ?? step.register.answer) });
           }
           result = await promise;
@@ -227,7 +244,7 @@ test("view command cases replay against the bridge model", async () => {
       } catch (failure) {
         throws = errorText(failure);
       }
-      await settle();
+      await reached(until, [posted, before, step.output.posted]);
       assert.deepEqual({ posted: posted.slice(before), result, throws }, pick(step.output, ["posted", "result", "throws"]), label);
     }
   }
@@ -238,13 +255,13 @@ test("view operation cases replay against the bridge model", async (t) => {
   const page = "6f1d2a3e-1111-4a2b-8c3d-00000000000a";
   const expected = (value) => JSON.parse(JSON.stringify(value).replaceAll("p$PAGE.", `p${page}.`));
   for (const testCase of replayable("view-operations")) {
-    await t.test(testCase.id, { timeout: 5000 }, async () => {
+    await t.test(testCase.id, async () => {
       const sokView = viewWindow();
       sokView.page = page;
       globalThis.window.location = { host: "probe" };
       let observe;
       const nextObservation = () => {
-        return new Promise((resolve) => { observe = resolve; });
+        return waitFor(`the next observation of ${testCase.id}`, (resolve) => { observe = resolve; });
       };
       const publish = (value) => {
         if (observe === undefined) throw new Error("operation observation has no waiting consumer");
@@ -297,8 +314,9 @@ test("view operation cases replay against the bridge model", async (t) => {
 
 test("command registration cases replay against the exposure model", async () => {
   for (const testCase of fixture("command-registration")) {
-    const registered = [];
-    const replies = [];
+    const { recorded, until } = createOccurrences();
+    const registered = recorded();
+    const replies = recorded();
     let handle = null;
     const expose = createExpose({
       register: async (kind, name) => { registered.push({ kind, name }); },
@@ -317,7 +335,7 @@ test("command registration cases replay against the exposure model", async () =>
       } catch (error) {
         throws = errorText(error);
       }
-      await settle();
+      await reached(until, [registered, before.registered, step.output.registered], [replies, before.replies, step.output.replies]);
       assert.deepEqual({ registered: registered.slice(before.registered), replies: replies.slice(before.replies), result: null, throws }, step.output, label);
     }
   }
@@ -326,8 +344,9 @@ test("command registration cases replay against the exposure model", async () =>
 test("view bridge cases replay against the bridge model", async () => {
   for (const testCase of replayable("view-bridge")) {
     const sokView = viewWindow();
-    const posted = [];
-    const received = [];
+    const { recorded, until } = createOccurrences();
+    const posted = recorded();
+    const received = recorded();
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
     const host = (message) => sokView.listener(JSON.parse(JSON.stringify(message)));
     const pending = new Map();
@@ -337,22 +356,21 @@ test("view bridge cases replay against the bridge model", async () => {
       if (step.action === "create") assert.deepEqual({ ready: true }, step.output, label);
       else if (step.action === "request") {
         const promise = bridge.calls.request(step.input.command, step.input.params);
-        await settle();
+        await until(() => posted.length > before);
         pending.set(posted[before].id, promise);
         assert.deepEqual(posted[before], step.output, label);
       } else if (step.action === "sidecar-send") {
         const promise = bridge.runtime.sidecar(step.input.sidecar).send(step.input.id, step.input.body);
-        await settle();
+        await until(() => posted.length > before);
         pending.set(posted[before].id, promise);
         assert.deepEqual(posted[before], step.output, label);
       } else if (step.action === "sidecar-subscribe") {
         const promise = bridge.runtime.sidecar(step.input.sidecar).on(step.input.id, () => {});
-        await settle();
+        await until(() => posted.length > before);
         pending.set(posted[before].id, promise);
         assert.deepEqual(posted[before], step.output, label);
       } else if (step.action === "host-reply") {
         host(step.input);
-        await settle();
         if (step.output !== undefined) {
           const value = await pending.get(step.input.id);
           assert.deepEqual(value, step.output, label);
@@ -362,7 +380,7 @@ test("view bridge cases replay against the bridge model", async () => {
       } else if (step.action === "host-event") {
         const count = received.length;
         host(step.input);
-        await settle();
+        await until(() => received.length > count);
         assert.deepEqual(received[count], step.output, label);
       } else throw new Error(`unknown bridge step ${step.action} in ${label}`);
     }
@@ -372,8 +390,9 @@ test("view bridge cases replay against the bridge model", async () => {
 test("view native cases replay against the bridge model", async () => {
   for (const testCase of replayable("view-native")) {
     const sokView = viewWindow();
-    const posted = [];
-    const delivered = [];
+    const { recorded, until } = createOccurrences();
+    const posted = recorded();
+    const delivered = recorded();
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
     const listeners = new Map();
     const removers = new Map();
@@ -390,7 +409,7 @@ test("view native cases replay against the bridge model", async () => {
       if (step.on) {
         const promise = bridge.runtime.native.on(step.on.name, listenerFor(step.on.listener));
         if (step.answer) {
-          await settle();
+          await until(() => posted.length > before);
           sokView.listener({ sok: 1, id: posted.at(-1).id, ...step.answer });
         }
         try {
@@ -405,7 +424,7 @@ test("view native cases replay against the bridge model", async () => {
       } else if (step.event) {
         sokView.listener({ sok: 1, event: step.event.event, data: step.event.data });
       } else throw new Error(`unknown native step in ${label}`);
-      await settle();
+      await reached(until, [posted, before, step.output.posted], [delivered, deliveredBefore, step.output.delivered]);
       assert.deepEqual({ posted: posted.slice(before), delivered: delivered.slice(deliveredBefore), result, throws }, pick(step.output, ["posted", "delivered", "result", "throws"]), label);
     }
   }
@@ -415,15 +434,19 @@ test("view composition cases replay against the composition model", async () => 
   const { elements: rects, cases } = fixtureFile("view-composition");
   for (const testCase of cases.filter((entry) => !EXCLUDED_CASES[entry.id])) {
     const sokView = viewWindow();
-    const posted = [];
-    const delivered = [];
+    const { recorded, until } = createOccurrences();
+    const posted = recorded();
+    const delivered = recorded();
     const bridge = createViewBridge({ handler: { postMessage: (message) => posted.push(JSON.parse(JSON.stringify(message))) }, report: () => {} });
     const elements = Object.fromEntries(Object.entries(rects).map(([name, rect]) => [name, rectElement(rect)]));
-    // Answers the last posted call of the step, as the host does in posted order.
+    // The answers of a step answer the calls of the step in posted order: the model posts each call after the answer of the
+    // one before, so an answer waits for the post of its call.
+    let answered = 0;
     const answer = async (payload) => {
-      await settle();
-      sokView.listener({ sok: 1, id: posted.at(-1).id, ...payload });
-      await settle();
+      const position = answered;
+      answered += 1;
+      await until(() => posted.length > position);
+      sokView.listener({ sok: 1, id: posted[position].id, ...payload });
     };
     let composition = null;
     for (const [index, step] of testCase.steps.entries()) {
@@ -431,6 +454,7 @@ test("view composition cases replay against the composition model", async () => 
       if (EXCLUDED_STEPS[testCase.id] && outsideComposition(step)) continue;
       const before = posted.length;
       const deliveredBefore = delivered.length;
+      answered = before;
       let result = null;
       let throws = null;
       try {
@@ -470,7 +494,7 @@ test("view composition cases replay against the composition model", async () => 
       } catch (error) {
         throws = errorText(error);
       }
-      await settle();
+      await reached(until, [posted, before, step.output.posted], [delivered, deliveredBefore, step.output.delivered]);
       const state = composition ? composition.region("doc").state : null;
       const history = composition ? composition.region("doc").history : null;
       assert.deepEqual(
@@ -488,6 +512,9 @@ test("binder cases replay against the bind of the exposure model", async () => {
       // The commands of the binder cases are fixtures of the case file: fixture.save fails with its params.fail, and fixture.set returns.
       commands: [{ name: "fixture.save" }, { name: "fixture.set" }],
     });
+    const { recorded, until } = createOccurrences();
+    // The failures of the runs, which the binder reports through the failed option of the bind.
+    const failures = recorded();
     await expose.command("fixture.save", (params) => { if (params?.fail) throw new Error("command failed"); return null; });
     await expose.command("fixture.set", () => null);
     const elements = new Map();
@@ -516,7 +543,7 @@ test("binder cases replay against the bind of the exposure model", async () => {
         try {
           // paramsFromValue binds a function that reads the value of the element at each run.
           const params = spec.paramsFromValue ? (event) => ({ value: event.currentTarget.value }) : spec.params;
-          await expose.bind(element, spec.command, params, { event: spec.event, when, failed: () => {} });
+          await expose.bind(element, spec.command, params, { event: spec.event, when, failed: (text) => failures.push(text) });
         } catch (failure) {
           error = errorText(failure);
         }
@@ -529,7 +556,7 @@ test("binder cases replay against the bind of the exposure model", async () => {
           preventDefault: () => {} };
         for (const handler of element.listeners[step.event.type] ?? []) handler(event);
       } else throw new Error(`unknown binder step in ${label}`);
-      await settle();
+      await reached(until, [failures, 0, step.output.failed]);
       const state = binderState();
       const output = {
         calls: state.calls,
