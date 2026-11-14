@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H50: version은 0.0.23이며, `engines.soksak` `^0.0.40`과 함께 H49를 release한다.
 - H63: 대기는 그 occurrence 로만 끝나고, test script 와 `make pack` 의 test 실행에 있는 runner 한도 `--test-timeout=120000` 이 occurrence 가 오지 않는 test 를 이름과 함께 실패시킨다. occurrences helper 는 더 이상 `beforeExit` 에서 열린 대기를 reject 하지 않는다. 한 file 에 오지 않는 대기 둘을 둔 probe 에서 두 test 가 모두 한도에서 이름과 함께 실패했다.
 - H62: page 의 어떤 대기도 limit 으로 끝나지 않는다. embed request, listening 대기, viewport marker request 는 답이나 editor page 의 끝으로 끝나고, view 는 그 끝을 기록해 tab 오류로 보이며, SDK model 은 core 0.0.40 의 call 규칙을 따르고, test 는 자기가 확인하는 event 를 기다린다. Red: limit 의 timer 와 error reply 의 code 에서 test 8개가 바로 실패했다. Green: 통과한다.
 - H60: core 호환성 문서가 `^0.0.40`은 core 0.0.40부터 그 뒤의 모든 0.0 release를 허용한다고 적고, test가 이를 요구한다. Red: 이전 문장에서 test가 실패했다. Green: 통과한다.
