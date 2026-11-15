@@ -1,6 +1,6 @@
 // The view page at the consumer boundary (#H22): the page of the view reads the start values of the surface, builds its
 // surface context over the view channel, attaches the document region "studio" through the composition of the view, and
-// mounts the hwp module into the page. The page is loaded by openView in host mode of @soksak/plugin-api/testing, which
+// mounts the hwp module into the page. The page is loaded by the host fixture of this repository (test/fixtures/host.mjs), which
 // answers each call of the page as the workbench answers it. The editor page of the region is played by this file: its
 // requests are answered as rhwp-studio answers them, and its messages reach the page as the document-message and
 // document-state events that the view pushes.
@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { openView } from "@soksak/plugin-api/testing";
+import { openPageHost } from "./fixtures/host.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
 const diagnostics = JSON.parse(readFileSync(new URL("../diagnostics.json", import.meta.url), "utf8"));
@@ -211,7 +211,7 @@ async function open(t, {
     native: { registered: () => null, changed: () => null, exposureReply: () => null },
     commands: { "core.file.place": (command) => place(command) },
     state: { read: () => stored, write: () => null },
-    faults: refuseLog === null ? {} : { "command.runtime.log": refuseLog },
+    refuse: refuseLog === null ? {} : { "runtime.log": refuseLog },
     composition: {
       declaration: () => structuredClone(manifest.surface.composition),
       place: () => null,
@@ -237,7 +237,7 @@ async function open(t, {
       },
     },
   };
-  view = await openView("hwp", { host: fixtures, start, declarations: manifest.exposes, layout: LAYOUT, root: ROOT, page: manifest.surface.composition.page });
+  view = await openPageHost({ host: fixtures, start, layout: LAYOUT, root: ROOT });
   t.after(() => view.close());
   let nextExposure = 0;
   // Forwards one exposure request of core to the page and resolves with the reply {result} or {error} of the page.

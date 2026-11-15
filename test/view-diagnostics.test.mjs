@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { openView } from "@soksak/plugin-api/testing";
+import { openPageHost } from "./fixtures/host.mjs";
 
 const source = await import("../ui/view-diagnostics.js");
 // The declaration that the packaged plugin serves at diagnostics.json.
@@ -23,7 +23,7 @@ function occurrence() {
  * page in fetched. The caller closes the view. view.observed.timers lists each timer that the test starts while the view is open.
  */
 async function openFetchView(root) {
-  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null, root });
+  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null, root });
   const fetched = [];
   const served = view.window.fetch;
   view.window.fetch = (input) => {
@@ -484,7 +484,7 @@ const frameDiagnostics = () => {
 
 test("a viewport marker request ends with the WebContent process of the studio page, and the marker ends with that page", async (t) => {
   const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
-  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
   t.after(() => view.close());
   const studio = endingRegion();
   const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
@@ -505,7 +505,7 @@ test("a viewport marker request ends with the WebContent process of the studio p
 
 test("a viewport marker request ends when the region starts another navigation, and the stop removes no marker of another page", async (t) => {
   const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
-  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
   t.after(() => view.close());
   const studio = endingRegion();
   const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });

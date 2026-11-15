@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H68: 시험은 page의 view channel에 `test/fixtures/host.mjs`로 응답한다. 이 fixture는 계약의 sok-view wire를 구현하며, plugin API의 view 시험 host를 쓰지 않는다. 시험의 기대값은 그대로이며, `pnpm test`는 시험 118개 중 115개를 통과하고 3개를 건너뛰어 변경 전과 같다.
 - H67: emit 위치가 아니라 view bridge가 surface를 넣으므로 `events.json`이 그것을 필수로 두지 않고 선언한다.
 - H66: version은 0.0.24이고, H65을 `engines.soksak` `^0.0.41`로 release한다.
 - H65: 시험은 고정된 `@soksak/plugin-api` release와 그 view 시험 host(`@soksak/plugin-api/testing`의 `openView`)로 실제 `ui/` module을 실행한다. SDK contract case 사본, SDK model, 복사한 fixture, test tree의 build, timer와 occurrence를 대신하던 helper를 제거했다. `openView`에 composition page 경로를 넘겨 window 주소가 app이 제공하는 주소와 같게 한다. Status와 등록 기대값은 고정된 SDK를 따른다. 결과: `pnpm test`가 3개를 건너뛰고 118개 중 115개를 통과한다(이전: 138개 중 135개 통과, 3개 건너뜀). SDK는 view의 각 `runtime.log` record에 surface를 더한다(core F869). 그래서 record의 정확한 비교는 `surface`를 적고, catalog test가 선언되지 않은 field를 거부하므로 `events.json`은 모든 event에 `surface`를 string으로 선언한다. emit 위치가 아니라 view bridge가 surface를 넣고 event 검사는 각 emit 위치의 field를 읽으므로 필수로 두지 않는다. `events.json`에는 닫힌 schema가 없어서, 이 선언은 schema 제한이 아니라 catalog의 규칙이다. Package는 `engines.soksak` `^0.0.41`과 plugin API의 release으로 core release 0.0.41을 pin한다.

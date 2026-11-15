@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { openView } from "@soksak/plugin-api/testing";
+import { openPageHost } from "./fixtures/host.mjs";
 
 // ui/studio-host.js runs in the editor page. Each test loads the real module into a host-mode view of the plugin, which provides the
 // globals of that page: the rhwp-studio object with an automation context that the test changes. Each message that the script posts
@@ -16,7 +16,7 @@ const frame = (window) => new Promise((resolve) => window.requestAnimationFrame(
 
 /** Opens a view with the globals of the editor page and records the messages that the script posts. */
 async function openEditor(context) {
-  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
   const { window } = view;
   const sent = [];
   window.postMessage = (message) => {

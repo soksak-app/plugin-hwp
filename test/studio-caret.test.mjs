@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { openView } from "@soksak/plugin-api/testing";
+import { openPageHost } from "./fixtures/host.mjs";
 
 // The caret of rhwp-studio as src/engine/caret-renderer.ts has it. Its blink timer is the state that the test reads: startBlink
 // starts the timer and stopBlink clears it, so blinking() tells whether a tick of the caret is due, and no tick runs in the test.
@@ -46,7 +46,7 @@ const script = new URL("../ui/studio-host.js", import.meta.url);
  * until the test changes it. input.handler is the input handler that the editor returns, which the test sets before a reply.
  */
 async function openEditor() {
-  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
   const { window } = view;
   const page = { visibility: "visible", focused: true };
   const input = { handler: null };
