@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H71: version은 0.0.26이고, H70를 `engines.soksak` `^0.0.41`로 release한다.
 - H70: 플러그인은 plugin API에 대한 의존성을 선언하지 않는다. 시험은 `@soksak/plugin-api`, `@soksak/plugin-api/view`, `@soksak/plugin-api/diagnostic-view-frames`를 resolve hook으로 `test/fixtures/plugin-api/`의 fixture module로 resolve하고, page가 그 인터페이스에서 하는 call을 판단한다. `test/fixtures/host.mjs`는 제거했다. Page는 오류 값이 없는 window의 `error` event를 `undefined` 대신 그 event의 message로 기록한다. `pnpm test`는 시험 130개를 실행해 127개 통과, 3개 건너뜀이다.
 - H69: version은 0.0.25이고, H68을 release한다.
 - H68: 시험은 page의 view channel에 `test/fixtures/host.mjs`로 응답한다. 이 fixture는 계약의 sok-view wire를 구현하며, plugin API의 view 시험 host를 쓰지 않는다. 시험의 기대값은 그대로이며, `pnpm test`는 시험 118개 중 115개를 통과하고 3개를 건너뛰어 변경 전과 같다.
