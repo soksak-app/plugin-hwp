@@ -1,9 +1,38 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { recordTimers } from "./no-timers.mjs";
-import { createOccurrences, occurrence } from "./occurrences.mjs";
+import { openView } from "@soksak/plugin-api/testing";
 
-const source = await import("../build/test/ui/view-diagnostics.js").catch((error) => ({ importError: error }));
+const source = await import("../ui/view-diagnostics.js");
+// The declaration that the packaged plugin serves at diagnostics.json.
+const packaged = JSON.parse(readFileSync(new URL("../diagnostics.json", import.meta.url), "utf8"));
+// The plugin directory, which a view serves to window.fetch as soksak://hwp/<path>.
+const pluginRoot = new URL("../", import.meta.url);
+// A folder without diagnostics.json, so the view serves the files of a release package, which carries no diagnostics.
+const releaseRoot = new URL("./", import.meta.url);
+
+// A promise that the test resolves at the occurrence it waits for, such as the post of a request.
+function occurrence() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+/**
+ * Opens a host-mode view of the plugin whose window.fetch serves the files of root, and records the address of each fetch of the
+ * page in fetched. The caller closes the view. view.observed.timers lists each timer that the test starts while the view is open.
+ */
+async function openFetchView(root) {
+  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null, root });
+  const fetched = [];
+  const served = view.window.fetch;
+  view.window.fetch = (input) => {
+    fetched.push(String(input));
+    return served(input);
+  };
+  return { view, fetched };
+}
+
 const viewportEvidence = {
   markerColor: [255, 0, 255], borderWidth: 2, rect: { left: 4, top: 4, right: 1020, bottom: 764 },
   innerWidth: 1024, innerHeight: 768, clientWidth: 1024, clientHeight: 768,
@@ -12,13 +41,13 @@ const viewportEvidence = {
 };
 
 test("the diagnostic module exposes a studio viewport marker companion", async () => {
-  const studioDiagnostics = await import("../build/test/ui/hwp-diagnostics.js");
+  const studioDiagnostics = await import("../ui/hwp-diagnostics.js");
   assert.equal(typeof studioDiagnostics.attachStudio, "function",
     "the HWP diagnostic module cannot attach the studio viewport marker companion");
 });
 
 test("the studio viewport marker measures the document viewport and removes its exact node", async () => {
-  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Map();
   const children = [];
   const parent = {};
@@ -90,7 +119,7 @@ test("the studio viewport marker measures the document viewport and removes its 
 });
 
 test("an active studio diagnostic read returns available resource timings on the studio clock", async () => {
-  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Map();
   const children = [];
   const replies = [];
@@ -187,7 +216,7 @@ test("an active studio diagnostic read returns available resource timings on the
     async stop() { enabled = false; return { enabled: false, sequence: 1, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }; },
     async dispose() {},
   };
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const commands = createStudioViewportDiagnostics({ diagnostics, documentRegion: region });
   await commands.start();
   assert.equal(resourceReads, 0, "resource timing is read only at an explicit snapshot");
@@ -212,7 +241,7 @@ test("an active studio diagnostic read returns available resource timings on the
 });
 
 test("inactive diagnostic reads return no studio resource snapshot", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   let requests = 0;
   const diagnostics = {
     read: () => ({ enabled: false, sequence: 0, historyEntries: 1, regionHistoryEntries: 1, width: 1024, height: 768 }),
@@ -237,7 +266,7 @@ test("inactive diagnostic reads return no studio resource snapshot", async () =>
 });
 
 test("an active studio read reports an unsupported Resource Timing API", async () => {
-  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Map();
   const replies = [];
   const children = [];
@@ -285,7 +314,7 @@ test("an active studio read reports an unsupported Resource Timing API", async (
 });
 
 test("view diagnostics serialize marker start and clean it up when disposal overlaps start", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -322,7 +351,7 @@ test("view diagnostics serialize marker start and clean it up when disposal over
 });
 
 test("view diagnostic start removes the viewport marker when observer startup fails", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -352,7 +381,7 @@ test("view diagnostic start removes the viewport marker when observer startup fa
 });
 
 test("view diagnostic start rejects inconsistent marker evidence and requests cleanup", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -380,7 +409,7 @@ test("view diagnostic start rejects inconsistent marker evidence and requests cl
 });
 
 test("disposal cancels pending viewport reads and removes the marker", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const { promise: readPosted, resolve: markReadPosted } = occurrence();
@@ -424,10 +453,7 @@ test("disposal cancels pending viewport reads and removes the marker", async () 
 function endingRegion() {
   const listeners = new Set();
   const stateListeners = new Set();
-  const { recorded, until } = createOccurrences();
-  const posted = recorded();
-  // The timers that the marker starts (test/no-timers.mjs); none starts.
-  const timers = recordTimers(recorded());
+  const posted = [];
   const region = {
     state: { url: "soksak://hwp/ui/studio/index.html?chrome=embed", loading: false, error: null, navigations: 1 },
     onState(listener) { stateListeners.add(listener); return () => stateListeners.delete(listener); },
@@ -439,7 +465,7 @@ function endingRegion() {
     for (const listener of [...stateListeners]) listener(state);
   };
   return {
-    region, posted, listeners, stateListeners, timers, until,
+    region, posted, listeners, stateListeners,
     answer: (request, result) => { for (const listener of [...listeners]) listener({ type: request.type, id: request.id, result }); },
     end: () => report({ ...region.state, error: "the web content process ended" }),
     navigate: () => report({ ...region.state, url: "https://example.test/", loading: true, navigations: region.state.navigations + 1 }),
@@ -456,14 +482,16 @@ const frameDiagnostics = () => {
   };
 };
 
-test("a viewport marker request ends with the WebContent process of the studio page, and the marker ends with that page", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+test("a viewport marker request ends with the WebContent process of the studio page, and the marker ends with that page", async (t) => {
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  t.after(() => view.close());
   const studio = endingRegion();
   const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
   const starting = assert.rejects(commands.start(),
     /^Error: HWP studio viewport marker start request viewport-1 ended: the web content process of the editor page ended$/);
-  await studio.until(() => studio.posted.length === 1);
-  assert.deepEqual(studio.timers, [], "the start request starts no timer");
+  assert.equal(studio.posted.length, 1);
+  assert.deepEqual(view.observed.timers, [], "the start request starts no timer");
   studio.end();
   await starting;
   assert.deepEqual(studio.posted.map(({ operation }) => operation), ["start"], "no cleanup request reaches the ended page");
@@ -475,8 +503,10 @@ test("a viewport marker request ends with the WebContent process of the studio p
   await commands.dispose();
 });
 
-test("a viewport marker request ends when the region starts another navigation, and the stop removes no marker of another page", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+test("a viewport marker request ends when the region starts another navigation, and the stop removes no marker of another page", async (t) => {
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
+  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  t.after(() => view.close());
   const studio = endingRegion();
   const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
   const starting = commands.start();
@@ -484,8 +514,8 @@ test("a viewport marker request ends when the region starts another navigation, 
   await starting;
   const reading = assert.rejects(commands.read(),
     /^Error: HWP studio viewport marker read request viewport-2 ended: the document region started another navigation$/);
-  await studio.until(() => studio.posted.length === 2);
-  assert.deepEqual(studio.timers, [], "the read request starts no timer");
+  assert.equal(studio.posted.length, 2);
+  assert.deepEqual(view.observed.timers, [], "the read request starts no timer");
   studio.navigate();
   await reading;
   const stopped = await commands.stop();
@@ -496,7 +526,7 @@ test("a viewport marker request ends when the region starts another navigation, 
 });
 
 test("stopping during marker startup waits for the start and then removes the marker", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const region = {
@@ -536,7 +566,7 @@ test("stopping during marker startup waits for the start and then removes the ma
 });
 
 test("failed marker stop remains tracked so disposal retries removal", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   let stopCount = 0;
@@ -571,7 +601,7 @@ test("failed marker stop remains tracked so disposal retries removal", async () 
 });
 
 test("concurrent disposal callers both wait for marker cleanup", async () => {
-  const { createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Set();
   const posted = [];
   const { promise: stopPosted, resolve: markStopPosted } = occurrence();
@@ -640,12 +670,10 @@ test("mount and pagehide share the in-flight view diagnostic disposer", async ()
 });
 
 test("the release view has no diagnostic commands when its start values carry no declaration, and requests no file", async (t) => {
-  const originalFetch = globalThis.fetch;
-  const requests = [];
-  globalThis.fetch = async (url) => { requests.push(String(url)); return { status: 404, ok: false }; };
-  t.after(() => { globalThis.fetch = originalFetch; });
+  const { view, fetched } = await openFetchView(pluginRoot);
+  t.after(() => view.close());
   assert.equal(await source.loadDiagnostics({ surface: "hwp-1", diagnostics: null }, "soksak://hwp/ui/index.html"), null);
-  assert.deepEqual(requests, []);
+  assert.deepEqual(fetched, []);
 });
 
 test("the diagnostic view loader takes the declaration of its start values and attaches the declared module", async () => {
@@ -667,37 +695,35 @@ test("start values without a diagnostic declaration are refused with an error th
 test("the studio diagnostic loader imports only the declared marker in diagnostic builds", async (t) => {
   assert.equal(typeof source.loadStudioDiagnostics, "function",
     "the studio host has no opt-in diagnostic companion loader");
-  const originalFetch = globalThis.fetch;
   const loadCalls = [];
-  globalThis.fetch = async () => ({ status: 404, ok: false });
-  t.after(() => { globalThis.fetch = originalFetch; });
-  assert.equal(await source.loadStudioDiagnostics("soksak://hwp/ui/studio/index.html", async (modulePath) => {
+  const loadModule = async (modulePath) => {
     loadCalls.push(modulePath);
     return { attachStudio() {} };
-  }), null);
+  };
+  const release = await openFetchView(releaseRoot);
+  try {
+    assert.equal(await source.loadStudioDiagnostics("soksak://hwp/ui/studio/index.html", loadModule), null);
+    assert.deepEqual(release.fetched, ["soksak://hwp/diagnostics.json"]);
+  } finally {
+    await release.view.close();
+  }
   assert.deepEqual(loadCalls, [], "a release studio host imported diagnostic code");
 
-  const declaration = { module: "ui/hwp-diagnostics.js" };
-  globalThis.fetch = async (url) => {
-    assert.equal(url, "soksak://hwp/diagnostics.json");
-    return { status: 200, ok: true, json: async () => declaration };
-  };
+  const build = await openFetchView(pluginRoot);
+  t.after(() => build.view.close());
   const attachStudio = () => {};
   const loaded = await source.loadStudioDiagnostics("soksak://hwp/ui/studio/index.html", async (modulePath) => {
     loadCalls.push(modulePath);
     return { attachStudio };
   });
-  assert.deepEqual(loaded, { declaration, attachStudio });
+  assert.deepEqual(loaded, { declaration: packaged, attachStudio });
+  assert.deepEqual(build.fetched, ["soksak://hwp/diagnostics.json"]);
   assert.deepEqual(loadCalls, ["ui/hwp-diagnostics.js"]);
 });
 
 test("the studio page resolves its diagnostic declaration and companion from the package root", async (t) => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (url) => {
-    assert.equal(url, "soksak://hwp/diagnostics.json", "the nested studio page resolved the declaration outside the package root");
-    return { status: 200, ok: true, json: async () => ({ module: "ui/hwp-diagnostics.js" }) };
-  };
-  t.after(() => { globalThis.fetch = originalFetch; });
+  const { view, fetched } = await openFetchView(pluginRoot);
+  t.after(() => view.close());
   const imported = [];
   const loaded = await source.loadStudioDiagnostics("soksak://hwp/ui/studio/index.html", async (modulePath) => {
     imported.push(modulePath);
@@ -705,14 +731,14 @@ test("the studio page resolves its diagnostic declaration and companion from the
   });
   assert.equal(typeof loaded.attachStudio, "function");
   assert.deepEqual(imported, ["ui/hwp-diagnostics.js"]);
+  assert.deepEqual(fetched, ["soksak://hwp/diagnostics.json"], "the nested studio page resolved the declaration outside the package root");
 });
 
 test("studio startup skips diagnostics in releases and waits for the diagnostic companion", async (t) => {
   assert.equal(typeof source.startStudioDiagnostics, "function",
     "the studio host has no diagnostic-only startup gate");
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => { throw new Error("release startup fetched a diagnostic declaration"); };
-  t.after(() => { globalThis.fetch = originalFetch; });
+  const { view, fetched } = await openFetchView(pluginRoot);
+  t.after(() => view.close());
   let imports = 0;
   const window = { location: { href: "soksak://hwp/ui/studio-host.js" } };
   const document = { defaultView: window };
@@ -721,8 +747,8 @@ test("studio startup skips diagnostics in releases and waits for the diagnostic 
     loadModule: async () => { imports++; return { attachStudio() {} }; },
   }), null);
   assert.equal(imports, 0, "release startup imported the diagnostic companion");
+  assert.deepEqual(fetched, [], "release startup fetched a diagnostic declaration");
 
-  globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({ module: "ui/hwp-diagnostics.js" }) });
   let finishAttach;
   const { promise: attaching, resolve: markAttaching } = occurrence();
   let attached = false;
@@ -747,12 +773,12 @@ test("studio startup skips diagnostics in releases and waits for the diagnostic 
   assert.equal(typeof await load, "function");
   assert.equal(attached, true);
   assert.deepEqual(order, ["companion attached", "startup settled"], "diagnostic startup completed before its companion attached");
+  assert.deepEqual(fetched, ["soksak://hwp/diagnostics.json"]);
 });
 
 test("studio startup reports a diagnostic failure without announcing listening", async (t) => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({ module: "ui/hwp-diagnostics.js" }) });
-  t.after(() => { globalThis.fetch = originalFetch; });
+  const { view } = await openFetchView(pluginRoot);
+  t.after(() => view.close());
   const messages = [];
   const window = { location: { href: "soksak://hwp/ui/studio/index.html?diagnostics=1" }, addEventListener() {} };
   const started = await source.startStudioHost(window.location.href, {
@@ -871,7 +897,7 @@ test("document-frame observation does not repaint the view root", async () => {
 });
 
 test("a native window message reply does not re-enter the studio marker handler", async () => {
-  const { attachStudio } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { attachStudio } = await import("../ui/hwp-diagnostics.js");
   const listeners = new Map();
   const posted = [];
   const queued = [];
@@ -916,7 +942,7 @@ test("a native window message reply does not re-enter the studio marker handler"
 });
 
 test("native document-post echoes do not resolve a marker request before the studio reply", async () => {
-  const { attachStudio, createStudioViewportDiagnostics } = await import("../build/test/ui/hwp-diagnostics.js");
+  const { attachStudio, createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
   const studioListeners = new Map();
   const regionListeners = new Set();
   const sentToStudio = [];

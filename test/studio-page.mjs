@@ -4,7 +4,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createOccurrences } from "./occurrences.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const studio = path.join(root, "ui", "studio");
@@ -88,11 +87,27 @@ export function installPage(window, requested) {
 
 /**
  * Records each message that the page posts to its own window in posted, when it posts it, and returns {posted, until}:
- * until(check) resolves when check() holds after a post (test/occurrences.mjs).
+ * until(check) resolves when check() holds after a post. Each post runs the waits whose check now holds, in the same turn.
  */
 export function recordPosts(window) {
-  const { recorded, until } = createOccurrences();
-  const posted = recorded();
+  const waits = new Set();
+  const posted = [];
+  // The push is not enumerable, so the list compares as the array of its messages.
+  Object.defineProperty(posted, "push", {
+    value: (...messages) => {
+      const length = Array.prototype.push.apply(posted, messages);
+      for (const wait of [...waits]) {
+        if (!wait.check()) continue;
+        waits.delete(wait);
+        wait.resolve();
+      }
+      return length;
+    },
+  });
+  const until = (check) => new Promise((resolve) => {
+    if (check()) resolve();
+    else waits.add({ check, resolve });
+  });
   window.postMessage = (message) => { posted.push(message); };
   return { posted, until };
 }

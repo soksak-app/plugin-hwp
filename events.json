@@ -12,6 +12,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -20,6 +23,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "format"
         ]
@@ -34,11 +38,15 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           }
         },
         "required": [
+          "surface",
           "name"
         ]
       },
@@ -55,6 +63,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -75,6 +86,7 @@
           }
         },
         "required": [
+          "surface",
           "name",
           "path",
           "micros",
@@ -91,6 +103,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -99,6 +114,7 @@
           }
         },
         "required": [
+          "surface",
           "path"
         ]
       },
@@ -112,16 +128,53 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "sequence": { "type": "integer", "minimum": 0 },
-          "firstResizeAtMs": { "type": "number", "minimum": 0 },
-          "resizeAtMs": { "type": "number", "minimum": 0 },
-          "resizeCount": { "type": "integer", "minimum": 1 },
-          "width": { "type": "number", "minimum": 0 },
-          "height": { "type": "number", "minimum": 0 },
-          "documentTimeOriginMs": { "type": "number", "minimum": 0 },
-          "frameTimeMs": { "type": "number", "minimum": 0 }
+          "surface": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "firstResizeAtMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "resizeAtMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "resizeCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "type": "number",
+            "minimum": 0
+          },
+          "height": {
+            "type": "number",
+            "minimum": 0
+          },
+          "documentTimeOriginMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "frameTimeMs": {
+            "type": "number",
+            "minimum": 0
+          }
         },
-        "required": ["sequence", "firstResizeAtMs", "resizeAtMs", "resizeCount", "width", "height", "documentTimeOriginMs", "frameTimeMs"]
+        "required": [
+          "surface",
+          "sequence",
+          "firstResizeAtMs",
+          "resizeAtMs",
+          "resizeCount",
+          "width",
+          "height",
+          "documentTimeOriginMs",
+          "frameTimeMs"
+        ]
       },
       "description": "The HWP view document root dimensions after ResizeObserver and the next animation frame while the diagnostic observer is active."
     },
@@ -133,6 +186,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -144,6 +200,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "phase"
         ]
@@ -161,6 +218,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -181,6 +241,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "reason",
           "micros",
@@ -200,6 +261,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -217,6 +281,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "micros",
           "ok"
@@ -232,6 +297,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -240,6 +308,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "error"
         ]
@@ -257,6 +326,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -283,6 +355,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "format",
           "overwrite",
@@ -303,6 +376,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -317,6 +393,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "micros",
           "ok"
@@ -332,6 +409,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -340,6 +420,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "error"
         ]
@@ -354,6 +435,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": "string"
           },
@@ -365,6 +449,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "modified",
           "action"
@@ -380,6 +465,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -397,6 +485,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "event"
         ]
@@ -411,6 +500,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -422,6 +514,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "message"
         ]
@@ -436,6 +529,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -447,6 +543,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "reason"
         ]
@@ -461,6 +558,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -472,6 +572,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "error"
         ]
@@ -489,6 +590,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -509,6 +613,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "method",
           "micros",
@@ -528,6 +633,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "path": {
             "type": [
               "string",
@@ -548,6 +656,7 @@
           }
         },
         "required": [
+          "surface",
           "path",
           "name",
           "micros",
@@ -564,11 +673,15 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "text": {
             "type": "string"
           }
         },
         "required": [
+          "surface",
           "text"
         ]
       },
@@ -582,6 +695,9 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "surface": {
+            "type": "string"
+          },
           "kind": {
             "type": "string"
           },
@@ -596,6 +712,7 @@
           }
         },
         "required": [
+          "surface",
           "kind",
           "path"
         ]

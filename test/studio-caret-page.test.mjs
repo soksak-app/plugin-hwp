@@ -26,7 +26,7 @@ test("the host script stops the caret of the built page while nobody attends the
   await import(pathToFileURL(path.join(studio, "assets", script)).href);
   // The page has started when its status line asks for a file.
   await whenDocument(dom.window, () => document.getElementById("sb-message")?.textContent === "HWP 파일을 선택해주세요.");
-  await import("../build/test/ui/studio-host.js");
+  await import("../ui/studio-host.js");
   const data = Array.from(readFileSync(path.join(studio, "samples", "biz_plan.hwp")));
   const reply = new dom.window.MessageEvent("message", { source: dom.window, origin: pluginOrigin,
     data: { type: "rhwp-request", id: "open", method: "loadFile", params: { data, fileName: "biz_plan.hwp", skipUnsavedGuard: true, suppressDialogs: true } } });

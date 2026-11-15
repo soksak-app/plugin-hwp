@@ -1,96 +1,121 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { window } from "./dom.mjs";
+import { openView } from "@soksak/plugin-api/testing";
 
-// ui/studio-host.js runs in the editor page; the test gives it the globals of that page and a fake automation context.
-// The animation frames of the page are the frames that the test runs: requestAnimationFrame queues its callback, and
-// frame() runs the queued callbacks as the next frame of the page does.
-globalThis.location = window.location;
-const frames = [];
-globalThis.requestAnimationFrame = (callback) => frames.push(callback);
-const frame = () => { for (const callback of frames.splice(0)) callback(0); };
-const context = { isDirty: false, hasSelection: false };
-window.rhwpStudio = { automation: { getContext: () => context }, plugins: { deps: { getInputHandler: () => null } } };
-// Each message that the script posts is recorded when it posts it; the window still delivers it.
-const sent = [];
-const postMessage = window.postMessage.bind(window);
-window.postMessage = (message, ...rest) => {
-  if (message?.type === "soksak-hwp") sent.push(message);
-  postMessage(message, ...rest);
-};
-// jsdom delivers a posted message in a later task; the test waits for the delivery of listening.
-const listening = new Promise((resolve) => {
-  const announce = (event) => {
-    if (event.data?.type !== "soksak-hwp" || event.data.event !== "listening") return;
-    window.removeEventListener("message", announce);
-    resolve();
+// ui/studio-host.js runs in the editor page. Each test loads the real module into a host-mode view of the plugin, which provides the
+// globals of that page: the rhwp-studio object with an automation context that the test changes. Each message that the script posts
+// to its window is recorded in sent when it posts it. The message is not delivered: the script posts with its origin as the target,
+// and the view of a plugin has an opaque origin that jsdom refuses as a target, so the test drives the listeners with its own events.
+const script = new URL("../ui/studio-host.js", import.meta.url);
+
+/**
+ * The next animation frame of the view. The script queues its frame callbacks during the action before this request, and the frame
+ * runs the callbacks in the order they were queued, so the callbacks of the action run before this one.
+ */
+const frame = (window) => new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+
+/** Opens a view with the globals of the editor page and records the messages that the script posts. */
+async function openEditor(context) {
+  const view = await openView("hwp", { host: { surface: "hwp-1" }, start: null });
+  const { window } = view;
+  const sent = [];
+  window.postMessage = (message) => {
+    if (message?.type === "soksak-hwp") sent.push(message);
   };
-  window.addEventListener("message", announce);
-});
-await import("../build/test/ui/studio-host.js");
-await listening;
+  window.rhwpStudio = { automation: { getContext: () => context }, plugins: { deps: { getInputHandler: () => null } } };
+  return { view, window, sent };
+}
 
-test("the script posts listening once when it runs", () => {
-  assert.deepEqual(sent, [{ type: "soksak-hwp", event: "listening" }]);
-});
+/** Opens a view, loads ui/studio-host.js into it, runs body, and closes the view when body ends. */
+async function withEditor(context, body) {
+  const editor = await openEditor(context);
+  try {
+    await editor.view.load(script);
+    await frame(editor.window);
+    await body(editor);
+  } finally {
+    await editor.view.close();
+  }
+}
 
 /** The messages that the host script posts while run() and the next animation frame of the page run. */
-function posted(run) {
+async function posted({ window, sent }, run) {
   const before = sent.length;
   run();
-  frame();
+  await frame(window);
   return sent.slice(before);
 }
 
-const key = (init) => new window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+const key = (window, init) => new window.KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
+
+test("the script posts listening once when it runs", async () => {
+  await withEditor({ isDirty: false, hasSelection: false }, ({ sent }) => {
+    assert.deepEqual(sent, [{ type: "soksak-hwp", event: "listening" }]);
+  });
+});
 
 test("Command-S posts save and prevents the default action", async () => {
-  const event = key({ code: "KeyS", key: "s", metaKey: true });
-  assert.deepEqual(posted(() => window.document.body.dispatchEvent(event)), [{ type: "soksak-hwp", event: "save" }]);
-  assert.equal(event.defaultPrevented, true);
+  await withEditor({ isDirty: false, hasSelection: false }, async (editor) => {
+    const event = key(editor.window, { code: "KeyS", key: "s", metaKey: true });
+    assert.deepEqual(await posted(editor, () => editor.window.document.body.dispatchEvent(event)),
+      [{ type: "soksak-hwp", event: "save" }]);
+    assert.equal(event.defaultPrevented, true);
+  });
 });
 
 test("an input event that makes the document dirty posts modified once", async () => {
-  context.isDirty = true;
-  assert.deepEqual(posted(() => {
-    window.document.body.dispatchEvent(key({ code: "KeyA", key: "a" }));
-    window.document.body.dispatchEvent(new window.Event("input", { bubbles: true }));
-  }), [{ type: "soksak-hwp", event: "modified", modified: true }]);
-  assert.deepEqual(posted(() => window.document.body.dispatchEvent(key({ code: "KeyB", key: "b" }))), []);
+  await withEditor({ isDirty: true, hasSelection: false }, async (editor) => {
+    const { window } = editor;
+    assert.deepEqual(await posted(editor, () => {
+      window.document.body.dispatchEvent(key(window, { code: "KeyA", key: "a" }));
+      window.document.body.dispatchEvent(new window.Event("input", { bubbles: true }));
+    }), [{ type: "soksak-hwp", event: "modified", modified: true }]);
+    assert.deepEqual(await posted(editor, () => window.document.body.dispatchEvent(key(window, { code: "KeyB", key: "b" }))), []);
+  });
 });
 
 test("a reply of the editor that saves the document posts modified false", async () => {
-  context.isDirty = false;
-  // WebKit gives a message that a page posts to its own window that window as its source; jsdom gives none.
-  const reply = new window.MessageEvent("message", { data: { type: "rhwp-response", id: "notifySaved-1", result: { ok: true } }, source: window });
-  assert.deepEqual(posted(() => window.dispatchEvent(reply)),
-    [{ type: "soksak-hwp", event: "modified", modified: false }]);
+  const context = { isDirty: true, hasSelection: false };
+  await withEditor(context, async (editor) => {
+    const { window } = editor;
+    // The document is dirty first, so the script has posted modified true; the save then clears the state that it reports.
+    assert.deepEqual(await posted(editor, () => window.document.body.dispatchEvent(new window.Event("input", { bubbles: true }))),
+      [{ type: "soksak-hwp", event: "modified", modified: true }]);
+    context.isDirty = false;
+    // WebKit gives a message that a page posts to its own window that window as its source; jsdom gives none.
+    const reply = new window.MessageEvent("message", { data: { type: "rhwp-response", id: "notifySaved-1", result: { ok: true } }, source: window });
+    assert.deepEqual(await posted(editor, () => window.dispatchEvent(reply)),
+      [{ type: "soksak-hwp", event: "modified", modified: false }]);
+  });
 });
 
 test("a pointer release that selects text posts selection, and a key that removes it posts it again", async () => {
-  context.hasSelection = true;
-  assert.deepEqual(posted(() => window.document.body.dispatchEvent(new window.Event("pointerup", { bubbles: true }))),
-    [{ type: "soksak-hwp", event: "selection", selection: true }]);
-  context.hasSelection = false;
-  assert.deepEqual(posted(() => window.document.body.dispatchEvent(key({ code: "ArrowRight", key: "ArrowRight" }))),
-    [{ type: "soksak-hwp", event: "selection", selection: false }]);
+  const context = { isDirty: false, hasSelection: true };
+  await withEditor(context, async (editor) => {
+    const { window } = editor;
+    assert.deepEqual(await posted(editor, () => window.document.body.dispatchEvent(new window.Event("pointerup", { bubbles: true }))),
+      [{ type: "soksak-hwp", event: "selection", selection: true }]);
+    context.hasSelection = false;
+    assert.deepEqual(await posted(editor, () => window.document.body.dispatchEvent(key(window, { code: "ArrowRight", key: "ArrowRight" }))),
+      [{ type: "soksak-hwp", event: "selection", selection: false }]);
+  });
 });
 
 test("a context without isDirty posts an error", async () => {
-  delete context.isDirty;
-  const messages = posted(() => window.document.body.dispatchEvent(new window.Event("paste", { bubbles: true })));
-  assert.deepEqual(messages, [{ type: "soksak-hwp", event: "error", message: "rhwp-studio reports isDirty undefined" }]);
-  context.isDirty = false;
+  const context = { isDirty: false, hasSelection: false };
+  await withEditor(context, async (editor) => {
+    delete context.isDirty;
+    const messages = await posted(editor, () => editor.window.document.body.dispatchEvent(new editor.window.Event("paste", { bubbles: true })));
+    assert.deepEqual(messages, [{ type: "soksak-hwp", event: "error", message: "rhwp-studio reports isDirty undefined" }]);
+  });
 });
 
 test("a failure of the editor to read its context posts an error and keeps the script running", async () => {
-  const automation = window.rhwpStudio.automation;
-  const getContext = automation.getContext;
-  automation.getContext = () => { throw new Error("context unavailable"); };
-  try {
-    assert.deepEqual(posted(() => window.document.body.dispatchEvent(key({ code: "KeyC", key: "c" }))),
+  await withEditor({ isDirty: false, hasSelection: false }, async (editor) => {
+    const { window } = editor;
+    // The automation object of the editor is the one that openEditor set; the test makes its getContext throw for one event.
+    window.rhwpStudio.automation.getContext = () => { throw new Error("context unavailable"); };
+    assert.deepEqual(await posted(editor, () => window.document.body.dispatchEvent(key(window, { code: "KeyC", key: "c" }))),
       [{ type: "soksak-hwp", event: "error", message: "rhwp-studio getContext failed: context unavailable" }]);
-  } finally {
-    automation.getContext = getContext;
-  }
+  });
 });

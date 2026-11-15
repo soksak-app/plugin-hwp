@@ -6,7 +6,7 @@ HWP view는 core 0.0.40의 call 규칙을 따른다([plugin processes](https://g
 
 ## SDK model
 
-`test/sdk-models/view.mjs`는 view bridge의 call layer model이고, conformance test가 copy `test/fixtures/contract/calls.json`의 case `calls.end.*`를 이 model에 재생한다. Request는 답의 result로 resolve하거나 답의 error의 message와 code로 reject한다. Abort되는 signal을 가진 request는 `{id, cancel: true}`를 보내고 `cancelled`로 reject하며, 그 cancel 뒤의 답은 late reply로 delay와 함께 알리고 어떤 caller에게도 넘기지 않는다. `peerLost(reason)`은 열린 call마다 `command <name> ended: <reason>`으로 reject하고, 그 call마다 `peer-lost`를, 그 뒤 open call을 알린다. Model은 timer를 시작하지 않는다.
+View의 call layer는 고정된 `@soksak/plugin-api` release의 것이며, test는 그 사본 대신 test host(`@soksak/plugin-api/testing`의 `openView`)로 view page를 실행한다. Request는 답의 result로 resolve하거나 답의 error의 message와 code로 reject한다. Abort되는 signal을 가진 request는 `{id, cancel: true}`를 보내고 `cancelled`로 reject하며, 그 cancel 뒤의 답은 late reply로 delay와 함께 알리고 어떤 caller에게도 넘기지 않는다. `peerLost(reason)`은 열린 call마다 `command <name> ended: <reason>`으로 reject하고, 그 call마다 `peer-lost`를, 그 뒤 open call을 알린다. Call layer는 timer를 시작하지 않는다.
 
 ## Page의 대기
 
@@ -21,4 +21,4 @@ View 자신은 그 page와 함께 끝나므로 어떤 대기도 view보다 오�
 
 ## Test
 
-Test는 자기가 확인하는 event를 기다리고 event의 순서와 결과로 판정한다. 어떤 test도 시간을 기다리거나, 턴을 세거나, poll하거나, timer를 mock하거나, 자기 시간 한도를 두지 않는다. Fake는 test가 볼 수 있는 각 발생, 즉 post된 message, 처리한 call, log record, report, 전달된 event를 기록하고, 각 기록은 조건이 이제 성립하는 대기를 실행한다(`test/occurrences.mjs`). Host fake는 각 host event를 page가 그 listener에 dispatch한 뒤에 기록한다. 없음을 확인하는 test는 먼저 처리를 끝내는 event를 기다린 뒤 없음을 확인한다. 대기는 그 event로만 끝난다. Event가 오지 않는 test는 core의 각 test가 한도를 갖듯 test runner의 한도, 곧 `package.json` test script와 `make pack`의 test 실행에 있는 `--test-timeout=120000`이 끝낸다. Runner는 그 test를 이름과 함께 실패시킨다. Page는 timer를 시작하지 않는다. `test/no-timers.mjs`는 빌드된 ui file이 시작하는 timer를 기록하고 시작하지 않으며, 대기의 test는 대기가 시작된 지점에서 그 목록을 확인한다. Caret test는 tick의 상태인 caret의 blink timer를 읽고, host script의 frame은 test가 실행하는 frame이다.
+Test는 자기가 확인하는 event를 기다리고 event의 순서와 결과로 판정한다. 어떤 test도 시간을 기다리거나, 턴을 세거나, poll하거나, timer를 mock하거나, 자기 시간 한도를 두지 않는다. Test는 view의 settled 상태(`view.settled()`) 또는 asserted 상태를 만드는 push를 기다리고, page의 각 call을 `view.calls`에서 읽는다. 없음을 확인하는 test는 먼저 처리를 끝내는 event를 기다린 뒤 없음을 확인한다. 대기는 그 event로만 끝난다. Event가 오지 않는 test는 test runner의 한도, 곧 `package.json` test script와 `make pack`의 test 실행에 있는 `--test-timeout=120000`이 끝내며, runner는 그 test를 이름과 함께 실패시킨다. Page가 시작하는 timer는 `view.observed.timers`에 기록되고, 대기가 timer를 시작하지 않는다고 확인하는 test는 그 목록의 setTimeout과 setInterval 항목을 확인한다. Caret test는 tick의 상태인 caret의 blink timer를 읽고, host script의 frame은 test view의 frame이다.
