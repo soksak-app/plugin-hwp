@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H69: The version is 0.0.25, which releases H68.
 - H68: The tests answer the view channel of the page through `test/fixtures/host.mjs`, which implements the sok-view wire of the contract, instead of the view test host of the plugin API. The tests keep their expected values; `pnpm test` runs 118 tests with 115 passing and 3 skipped, as before.
 - H67: `events.json` declares `surface` without requiring it, because the view bridge, not the emit site, adds it.
 - H66: The version is 0.0.24, which releases H65 with `engines.soksak` `^0.0.41`.

@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- H69: version은 0.0.25이고, H68을 release한다.
 - H68: 시험은 page의 view channel에 `test/fixtures/host.mjs`로 응답한다. 이 fixture는 계약의 sok-view wire를 구현하며, plugin API의 view 시험 host를 쓰지 않는다. 시험의 기대값은 그대로이며, `pnpm test`는 시험 118개 중 115개를 통과하고 3개를 건너뛰어 변경 전과 같다.
 - H67: emit 위치가 아니라 view bridge가 surface를 넣으므로 `events.json`이 그것을 필수로 두지 않고 선언한다.
 - H66: version은 0.0.24이고, H65을 `engines.soksak` `^0.0.41`로 release한다.
