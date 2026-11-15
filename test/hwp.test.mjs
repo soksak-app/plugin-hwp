@@ -1,14 +1,15 @@
 // The view page at the consumer boundary (#H22): the page of the view reads the start values of the surface, builds its
-// surface context over the view channel, attaches the document region "studio" through the composition of the view, and
-// mounts the hwp module into the page. The page is loaded by the host fixture of this repository (test/fixtures/host.mjs), which
-// answers each call of the page as the workbench answers it. The editor page of the region is played by this file: its
-// requests are answered as rhwp-studio answers them, and its messages reach the page as the document-message and
-// document-state events that the view pushes.
+// surface context over the view bridge, attaches the document region "studio" through the composition of the view, and
+// mounts the hwp module into the page. The page is loaded into a window by the page fixture of this repository
+// (test/fixtures/plugin-api/page.mjs), and the plugin API that it imports is the fixture of that folder: each test observes the
+// calls that the page makes on the plugin API and arranges their answers. The editor page of the region is played by this file:
+// its requests are answered as rhwp-studio answers them, and its messages and states reach the page through the document region
+// of the composition.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { openPageHost } from "./fixtures/host.mjs";
+import { openPage } from "./fixtures/plugin-api/page.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
 const diagnostics = JSON.parse(readFileSync(new URL("../diagnostics.json", import.meta.url), "utf8"));
@@ -34,22 +35,24 @@ const toBase64 = (value) => btoa(String.fromCharCode(...value));
 const fromBase64 = (text) => Uint8Array.from(atob(text), (character) => character.charCodeAt(0));
 const isMicros = (value) => Number.isInteger(value) && value >= 0;
 
-/** The records of the view log that have the name plugin.hwp.<name>. */
-const named = (records, name) => records.filter((entry) => entry.event === `plugin.hwp.${name}`);
+/** The records of the log of the page that have the event name <name> of this plugin. */
+const named = (records, name) => records.filter((entry) => entry.event === name);
+/** The records with the whole event name plugin.hwp.<name> that events.json declares. */
+const wholeNames = (records) => records.map((entry) => ({ ...entry, event: `plugin.hwp.${entry.event}` }));
 // The timers that a page starts: the calls of setTimeout and setInterval that the view records. Animation frames are not timers.
 const timersStarted = (view) => view.observed.timers.filter(({ kind }) => kind === "setTimeout" || kind === "setInterval");
-/** The records of the view log once the view has settled, which is when every batch that the page sent has been relayed. */
+/** The records of the log of the page once the view has settled, which is when every answer to the page has been delivered. */
 const events = async (host) => {
   await host.view.settled();
-  return host.view.events;
+  return host.view.api.logs;
 };
-/** The first record of plugin.hwp.<name> whose fields match, once the view has settled. */
+/** The first record of <name> whose fields match, once the view has settled. */
 const logged = async (host, name, match = () => true) => {
   const found = named(await events(host), name).find((entry) => match(entry.fields));
-  assert.ok(found, `no plugin.hwp.${name} record matches`);
+  assert.ok(found, `no ${name} record matches`);
   return found;
 };
-/** The first record of plugin.hwp.report whose text matches reason, once the page has ended its start. */
+/** The first record of report whose text matches reason, once the page has ended its start. */
 const reported = async (host, reason) => {
   await host.loading;
   const found = named(await events(host), "report").find((entry) => reason.test(entry.fields.text ?? ""));
@@ -59,25 +62,24 @@ const reported = async (host, reason) => {
 /** The nth record of name (from 1), once the view has settled. */
 const nth = async (host, name, count) => {
   const found = named(await events(host), name);
-  assert.ok(found.length >= count, `plugin.hwp.${name} is recorded ${found.length} times, expected ${count}`);
+  assert.ok(found.length >= count, `${name} is recorded ${found.length} times, expected ${count}`);
   return found[count - 1];
 };
-/** The params of each call of the page named command, in the order the page made them. */
-const callsOf = (host, command) => host.view.calls.filter((call) => call.command === command).map((call) => call.params);
-/** The core commands that the page ran, as [name, params]. */
-const commandsOf = (host) => host.view.observed.commands
-  .filter((command) => command.name.startsWith("core."))
-  .map((command) => [command.name, command.params]);
-/** The calls of the page that register the exposure and change its values, as [name, payload]. */
-const nativeCalls = (host) => host.view.calls
+/** The params of each call of the page on calls.request named command, in the order the page made them. */
+const callsOf = (host, command) => host.view.api.calls.filter((call) => call.command === command).map((call) => call.params);
+/** The commands that the page ran through runtime.command, as [name, params]. */
+const commandsOf = (host) => host.view.api.runs.map((run) => [run.name, run.params]);
+/** The registrations and changes of the exposure that the page sent, as [name, payload]. */
+const nativeCalls = (host) => host.view.api.calls
   .filter((call) => call.command === "runtime.native.call" && (call.params.name === "registered" || call.params.name === "changed"))
   .map((call) => [call.params.name, call.params.payload]);
 const starting = (records) => named(records, "phase").some((entry) => entry.fields.phase === "starting");
 
 /**
- * Opens the view page of one case in host mode and returns the host of the case, whose view is closed when the test ends. The editor
- * page of the region "studio" is played here: its requests are answered as rhwp-studio answers them, its messages and states are
- * pushed to the view, and the files of the files sidecar are an in-memory map. The page is not loaded: setup and startPage load it.
+ * Opens the view page of one case and returns the host of the case, whose view is closed when the test ends. The editor page of the
+ * region "studio" is played here: its requests are answered as rhwp-studio answers them, its messages and states reach the page
+ * through the document region of the plugin API fixture, and the files of the files sidecar are an in-memory map. The page is not
+ * loaded: setup and startPage load it.
  *
  *     stored     the tab state of the surface, or null for a new tab
  *     params     the parameters of the tab
@@ -88,20 +90,20 @@ const starting = (records) => named(records, "phase").some((entry) => entry.fiel
  *     silent     the embed request methods that the editor never answers
  *     history    whether the document region restored a session history
  *     replies    the answers of the editor per request method, which override the answers of rhwp-studio
- *     refuseLog  the fault of the host for each batch of the page log, or null
  *     place      the answer of core.file.place at the first save of a blank document
  */
 async function open(t, {
   stored = null, params = { path: "docs/plan.hwp" }, files = new Map([["docs/plan.hwp", bytes("첫 문단")]]),
-  origin = { directory: "/project" }, start = { surface: SURFACE, params, origin, project: { id: "prj-project", root: "/project" }, diagnostics: null },
-  listens = true, silent = [], history = false, replies = {}, refuseLog = null,
+  origin = { directory: "/project" },
+  start = { surface: SURFACE, params, origin, project: { id: "prj-project", root: "/project" }, declarations: manifest.exposes, diagnostics: null },
+  listens = true, silent = [], history = false, replies = {},
   place = () => { throw new Error("the test runs no core command"); },
 } = {}) {
   let view = null;
-  const editor = { document: null, listening: false, navigations: 0, shown: null, loaded: null, requests: [], dropped: [], savedAs: [], restoring: false };
-  // Each message of the editor page reaches the page as a document-message event, after the call that delivers it has returned.
-  const posted = (message) => queueMicrotask(() => view.push("document-message", { document: "studio", message }));
-  const deliverState = (state) => queueMicrotask(() => view.push("document-state", { document: "studio", state }));
+  const editor = { document: null, listening: false, navigations: 0, shown: null, loaded: null, requests: [], dropped: [], savedAs: [] };
+  // Each message of the editor page reaches the page through the region, after the call that delivers it has returned.
+  const posted = (message) => queueMicrotask(() => view.api.document("studio").message(message));
+  const deliverState = (state) => queueMicrotask(() => view.api.document("studio").state(state));
   // The editor shows the page at url as a load does: its state reports the load, and its listening message follows its scripts.
   const show = (url) => {
     editor.navigations += 1;
@@ -184,9 +186,10 @@ async function open(t, {
     },
   };
   // The files sidecar answers each request of the page with its reply, which the page receives as a sidecar message.
-  const reply = (body) => queueMicrotask(() => view.sidecarMessage(SIDECAR, SURFACE, { body }));
+  const reply = (body) => queueMicrotask(() => view.api.sidecarMessage(SIDECAR, SURFACE, body));
   const sidecar = (body) => {
     if (body.operation === "watch") return reply({ id: body.id });
+    if (body.operation === "readBytes" && !files.has(body.path)) return reply({ id: body.id, error: `no such file: ${body.path}` });
     if (body.operation === "readBytes") return reply({ id: body.id, data: toBase64(files.get(body.path)), version: sha(files.get(body.path)) });
     if (body.operation === "writeBytes" && body.expect === null) {
       if (files.has(body.path)) return reply({ id: body.id, error: `exists: ${body.path}` });
@@ -200,57 +203,37 @@ async function open(t, {
     }
     throw new Error(`unexpected operation ${body.operation}`);
   };
-  const region = (name) => {
-    if (name !== "studio") throw new Error(`the page called the unknown region ${name}`);
-  };
-  const fixtures = {
-    surface: SURFACE,
-    declarations: manifest.exposes,
-    sidecars: [SIDECAR],
-    sidecar: { [SIDECAR]: sidecar },
-    native: { registered: () => null, changed: () => null, exposureReply: () => null },
+  const arrangement = {
+    // The tab reports, the tab state and the registrations of the exposure that the page sends answer null, and the tab state read
+    // answers the state that the case stored.
+    answers: {
+      "tab.title": () => null,
+      "tab.footer": () => null,
+      "tab.notify": () => null,
+      "tab.modified": () => null,
+      "tab.error": () => null,
+      "tab.keep": () => null,
+      "tab.state.read": () => stored,
+      "tab.state.write": () => null,
+      "runtime.native.call": () => null,
+    },
+    sidecars: { [SIDECAR]: sidecar },
     commands: { "core.file.place": (command) => place(command) },
-    state: { read: () => stored, write: () => null },
-    refuse: refuseLog === null ? {} : { "runtime.log": refuseLog },
-    composition: {
-      declaration: () => structuredClone(manifest.surface.composition),
-      place: () => null,
-      report: () => null,
-      document: {
-        attach: (name) => {
-          region(name);
-          editor.restoring = history;
-          return { history };
-        },
-        load: (name, url) => {
-          region(name);
+    regions: {
+      studio: {
+        history,
+        load: (url) => {
           editor.loaded = url;
           show(url);
-          return null;
         },
-        zoom: (name) => { region(name); return null; },
-        go: (name) => { region(name); return null; },
-        post: (name, message) => { region(name); return request(message); },
-        subscribe: (name) => { region(name); return null; },
-        unsubscribe: (name) => { region(name); return null; },
-        detach: (name) => { region(name); return null; },
+        post: (message) => { request(message); },
       },
     },
   };
-  view = await openPageHost({ host: fixtures, start, layout: LAYOUT, root: ROOT });
+  view = await openPage({ start, arrangement, layout: LAYOUT, root: ROOT });
   t.after(() => view.close());
-  let nextExposure = 0;
-  // Forwards one exposure request of core to the page and resolves with the reply {result} or {error} of the page.
-  const expose = async (method, requestParams) => {
-    const id = ++nextExposure;
-    await view.push("exposure-request", { id, surface: SURFACE, method, params: requestParams });
-    await view.settled();
-    const answered = view.calls.findLast((call) => call.command === "runtime.native.call" && call.params.name === "exposureReply"
-      && call.params.payload.id === id);
-    assert.ok(answered, `the page did not reply to exposure request ${id}`);
-    const { id: _id, ...answer } = answered.params.payload;
-    return answer;
-  };
+  // Delivers one exposure request of core to the page and resolves with the reply {result} or {error} of the page.
+  const expose = (method, requestParams) => view.api.exposure.request(method, requestParams);
   return {
     view,
     studio,
@@ -258,12 +241,12 @@ async function open(t, {
     sidecar: {
       /** Delivers a message of the files sidecar that the page receives without a request id, such as a change or a failure. */
       async emit(body) {
-        view.sidecarMessage(SIDECAR, SURFACE, { body });
+        view.api.sidecarMessage(SIDECAR, SURFACE, body);
         await view.settled();
       },
     },
     /** Runs the command of the page, as the workbench runs it. */
-    run: (command, commandParams) => view.request(command, commandParams),
+    run: (command, commandParams) => view.api.run(command, commandParams),
     expose,
     status: async () => (await expose("status.get", { name: "hwp.document" })).result,
   };
@@ -345,7 +328,7 @@ test("the view page refuses to mount without the start values of the surface", a
 });
 
 test("the view page refuses a project in its start values that has no id", async (t) => {
-  const start = { surface: SURFACE, params: {}, origin: { directory: "/project" }, project: { root: "/project" }, diagnostics: null };
+  const start = { surface: SURFACE, params: {}, origin: { directory: "/project" }, project: { root: "/project" }, declarations: manifest.exposes, diagnostics: null };
   const host = await open(t, { start });
   await assert.rejects(host.view.load(PAGE), /project is \{"root":"\/project"\}/);
 });
@@ -356,15 +339,18 @@ test("the view page mounts when its tab has no source origin directory", async (
     modified: false, selection: false, pages: 1, disk: "same", phase: "ready" });
 });
 
-test("the view page mounts the surface over the view channel and registers every declared name", async (t) => {
+test("the view page mounts the surface over the view bridge and registers every declared name", async (t) => {
   const host = await setup(t);
-  assert.deepEqual(callsOf(host, "runtime.command.register").map((params) => params.name).toSorted(),
-    manifest.exposes.commands.map((entry) => entry.name).toSorted());
-  const kinds = nativeCalls(host).filter(([name]) => name === "registered").map(([, payload]) => payload.kind);
-  assert.deepEqual([...new Set(kinds)].toSorted(), ["command", "element", "status"]);
-  // The status names are the plugin status and the core statuses that the start values declare (core.surface.document and core.surface.input).
-  assert.deepEqual(nativeCalls(host).filter(([, payload]) => payload.kind === "status").map(([, payload]) => payload.name),
-    ["hwp.document", "core.surface.document", "core.surface.input"]);
+  const { api } = host.view;
+  assert.equal(api.options.handler, host.view.window.webkit.messageHandlers["sok-view"], "the bridge is created over the sok-view handler");
+  assert.deepEqual(api.registered.toSorted(), manifest.exposes.commands.map((entry) => entry.name).toSorted());
+  const names = (kind) => api.exposure.registered.filter((entry) => entry.kind === kind).map((entry) => entry.name).toSorted();
+  assert.deepEqual(names("command"), manifest.exposes.commands.map((entry) => entry.name).toSorted());
+  assert.deepEqual(names("status"), manifest.exposes.status.map((entry) => entry.name).toSorted());
+  assert.deepEqual(names("element"), manifest.exposes.element.map((entry) => entry.name).toSorted());
+  // The page sends each registration of a status and an element, and none for a command, which commands.register declares.
+  assert.deepEqual([...new Set(nativeCalls(host).filter(([name]) => name === "registered").map(([, payload]) => payload.kind))].toSorted(),
+    ["element", "status"]);
 });
 
 test("a status watch of the view sends each changed value as a changed call with its version until the unwatch", async (t) => {
@@ -385,9 +371,10 @@ test("a status watch of the view sends each changed value as a changed call with
 
 test("the view attaches the document region studio, places it, and loads the editor page in it", async (t) => {
   const host = await setup(t);
-  assert.deepEqual(callsOf(host, "document.attach")[0], { name: "studio" });
-  assert.ok(host.view.calls.some((call) => call.command === "composition.place" && call.params.regions.length === 1
-    && call.params.regions[0].name === "studio"), "the view places the region in one snapshot");
+  const [composition] = host.view.api.compositions;
+  assert.deepEqual(composition.names, ["studio"]);
+  assert.equal(composition.regions.studio.id, "studio", "the region is created over the studio element of the page");
+  assert.deepEqual(composition.overlays, {});
   assert.equal(host.studio.loaded, ADDRESS);
   assert.deepEqual(host.studio.requests, ["ready", "loadFile"]);
   assert.deepEqual(host.studio.document, bytes("첫 문단"));
@@ -434,7 +421,7 @@ test("an embed request that the editor does not answer stays open and ends with 
   assert.deepEqual(timersStarted(host.view), [], "an embed request starts no timer");
   await host.studio.end();
   await saving;
-  assert.deepEqual((await events(host)).filter((entry) => entry.event === "plugin.hwp.request").at(-1).fields.error,
+  assert.deepEqual((await events(host)).filter((entry) => entry.event === "request").at(-1).fields.error,
     "Error: rhwp-studio did not answer exportHwp-3: the web content process of the editor page ended in phase ready");
 });
 
@@ -518,7 +505,7 @@ test("a selection message of the editor page sets the selection of hwp.document"
 
 test("hwp.document reports each step of the start as the phase events and ends ready", async (t) => {
   const host = await setup(t);
-  assert.deepEqual([...new Set((await events(host)).filter((entry) => entry.event === "plugin.hwp.phase").map((entry) => entry.fields.phase))],
+  assert.deepEqual([...new Set((await events(host)).filter((entry) => entry.event === "phase").map((entry) => entry.fields.phase))],
     ["starting", "reading", "opening", "ready"]);
   assert.equal((await host.status()).phase, "ready");
 });
@@ -662,7 +649,7 @@ test("every stored event is declared in the catalog with its level and fields", 
   await assert.rejects(host.run("hwp.save"));
   await host.sidecar.emit({ error: "stopped" });
   await logged(host, "watch.failed");
-  const logs = (await events(host)).filter((entry) => entry.event.startsWith("plugin.hwp.") && entry.event !== "plugin.hwp.report");
+  const logs = wholeNames(await events(host)).filter((entry) => entry.event !== "plugin.hwp.report");
   assert.ok(logs.length > 10);
   for (const { level, event, fields } of logs) {
     const entry = catalog.events[event];
@@ -726,8 +713,8 @@ test("every event of a blank document and its first save is declared in the cata
   const host = await setup(t, { params: {}, files: new Map(), place: () => ({ path: "new.hwp" }) });
   await host.studio.edit("y");
   await host.run("hwp.save");
-  const records = await events(host);
-  for (const { level, event, fields } of records.filter((entry) => entry.event.startsWith("plugin.hwp.") && entry.event !== "plugin.hwp.report")) {
+  const records = wholeNames(await events(host));
+  for (const { level, event, fields } of records.filter((entry) => entry.event !== "plugin.hwp.report")) {
     const entry = catalog.events[event];
     assert.ok(entry, `${event} is not declared`);
     assert.ok([entry.level].flat().includes(level), `${event} stored at ${level}`);
@@ -801,25 +788,48 @@ test("an error message of the editor page without text shows the whole event", a
   assert.equal(callsOf(host, "tab.error").at(-1), '편집기 · {"type":"soksak-hwp","event":"error"}');
 });
 
-test("a refused view event batch uses the bridge error route", async (t) => {
-  // Every batch of the page log is refused by the host, so each refused batch reaches the error route of the bridge.
-  const host = await setup(t, { refuseLog: "log route refused" });
-  const before = callsOf(host, "runtime.error").length;
+test("an error of the page window is written to the log of the context as a report", async (t) => {
+  const host = await setup(t);
   host.view.window.dispatchEvent(new host.view.window.ErrorEvent("error", { error: new Error("failed"), message: "failed" }));
-  await events(host);
-  const lines = callsOf(host, "runtime.error").slice(before);
-  assert.ok(lines.some((line) => line.where === "log batch" && line.text.includes("log route refused")),
-    "the bridge did not report the refused batch through runtime.error");
+  const report = await reported(host, /^view hwp: failed$/);
+  assert.equal(report.level, "error");
+  assert.deepEqual(report.fields, { surface: SURFACE, text: "view hwp: failed" });
+});
+
+test("an error event of the page window that carries no error value is reported with its message", async (t) => {
+  const host = await setup(t);
+  host.view.window.dispatchEvent(new host.view.window.ErrorEvent("error", { message: "Script error." }));
+  const report = await reported(host, /^view hwp: Script error\.$/);
+  assert.equal(report.fields.text, "view hwp: Script error.");
+});
+
+test("a loss that the call layer reports is written as a report, and the count of open calls is not", async (t) => {
+  const host = await setup(t);
+  const before = named(await events(host), "report").length;
+  host.view.api.bridgeReport({ kind: "open-calls", count: 2 });
+  assert.equal(named(await events(host), "report").length, before, "the count of open calls is no record");
+  host.view.api.bridgeReport({ kind: "timeout", command: "tab.title" });
+  const report = await reported(host, /^view calls of hwp: /);
+  assert.equal(report.fields.text, 'view calls of hwp: {"kind":"timeout","command":"tab.title"}');
+});
+
+test("Command-S in the page runs hwp.save through the binding of the frame", async (t) => {
+  const host = await setup(t);
+  await host.studio.edit("!");
+  const frame = host.view.window.document.body.lastElementChild.shadowRoot.querySelector("#frame");
+  frame.dispatchEvent(new host.view.window.KeyboardEvent("keydown", { code: "KeyS", metaKey: true, bubbles: true, cancelable: true }));
+  await logged(host, "save");
+  assert.deepEqual(host.files.get("docs/plan.hwp"), bytes("첫 문단!"));
 });
 
 test("the open and the save of a file carry the cids of their operations on the sidecar sends and the records", async (t) => {
   const host = await setup(t);
   const records = await events(host);
-  const operations = records.filter((entry) => entry.event === "plugin.hwp.operation");
+  const operations = records.filter((entry) => entry.event === "operation");
   const opened = operations.find((entry) => entry.fields.kind === "open");
   assert.ok(opened, "the open starts an operation");
-  assert.match(opened.cids[0], new RegExp(`^p${host.view.window.sokView.page}\\.\\d+$`), "the operation identifier has the form p<page>.<n>");
-  const reads = host.view.observed.sidecar.filter((send) => send.body.operation === "readBytes");
+  assert.equal(opened.cids.length, 1, "the open starts one operation");
+  const reads = host.view.api.sends.filter((send) => send.body.operation === "readBytes");
   assert.deepEqual(reads.map((send) => send.cids), [opened.cids], "the read of the open carries the cids of the open");
   assert.ok(named(records, "read").every((entry) => entry.cids === undefined || entry.cids.length === 1), "the records of the read keep the cids");
   const readRecord = named(records, "read").find((entry) => entry.fields.reason === "start");
@@ -827,9 +837,9 @@ test("the open and the save of a file carry the cids of their operations on the 
 
   await host.studio.edit("!");
   await host.expose("command.run", { name: "hwp.save", params: {} });
-  const saved = (await events(host)).filter((entry) => entry.event === "plugin.hwp.operation" && entry.fields.kind === "save");
+  const saved = (await events(host)).filter((entry) => entry.event === "operation" && entry.fields.kind === "save");
   assert.equal(saved.length, 1, "the save starts one operation");
-  const writes = host.view.observed.sidecar.filter((send) => send.body.operation === "writeBytes");
+  const writes = host.view.api.sends.filter((send) => send.body.operation === "writeBytes");
   assert.deepEqual(writes.map((send) => send.cids), [saved[0].cids], "the write of the save carries the cids of the save");
   assert.deepEqual(named(await events(host), "save").map((entry) => entry.cids), [saved[0].cids], "the save record carries the cids of the save");
 });

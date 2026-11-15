@@ -8,10 +8,12 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const script = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).scripts.test;
-const nodeTest = script.split("&&").map((part) => part.trim()).find((part) => part.startsWith("node --test "));
+// The test script loads the resolve hook of the plugin API fixture with --import before --test.
+const NODE_TEST = /^node (?:--import \S+ )?--test /;
+const nodeTest = script.split("&&").map((part) => part.trim()).find((part) => NODE_TEST.test(part));
 assert.ok(nodeTest, "the test script runs no node --test command");
 // The options of node --test, such as the limit of the runner, select no file.
-const patterns = nodeTest.slice("node --test ".length).trim().split(/\s+/).filter((part) => !part.startsWith("--")).map((pattern) => pattern.replace(/^"(.*)"$/, "$1"));
+const patterns = nodeTest.replace(NODE_TEST, "").trim().split(/\s+/).filter((part) => !part.startsWith("--")).map((pattern) => pattern.replace(/^"(.*)"$/, "$1"));
 
 // Each test file under test/, as a path relative to the repository root with forward slashes.
 function testFiles(directory) {
@@ -44,4 +46,10 @@ test("the test commands run node --test with the runner limit of 120000 ms", () 
   for (const [where, run] of runs) {
     assert.deepEqual(run.split(/\s+/).filter((part) => part.startsWith("--test-timeout")), ["--test-timeout=120000"], `${where}: ${run}`);
   }
+});
+
+// The tests resolve @soksak/plugin-api to the fixture of this repository: the test command registers the resolve hook before it runs
+// the test files, as the import map of the application resolves the specifiers for the page.
+test("the test command registers the resolve hook of the plugin API fixture", () => {
+  assert.match(nodeTest, /^node --import \.\/test\/fixtures\/plugin-api\/register\.mjs --test /);
 });

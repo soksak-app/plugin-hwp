@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { openPageHost } from "./fixtures/host.mjs";
+import { openPage } from "./fixtures/plugin-api/page.mjs";
 
 const source = await import("../ui/view-diagnostics.js");
 // The declaration that the packaged plugin serves at diagnostics.json.
@@ -19,11 +19,11 @@ function occurrence() {
 }
 
 /**
- * Opens a host-mode view of the plugin whose window.fetch serves the files of root, and records the address of each fetch of the
+ * Opens a view of the plugin whose window.fetch serves the files of root, and records the address of each fetch of the
  * page in fetched. The caller closes the view. view.observed.timers lists each timer that the test starts while the view is open.
  */
 async function openFetchView(root) {
-  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null, root });
+  const view = await openPage({ root });
   const fetched = [];
   const served = view.window.fetch;
   view.window.fetch = (input) => {
@@ -484,7 +484,7 @@ const frameDiagnostics = () => {
 
 test("a viewport marker request ends with the WebContent process of the studio page, and the marker ends with that page", async (t) => {
   const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
-  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
+  const view = await openPage();
   t.after(() => view.close());
   const studio = endingRegion();
   const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
@@ -505,7 +505,7 @@ test("a viewport marker request ends with the WebContent process of the studio p
 
 test("a viewport marker request ends when the region starts another navigation, and the stop removes no marker of another page", async (t) => {
   const { createStudioViewportDiagnostics } = await import("../ui/hwp-diagnostics.js");
-  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
+  const view = await openPage();
   t.after(() => view.close());
   const studio = endingRegion();
   const commands = createStudioViewportDiagnostics({ diagnostics: frameDiagnostics(), documentRegion: studio.region });
@@ -1003,4 +1003,42 @@ test("native document-post echoes do not resolve a marker request before the stu
   assert.deepEqual(sentToStudio.map(({ operation }) => operation), ["start", "stop"]);
   assert.equal(markers.length, 0);
   disposeStudio();
+});
+
+test("attach declares the view-frame commands, and the start command observes the frames of the view and writes their records", async (t) => {
+  const { attach } = await import("../ui/hwp-diagnostics.js");
+  const { createViewBridge } = await import("@soksak/plugin-api/view");
+  const view = await openPage({ start: { surface: "hwp-1" } });
+  t.after(() => view.close());
+  const bridge = createViewBridge({ handler: view.window.webkit.messageHandlers["sok-view"], report() {} });
+  const registered = new Map();
+  const context = {
+    exposure: { async command(name, run) { registered.set(name, run); } },
+    runtime: bridge.runtime,
+  };
+  // The studio page answers the viewport marker requests: start with the viewport evidence, and stop with null.
+  const listeners = new Set();
+  const region = {
+    state: { navigations: 1, history: { entries: [{ url: "soksak://hwp/ui/studio/index.html" }] } },
+    onState() { return () => {}; },
+    onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+    post(message) {
+      queueMicrotask(() => {
+        for (const listener of listeners) listener({ type: message.type, id: message.id, result: message.operation === "start" ? viewportEvidence : null });
+      });
+      return Promise.resolve();
+    },
+  };
+  const dispose = await attach({ context, document: view.window.document, documentRegion: region });
+  assert.deepEqual([...registered.keys()], packaged.exposes.commands.map((entry) => entry.name));
+  const started = await registered.get("hwp.diagnostics.frames.start")({});
+  assert.equal(started.enabled, true);
+  assert.equal(started.regionHistoryEntries, 1);
+  assert.equal(view.api.frames.starts.length, 1);
+  view.api.frames.starts[0].emit("view.content_frame", { sequence: 0 });
+  assert.deepEqual(view.api.logs.map(({ level, event, fields }) => [level, event, fields]),
+    [["trace", "view.content_frame", { surface: "hwp-1", sequence: 0 }]]);
+  await registered.get("hwp.diagnostics.frames.stop")({});
+  assert.equal(view.api.frames.stops, 1);
+  await dispose();
 });

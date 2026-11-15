@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { openPageHost } from "./fixtures/host.mjs";
+import { openPage } from "./fixtures/plugin-api/page.mjs";
 
-// ui/studio-host.js runs in the editor page. Each test loads the real module into a host-mode view of the plugin, which provides the
+// ui/studio-host.js runs in the editor page. Each test loads the real module into a view of the plugin (test/fixtures/plugin-api/page.mjs), which provides the
 // globals of that page: the rhwp-studio object with an automation context that the test changes. Each message that the script posts
 // to its window is recorded in sent when it posts it. The message is not delivered: the script posts with its origin as the target,
 // and the view of a plugin has an opaque origin that jsdom refuses as a target, so the test drives the listeners with its own events.
@@ -16,7 +16,7 @@ const frame = (window) => new Promise((resolve) => window.requestAnimationFrame(
 
 /** Opens a view with the globals of the editor page and records the messages that the script posts. */
 async function openEditor(context) {
-  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
+  const view = await openPage();
   const { window } = view;
   const sent = [];
   window.postMessage = (message) => {

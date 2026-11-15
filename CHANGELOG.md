@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- H70: The plugin declares no dependency on the plugin API. The tests resolve `@soksak/plugin-api`, `@soksak/plugin-api/view` and `@soksak/plugin-api/diagnostic-view-frames` to the fixture modules of `test/fixtures/plugin-api/` through a resolve hook, and they judge the calls that the page makes on that interface; `test/fixtures/host.mjs` is removed. The page writes an `error` event of its window that has no error value with the message of the event instead of `undefined`. `pnpm test` runs 130 tests with 127 passing and 3 skipped.
 - H69: The version is 0.0.25, which releases H68.
 - H68: The tests answer the view channel of the page through `test/fixtures/host.mjs`, which implements the sok-view wire of the contract, instead of the view test host of the plugin API. The tests keep their expected values; `pnpm test` runs 118 tests with 115 passing and 3 skipped, as before.
 - H67: `events.json` declares `surface` without requiring it, because the view bridge, not the emit site, adds it.

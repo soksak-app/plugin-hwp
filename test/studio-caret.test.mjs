@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { openPageHost } from "./fixtures/host.mjs";
+import { openPage } from "./fixtures/plugin-api/page.mjs";
 
 // The caret of rhwp-studio as src/engine/caret-renderer.ts has it. Its blink timer is the state that the test reads: startBlink
 // starts the timer and stopBlink clears it, so blinking() tells whether a tick of the caret is due, and no tick runs in the test.
@@ -35,7 +35,7 @@ class Caret {
   }
 }
 
-// ui/studio-host.js runs in the editor page. Each test loads the real module into a host-mode view of the plugin, which provides the
+// ui/studio-host.js runs in the editor page. Each test loads the real module into a view of the plugin (test/fixtures/plugin-api/page.mjs), which provides the
 // globals of that page: the visibility and the focus of the page, and the input handler of rhwp-studio, which the test sets. Each
 // message that the script posts to its window is recorded in sent; the message is not delivered, because the script posts with its
 // origin as the target and the view of a plugin has an opaque origin that jsdom refuses as a target.
@@ -46,7 +46,7 @@ const script = new URL("../ui/studio-host.js", import.meta.url);
  * until the test changes it. input.handler is the input handler that the editor returns, which the test sets before a reply.
  */
 async function openEditor() {
-  const view = await openPageHost({ host: { surface: "hwp-1" }, start: null });
+  const view = await openPage();
   const { window } = view;
   const page = { visibility: "visible", focused: true };
   const input = { handler: null };

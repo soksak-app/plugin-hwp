@@ -4,9 +4,9 @@
 
 The HWP view follows the call rule of core 0.0.40 ([plugin processes](https://github.com/soksak-app/core/blob/main/docs/spec/plugin-processes.md), rule 3). A call has no time limit: it ends by its reply, by its cancel or by the end of its peer, and no timer ends it. `plugin.json` and `diagnostics.json` declare no command `timeout`, which core 0.0.40 refuses. A peer that stays alive and does not reply leaves its call open.
 
-## The SDK model
+## The plugin API
 
-The call layer of the view is the one of the pinned `@soksak/plugin-api` release, and the tests run the view page through its test host (`openView` of `@soksak/plugin-api/testing`) instead of a copy of it. A request resolves with the result of its reply or rejects with the message and the code of its error; a request with a signal that aborts sends `{id, cancel: true}` and rejects with `cancelled`, and a reply after that cancel is a late reply, reported with its delay and passed to no caller; `peerLost(reason)` rejects each open call with `command <name> ended: <reason>` and reports `peer-lost` for each of them and then the open calls. The call layer starts no timer.
+The page imports `@soksak/plugin-api`, `@soksak/plugin-api/view` and `@soksak/plugin-api/diagnostic-view-frames` at run time, where the application resolves them through the import map of the view; the plugin declares no dependency on them. The call layer of the view is part of that plugin API, so its rules (a request resolves with the result of its reply or rejects with the message and the code of its error, a request with an aborted signal is cancelled, a late reply and a lost peer are reported, and the layer starts no timer) are the behavior of core and are tested there. The tests of this plugin answer the plugin API with the fixture of `test/fixtures/plugin-api/`, which records the calls that the page makes and answers as each test arranges, and judge what the page does: which calls it makes with which arguments, and what it does with the answers. The page does not start a timer of its own for a call.
 
 ## The waits of the page
 

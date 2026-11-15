@@ -130,9 +130,12 @@ function applyTheme(theme) {
   }
 }
 
-/** The errors and unhandled rejections of this page are written to the application log when they occur. */
+/**
+ * The errors and unhandled rejections of this page are written to the application log when they occur. An error event that
+ * carries no error value, such as a script error of another origin, is written with its message.
+ */
 function installPageErrors(report) {
-  for (const [type, pick] of [["error", (event) => event.error], ["unhandledrejection", (event) => event.reason]]) {
+  for (const [type, pick] of [["error", (event) => event.error ?? event.message], ["unhandledrejection", (event) => event.reason]]) {
     addEventListener(type, (event) => {
       const error = pick(event);
       report(`view hwp: ${error?.message ?? String(error)}`);

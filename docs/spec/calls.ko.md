@@ -4,9 +4,9 @@
 
 HWP view는 core 0.0.40의 call 규칙을 따른다([plugin processes](https://github.com/soksak-app/core/blob/main/docs/spec/plugin-processes.ko.md), rule 3). Call에는 시간 한도가 없다. Call은 답, cancel, 상대의 끝으로 끝나고, 어떤 timer도 그것을 끝내지 않는다. `plugin.json`과 `diagnostics.json`은 core 0.0.40이 거부하는 command `timeout`을 선언하지 않는다. 살아 있으면서 답하지 않는 상대는 그 call을 열린 채로 둔다.
 
-## SDK model
+## Plugin API
 
-View의 call layer는 고정된 `@soksak/plugin-api` release의 것이며, test는 그 사본 대신 test host(`@soksak/plugin-api/testing`의 `openView`)로 view page를 실행한다. Request는 답의 result로 resolve하거나 답의 error의 message와 code로 reject한다. Abort되는 signal을 가진 request는 `{id, cancel: true}`를 보내고 `cancelled`로 reject하며, 그 cancel 뒤의 답은 late reply로 delay와 함께 알리고 어떤 caller에게도 넘기지 않는다. `peerLost(reason)`은 열린 call마다 `command <name> ended: <reason>`으로 reject하고, 그 call마다 `peer-lost`를, 그 뒤 open call을 알린다. Call layer는 timer를 시작하지 않는다.
+Page는 `@soksak/plugin-api`, `@soksak/plugin-api/view`, `@soksak/plugin-api/diagnostic-view-frames`를 run time에 import하며, application이 view의 import map으로 그것을 resolve한다. Plugin은 그것에 대한 의존성을 선언하지 않는다. View의 call layer는 그 plugin API의 일부이므로, 그 규칙(request는 답의 result로 resolve하거나 답의 error의 message와 code로 reject하고, abort되는 signal을 가진 request는 cancel되며, late reply와 lost peer는 알리고, layer는 timer를 시작하지 않는다)은 core의 동작이며 core에서 시험한다. 이 plugin의 시험은 plugin API를 `test/fixtures/plugin-api/`의 fixture로 응답한다. 이 fixture는 page가 하는 call을 기록하고 각 시험이 정한 대로 답하며, 시험은 page가 하는 일을 판단한다. 곧 page가 어떤 call을 어떤 인수로 하는지와 그 답으로 무엇을 하는지이다. Page는 call마다 자신의 timer를 시작하지 않는다.
 
 ## Page의 대기
 
