@@ -23,7 +23,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "format"
         ]
@@ -46,7 +45,6 @@
           }
         },
         "required": [
-          "surface",
           "name"
         ]
       },
@@ -86,7 +84,6 @@
           }
         },
         "required": [
-          "surface",
           "name",
           "path",
           "micros",
@@ -114,7 +111,6 @@
           }
         },
         "required": [
-          "surface",
           "path"
         ]
       },
@@ -165,7 +161,6 @@
           }
         },
         "required": [
-          "surface",
           "sequence",
           "firstResizeAtMs",
           "resizeAtMs",
@@ -200,7 +195,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "phase"
         ]
@@ -241,7 +235,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "reason",
           "micros",
@@ -281,7 +274,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "micros",
           "ok"
@@ -308,7 +300,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "error"
         ]
@@ -355,7 +346,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "format",
           "overwrite",
@@ -393,7 +383,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "micros",
           "ok"
@@ -420,7 +409,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "error"
         ]
@@ -449,7 +437,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "modified",
           "action"
@@ -485,7 +472,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "event"
         ]
@@ -514,7 +500,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "message"
         ]
@@ -543,7 +528,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "reason"
         ]
@@ -572,7 +556,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "error"
         ]
@@ -613,7 +596,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "method",
           "micros",
@@ -656,7 +638,6 @@
           }
         },
         "required": [
-          "surface",
           "path",
           "name",
           "micros",
@@ -681,7 +662,6 @@
           }
         },
         "required": [
-          "surface",
           "text"
         ]
       },
@@ -712,7 +692,6 @@
           }
         },
         "required": [
-          "surface",
           "kind",
           "path"
         ]
